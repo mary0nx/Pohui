@@ -11,6 +11,8 @@ import logging
 import re
 import socket
 from collections.abc import Iterator
+from functools import lru_cache
+from pathlib import Path
 
 from sqlalchemy import text
 from sqlalchemy.exc import ArgumentError
@@ -91,13 +93,31 @@ def error_signature(exc: BaseException) -> str:
     return f"{signature}: {message}"[:250] if message else signature[:250]
 
 
+@lru_cache(maxsize=1)
+def migration_head() -> str | None:
+    """Newest Alembic revision shipped with this code (None if the scripts are not available)."""
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    ini = Path(__file__).resolve().parents[2] / "alembic.ini"
+    if not ini.exists():
+        return None
+    return ScriptDirectory.from_config(Config(str(ini))).get_current_head()
+
+
 async def database_problem() -> tuple[str, str] | None:
     """None when the database is reachable and migrated, else (problem code, error signature)."""
     try:
         async with get_sessionmaker()() as session:
-            migrated = await session.scalar(text("SELECT to_regclass('public.alembic_version')"))
+            version = None
+            if await session.scalar(text("SELECT to_regclass('public.alembic_version')")):
+                version = await session.scalar(text("SELECT version_num FROM alembic_version"))
     except Exception as exc:
         code = classify_database_error(exc)
         log.warning("readiness check failed", extra={"ctx": {"problem": code}}, exc_info=True)
         return code, error_signature(exc)
-    return None if migrated is not None else ("database_not_migrated", "")
+    head = migration_head()
+    if version is None or (head is not None and version != head):
+        # Tables missing or older than this code: queries on new columns would fail.
+        return "database_not_migrated", ""
+    return None

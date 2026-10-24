@@ -247,6 +247,21 @@ async def test_readiness_reports_missing_migrations(client: AsyncClient) -> None
         async with get_engine().begin() as conn:
             await conn.execute(text("ALTER TABLE alembic_version_hidden RENAME TO alembic_version"))
 
+    # A database one migration behind this code is not ready either.
+    from app.db.health import migration_head
+
+    head = migration_head()
+    assert head is not None
+    async with get_engine().begin() as conn:
+        await conn.execute(text("UPDATE alembic_version SET version_num = 'older'"))
+    try:
+        r = await client.get("/health/ready")
+        assert r.json() == {"status": "unavailable", "problem": "database_not_migrated"}
+    finally:
+        async with get_engine().begin() as conn:
+            await conn.execute(text("UPDATE alembic_version SET version_num = :h"), {"h": head})
+    assert (await client.get("/health/ready")).json() == {"status": "ok"}
+
 
 def test_unrecognised_database_errors_get_a_safe_signature() -> None:
     import asyncpg.exceptions as pg
