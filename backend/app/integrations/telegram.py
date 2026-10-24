@@ -68,7 +68,7 @@ class AiogramSender:
 
         markup = None
         if button_text and button_path and self.frontend_url.startswith("https://"):
-            url = f"{self.frontend_url}/#{button_path}"
+            url = f"{self.frontend_url}{button_path}"
             markup = InlineKeyboardMarkup(
                 inline_keyboard=[[InlineKeyboardButton(text=button_text, web_app=WebAppInfo(url=url))]]
             )

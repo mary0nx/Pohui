@@ -1,0 +1,35 @@
+/** Russian is the source of truth; other locales may translate a subset and fall back to it. */
+export const ru = {
+  "nav.home": "Главная",
+  "nav.finance": "Финансы",
+  "nav.calendar": "Календарь",
+  "nav.household": "Дом",
+  "nav.profile": "Профиль",
+  "common.save": "Сохранить",
+  "common.cancel": "Отмена",
+  "common.delete": "Удалить",
+  "common.edit": "Изменить",
+  "common.add": "Добавить",
+  "common.close": "Закрыть",
+  "common.confirm": "Подтвердить",
+  "common.retry": "Повторить",
+  "common.loading": "Загрузка…",
+  "common.all": "Все",
+  "common.private": "Личное",
+  "common.family": "Для семьи",
+  "common.search": "Поиск",
+  "common.today": "Сегодня",
+  "common.more": "Ещё",
+  "error.generic": "Что-то пошло не так",
+  "error.network": "Нет соединения с сервером",
+  "assistant.title": "Ассистент",
+  "assistant.placeholder": "Спросите или попросите что-нибудь…",
+  "settings.language": "Язык",
+  "settings.theme": "Тема",
+  "settings.theme.system": "Как в Telegram",
+  "settings.theme.light": "Светлая",
+  "settings.theme.dark": "Тёмная",
+} as const;
+
+export type MessageKey = keyof typeof ru;
+export type Dictionary = Record<MessageKey, string>;

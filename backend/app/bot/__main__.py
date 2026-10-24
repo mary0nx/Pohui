@@ -35,9 +35,7 @@ def _app_url(path: str | None) -> str | None:
         return None  # Telegram requires HTTPS for Mini App buttons
     if not path or path == "/":
         return base
-    if "?" in path and path.startswith("/join"):
-        return f"{base}/{path[path.index('?'):]}"
-    return f"{base}/#{path}"
+    return f"{base}{path}"
 
 
 def _markup(reply: logic.BotReply) -> InlineKeyboardMarkup | None:
