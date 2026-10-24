@@ -98,7 +98,7 @@ Family OS при каждом запуске отзывает у Data API дос
 
    | `problem` | Что исправить в Render → **Environment** → `DATABASE_URL` |
    |---|---|
-   | `database_password_wrong` | пароль не тот, что в Supabase (или остались `[` `]`) |
+   | `database_password_wrong` | пароль не тот, что в Supabase: проще всего задать его отдельно, см. ниже |
    | `database_user_wrong` | часть `postgres.<код_проекта>` скопирована неверно |
    | `database_host_not_found` / `database_unreachable` | адрес: нужен Session pooler, `...pooler.supabase.com:5432` |
    | `database_name_wrong` | в конце строки должно быть `/postgres` |
@@ -106,6 +106,12 @@ Family OS при каждом запуске отзывает у Data API дос
    | `database_not_migrated` | база доступна, но таблицы не созданы: **Manual Deploy** → **Deploy latest commit** |
 
    Сервер запускается даже при ошибке базы, чтобы причину было видно здесь, без логов.
+
+   **Смена пароля базы без правки длинной строки.** Supabase → **Connect** → **Direct** →
+   **Reset database password** → **Generate a password** → скопируйте → **Reset password**.
+   Затем Render → **familyos-api** → **Environment** → **+ Add** (Add Environment Variable):
+   Key `DATABASE_PASSWORD`, Value — новый пароль → **Save, rebuild and deploy**. Этот пароль
+   подставляется в `DATABASE_URL` вместо старого (подходят любые символы).
 2. `https://<адрес_backend>/api/v1/meta` → JSON, в котором `"env":"production"`,
    `"dev_auth":false` и `"bot_username"` — ваш бот.
 

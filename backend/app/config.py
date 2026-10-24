@@ -25,8 +25,13 @@ def normalize_database_url(url: str) -> str:
     "-pooler" hosts are replaced by the direct endpoint of the same database and Supabase's
     transaction pooler port 6543 by its session pooler port 5432 (same host, IPv4).
     """
-    url = url.strip()
-    parts = urlsplit(url)
+    # Supabase shows the string with a "[YOUR-PASSWORD]" placeholder; brackets would be read
+    # as an IPv6 host. DATABASE_PASSWORD can then supply the real password.
+    url = url.strip().replace("[YOUR-PASSWORD]", "YOUR-PASSWORD")
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return url  # reported as database_url_invalid by /health/ready
     if parts.scheme in ("postgres", "postgresql"):
         parts = parts._replace(scheme="postgresql+asyncpg")
     if parts.scheme != "postgresql+asyncpg":
@@ -55,6 +60,9 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     database_url: str = "postgresql+asyncpg://familyos:familyos@localhost:5432/familyos"
+    # Optional: replaces the password inside DATABASE_URL (any characters, encoded for you).
+    # Lets a hosted database password be changed without editing the whole connection string.
+    database_password: SecretStr = SecretStr("")
     db_pool_size: int = 10
     db_max_overflow: int = 10
     redis_url: str = ""
@@ -142,6 +150,16 @@ class Settings(BaseSettings):
         except ZoneInfoNotFoundError as exc:
             raise ValueError(f"Unknown timezone: {value}") from exc
         return value
+
+    @model_validator(mode="after")
+    def _apply_database_password(self) -> Settings:
+        password = self.database_password.get_secret_value()
+        if password:
+            from sqlalchemy.engine import make_url
+
+            url = make_url(self.database_url).set(password=password)
+            self.database_url = url.render_as_string(hide_password=False)
+        return self
 
     @model_validator(mode="after")
     def _derive_public_urls(self) -> Settings:

@@ -214,6 +214,7 @@ async def test_readiness_names_the_database_problem(
 
     await dispose_engine()
     settings_env.setenv("DATABASE_URL", url)
+    get_settings.cache_clear()  # importing app.main above may have cached the old settings
     try:
         async with _client(create_app()) as c:
             r = await c.get("/health/ready")
@@ -275,3 +276,18 @@ def test_unrecognised_database_errors_get_a_safe_signature() -> None:
     assert classify_database_error(breaker) == "database_temporarily_blocked"
     unknown = wrapped(pg.InternalServerError("(ESOMETHING) host db.ref.supabase.co said 42"))
     assert error_signature(unknown).endswith(": (ESOMETHING) host … said …")
+
+
+def test_database_password_replaces_the_one_in_the_url() -> None:
+    s = Settings(
+        database_url="postgresql://postgres.ref:[YOUR-PASSWORD]@aws-0-eu-west-1.pooler.supabase.com:5432/postgres",
+        database_password="n3w p@ss/word:#",
+    )
+    from sqlalchemy.engine import make_url
+
+    url = make_url(s.database_url)
+    assert url.password == "n3w p@ss/word:#"
+    assert url.drivername == "postgresql+asyncpg"
+    assert url.host == "aws-0-eu-west-1.pooler.supabase.com"
+    assert url.username == "postgres.ref"
+    assert Settings(database_url="postgresql://u:keep@h/db").database_url.endswith("u:keep@h/db")
