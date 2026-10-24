@@ -1,0 +1,133 @@
+"""Bot behaviour independent of aiogram, so it can be tested directly.
+
+The Telegram user id comes from the update delivered by Telegram (polling over HTTPS or a
+webhook protected by the secret token), so it identifies the user without initData.
+"""
+
+from __future__ import annotations
+
+import html
+import uuid
+from dataclasses import dataclass, field
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.ai import assistant, proposals
+from app.ai.providers.base import AIUnavailable
+from app.ai.tools.registry import ToolContext
+from app.core.errors import AppError
+from app.core.rate_limit import get_rate_limiter
+from app.core.time import utcnow
+from app.models import Family, FamilyMember, User
+from app.models.enums import Channel, ProposalStatus
+from app.security.access import FamilyContext
+
+HELP = (
+    "<b>Family OS</b> — семейный бюджет, календарь, покупки и задачи.\n\n"
+    "/app — открыть приложение\n"
+    "/settings — настройки уведомлений\n"
+    "/cancel — отменить ожидающие подтверждения действия\n"
+    "/help — эта справка\n\n"
+    "Можно просто написать: «Добавь 45 злотых за продукты», «Что у нас в субботу?», "
+    "«Добавь молоко и хлеб в покупки»."
+)
+
+
+@dataclass
+class BotReply:
+    text: str
+    open_app_path: str | None = None
+    open_app_text: str = "Открыть Family OS"
+    proposals: list[tuple[uuid.UUID, str]] = field(default_factory=list)
+
+
+async def mark_started(db: AsyncSession, tg_user_id: int, first_name: str, username: str | None, language: str | None) -> User:
+    from app.modules.auth.service import upsert_user
+    from app.security.telegram import TelegramUser
+
+    user = await upsert_user(db, TelegramUser(id=tg_user_id, first_name=first_name[:128] or "Без имени", last_name=None, username=username, language_code=language, photo_url=None))
+    user.bot_started_at = user.bot_started_at or utcnow()
+    user.bot_blocked = False
+    await db.commit()
+    return user
+
+
+async def family_context_for(db: AsyncSession, tg_user_id: int) -> FamilyContext | None:
+    user = await db.scalar(select(User).where(User.telegram_id == tg_user_id))
+    if user is None:
+        return None
+    stmt = select(FamilyMember, Family).join(Family, Family.id == FamilyMember.family_id).where(FamilyMember.user_id == user.id)
+    rows = (await db.execute(stmt.order_by(FamilyMember.joined_at))).all()
+    if not rows:
+        return None
+    chosen = next(((m, f) for m, f in rows if f.id == user.active_family_id), rows[0])
+    return FamilyContext(user=user, family=chosen[1], member=chosen[0])
+
+
+async def start(db: AsyncSession, tg_user_id: int, first_name: str, username: str | None, language: str | None, payload: str | None) -> BotReply:
+    await mark_started(db, tg_user_id, first_name, username, language)
+    if payload and payload.startswith("inv_"):
+        return BotReply(
+            text=f"Вас пригласили в семейное пространство Family OS, {html.escape(first_name)}! Откройте приложение, чтобы присоединиться.",
+            open_app_path=f"/join?invite={payload}",
+            open_app_text="Присоединиться",
+        )
+    ctx = await family_context_for(db, tg_user_id)
+    if ctx is None:
+        return BotReply(
+            text=f"Привет, {html.escape(first_name)}! Это Family OS. Откройте приложение, чтобы создать семейное пространство или присоединиться по приглашению.",
+            open_app_path="/",
+        )
+    return BotReply(
+        text=f"С возвращением, {html.escape(first_name)}! Уведомления будут приходить сюда.\n\n{HELP}",
+        open_app_path="/",
+    )
+
+
+async def cancel(db: AsyncSession, tg_user_id: int) -> BotReply:
+    ctx = await family_context_for(db, tg_user_id)
+    if ctx is None:
+        return BotReply(text="Нечего отменять.")
+    n = await proposals.cancel_all_pending(db, ctx)
+    return BotReply(text=f"Отменено действий: {n}." if n else "Нет действий, ожидающих подтверждения.")
+
+
+async def ai_message(db: AsyncSession, tg_user_id: int, text: str) -> BotReply:
+    ctx = await family_context_for(db, tg_user_id)
+    if ctx is None:
+        return BotReply(text="Сначала создайте семью или присоединитесь к ней в приложении.", open_app_path="/")
+    try:
+        await get_rate_limiter().hit(f"bot-ai:{ctx.user_id}", 10)
+        result = await assistant.chat(db, ToolContext(db=db, ctx=ctx, channel=Channel.bot), text)
+    except AIUnavailable as exc:
+        await db.rollback()
+        return BotReply(text=html.escape(exc.message))
+    except AppError as exc:
+        await db.rollback()
+        return BotReply(text=html.escape(exc.message))
+    return BotReply(
+        text=html.escape(result.reply)[:3900],
+        proposals=[(p.id, p.summary + ("\n" + "\n".join(p.details) if p.details else "")) for p in result.proposals],
+    )
+
+
+async def resolve_proposal(db: AsyncSession, tg_user_id: int, proposal_id: uuid.UUID, confirm: bool) -> str:
+    ctx = await family_context_for(db, tg_user_id)
+    if ctx is None:
+        return "Нет доступа."
+    try:
+        if confirm:
+            p = await proposals.confirm_proposal(db, ctx, proposal_id, Channel.bot)
+        else:
+            p = await proposals.cancel_proposal(db, ctx, proposal_id)
+    except AppError as exc:
+        return html.escape(exc.message)
+    summary = html.escape(p.preview.get("summary", "Действие"))
+    if p.status == ProposalStatus.executed:
+        return f"✅ Выполнено: {summary}"
+    if p.status == ProposalStatus.cancelled:
+        return f"✖️ Отменено: {summary}"
+    if p.status == ProposalStatus.failed:
+        return f"⚠️ Не выполнено: {html.escape((p.result or {}).get('error', ''))}"
+    return f"Статус: {p.status.value}"

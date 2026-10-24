@@ -162,7 +162,7 @@ def test_quiet_hours_function() -> None:
 
 
 async def test_payment_reminder(couple: tuple[Actor, Actor]) -> None:
-    alice, bob = couple
+    alice, _bob = couple
     accs = (await alice.get(alice.f("/finance/accounts"))).json()
     tomorrow = (datetime.now(UTC) + timedelta(days=1)).date()
     await alice.post(

@@ -9,8 +9,13 @@ from app.config import get_settings
 from app.modules.assistant.router import router as assistant_router
 from app.modules.auth.router import router as auth_router
 from app.modules.calendar.router import router as calendar_router
+from app.modules.dashboard.router import router as dashboard_router
+from app.modules.documents.router import files_router
+from app.modules.documents.router import router as documents_router
 from app.modules.families.router import router as families_router
 from app.modules.finance.router import router as finance_router
+from app.modules.kitchen.router import router as kitchen_router
+from app.modules.life.router import router as life_router
 from app.modules.notifications.router import router as notifications_router
 from app.modules.shopping.router import router as shopping_router
 from app.modules.tasks.router import router as tasks_router
@@ -24,6 +29,11 @@ api_router.include_router(shopping_router)
 api_router.include_router(tasks_router)
 api_router.include_router(notifications_router)
 api_router.include_router(assistant_router)
+api_router.include_router(kitchen_router)
+api_router.include_router(life_router)
+api_router.include_router(documents_router)
+api_router.include_router(files_router)
+api_router.include_router(dashboard_router)
 
 
 @api_router.get("/meta", tags=["meta"])
