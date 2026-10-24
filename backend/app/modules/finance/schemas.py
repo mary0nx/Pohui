@@ -7,7 +7,6 @@ from decimal import Decimal
 from pydantic import BaseModel, Field, field_validator
 
 from app.core.schemas import (
-    Currency,
     MoneyValue,
     Name,
     ORMModel,

@@ -132,7 +132,11 @@ class AiMessage(UUIDPk, Base):
     tool_name: Mapped[str | None] = mapped_column(sa.String(64))
     input_tokens: Mapped[int | None]
     output_tokens: Mapped[int | None]
-    created_at: Mapped[datetime] = mapped_column(server_default=sa.func.now())
+    # Python-side default: PostgreSQL now() is the transaction start, identical for every
+    # message written in one request, which would break ordering.
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=sa.func.now(), default=lambda: datetime.now(UTC)
+    )
 
 
 class AiActionProposal(UUIDPk, Base):
@@ -199,7 +203,9 @@ class AuditLog(UUIDPk, Base):
     # Short, non-sensitive human-readable summary (e.g. item name), never note bodies.
     summary: Mapped[str | None] = mapped_column(sa.String(300))
     is_private: Mapped[bool] = mapped_column(server_default=sa.false(), default=False)
-    created_at: Mapped[datetime] = mapped_column(server_default=sa.func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=sa.func.now(), default=lambda: datetime.now(UTC)
+    )
 
 
 class IdempotencyKey(UUIDPk, Base):

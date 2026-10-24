@@ -1,8 +1,8 @@
 """initial schema
 
-Revision ID: e2723873784a
+Revision ID: de63893106d5
 Revises:
-Create Date: 2026-10-24 09:46:59.139204
+Create Date: 2026-10-24 10:03:39.158196
 """
 
 from collections.abc import Sequence
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "e2723873784a"
+revision: str = "de63893106d5"
 down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None

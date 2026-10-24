@@ -16,7 +16,7 @@ from app.core.time import add_months, local_range_bounds, month_start
 from app.models import Budget, Category
 from app.models.enums import CategoryKind
 from app.modules.finance.schemas import BudgetCopy, BudgetOut, BudgetUpsert
-from app.modules.finance.summary import period_totals, category_spend, level_for, scope_condition
+from app.modules.finance.summary import category_spend, level_for, period_totals, scope_condition
 from app.security.access import FamilyContext, get_visible
 
 

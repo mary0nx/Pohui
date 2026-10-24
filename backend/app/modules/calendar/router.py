@@ -7,6 +7,7 @@ from fastapi import APIRouter
 
 from app.api.deps import DB, Ctx
 from app.core.time import local_range_bounds, local_today
+from app.models import CalendarEvent
 from app.modules.calendar import service
 from app.modules.calendar.schemas import (
     CustomReminderIn,
@@ -20,7 +21,6 @@ from app.modules.calendar.schemas import (
     RsvpIn,
 )
 from app.security.access import get_visible
-from app.models import CalendarEvent
 
 router = APIRouter(prefix="/families/{family_id}/calendar", tags=["calendar"])
 

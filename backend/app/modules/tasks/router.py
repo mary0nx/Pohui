@@ -10,7 +10,14 @@ from app.core.idempotency import Idempotency
 from app.models import Task
 from app.modules.shopping.schemas import HistoryOut
 from app.modules.tasks import service
-from app.modules.tasks.schemas import CommentCreate, CommentOut, TaskCreate, TaskOut, TaskPatch, TaskStats
+from app.modules.tasks.schemas import (
+    CommentCreate,
+    CommentOut,
+    TaskCreate,
+    TaskOut,
+    TaskPatch,
+    TaskStats,
+)
 from app.security.access import get_visible
 
 router = APIRouter(prefix="/families/{family_id}/tasks", tags=["tasks"])
