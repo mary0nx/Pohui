@@ -101,7 +101,8 @@ describe("dashboard", () => {
     const nav = screen.getByRole("navigation", { name: "Основная навигация" });
     await userEvent.click(within(nav).getByText("Календарь"));
     expect(await screen.findByRole("heading", { name: "Календарь" })).toBeInTheDocument();
-    expect(await screen.findByText("Свободный месяц")).toBeInTheDocument();
+    // The calendar opens on the month grid.
+    expect(await screen.findByRole("button", { name: "Следующий месяц" })).toBeInTheDocument();
     await userEvent.click(within(nav).getByText("Дом"));
     expect(await screen.findByRole("heading", { name: "Покупки и дом" })).toBeInTheDocument();
     await waitFor(() => expect(window.location.pathname).toBe("/home"));

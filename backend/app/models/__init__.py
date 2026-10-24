@@ -1,6 +1,12 @@
 """Import every model so Alembic and relationship resolution see the full metadata."""
 
-from app.models.calendar import CalendarEvent, EventAttendee, EventException, Reminder
+from app.models.calendar import (
+    CalendarEvent,
+    EventAttendee,
+    EventException,
+    Reminder,
+    WorkShift,
+)
 from app.models.finance import (
     Account,
     Budget,
@@ -79,4 +85,5 @@ __all__ = [
     "Transaction",
     "User",
     "UserSession",
+    "WorkShift",
 ]

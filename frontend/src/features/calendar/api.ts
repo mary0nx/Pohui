@@ -22,3 +22,19 @@ export function useCalendarInvalidate() {
   const qc = useQueryClient();
   return () => Promise.all(["occurrences", "event", "dashboard"].map((k) => qc.invalidateQueries({ queryKey: [k] })));
 }
+
+export type ShiftKind = "day" | "night";
+export interface Shift {
+  day: string;
+  kind: ShiftKind;
+}
+
+/** The current user's own work shifts (day/night) between two dates. */
+export function useShifts(dateFrom: string, dateTo: string) {
+  const { f, familyId } = useFamily();
+  return useQuery({
+    queryKey: ["shifts", familyId, dateFrom, dateTo],
+    queryFn: () => api<Shift[]>(f("/calendar/shifts"), { query: { date_from: dateFrom, date_to: dateTo } }),
+    placeholderData: (prev) => prev,
+  });
+}

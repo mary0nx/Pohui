@@ -10,7 +10,15 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, Timestamps, UUIDPk
 from app.models.common import family_fk, user_fk, visibility_col
-from app.models.enums import EventStatus, Frequency, ReminderTarget, Rsvp, Visibility, enum_type
+from app.models.enums import (
+    EventStatus,
+    Frequency,
+    ReminderTarget,
+    Rsvp,
+    ShiftKind,
+    Visibility,
+    enum_type,
+)
 
 
 class CalendarEvent(UUIDPk, Timestamps, Base):
@@ -100,3 +108,18 @@ class Reminder(UUIDPk, Base):
     for_all_members: Mapped[bool] = mapped_column(server_default=sa.false())
     created_by: Mapped[uuid.UUID | None] = user_fk()
     created_at: Mapped[datetime] = mapped_column(server_default=sa.func.now())
+
+
+class WorkShift(UUIDPk, Timestamps, Base):
+    """One day of a member's work schedule (day or night shift); days off have no row."""
+
+    __tablename__ = "work_shifts"
+    __table_args__ = (
+        sa.UniqueConstraint("family_id", "user_id", "day"),
+        sa.Index("ix_work_shifts_user_day", "user_id", "day"),
+    )
+
+    family_id: Mapped[uuid.UUID] = family_fk()
+    user_id: Mapped[uuid.UUID] = mapped_column(sa.ForeignKey("users.id", ondelete="CASCADE"))
+    day: Mapped[date] = mapped_column(sa.Date)
+    kind: Mapped[ShiftKind] = mapped_column(enum_type(ShiftKind, "shift_kind"))

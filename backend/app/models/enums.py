@@ -62,6 +62,11 @@ class PaymentMethod(StrEnum):
     other = "other"
 
 
+class ShiftKind(StrEnum):
+    day = "day"
+    night = "night"
+
+
 class Frequency(StrEnum):
     daily = "daily"
     weekly = "weekly"

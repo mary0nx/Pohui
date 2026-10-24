@@ -9,6 +9,7 @@ from app.config import get_settings
 from app.modules.assistant.router import router as assistant_router
 from app.modules.auth.router import router as auth_router
 from app.modules.calendar.router import router as calendar_router
+from app.modules.calendar.shifts import router as shifts_router
 from app.modules.dashboard.router import router as dashboard_router
 from app.modules.documents.router import files_router
 from app.modules.documents.router import router as documents_router
@@ -25,6 +26,7 @@ api_router.include_router(auth_router)
 api_router.include_router(families_router)
 api_router.include_router(finance_router)
 api_router.include_router(calendar_router)
+api_router.include_router(shifts_router)
 api_router.include_router(shopping_router)
 api_router.include_router(tasks_router)
 api_router.include_router(notifications_router)
