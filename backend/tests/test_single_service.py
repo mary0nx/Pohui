@@ -291,3 +291,35 @@ def test_database_password_replaces_the_one_in_the_url() -> None:
     assert url.host == "aws-0-eu-west-1.pooler.supabase.com"
     assert url.username == "postgres.ref"
     assert Settings(database_url="postgresql://u:keep@h/db").database_url.endswith("u:keep@h/db")
+
+
+async def test_worker_backs_off_when_the_database_rejects_credentials(
+    settings_env: pytest.MonkeyPatch,
+) -> None:
+    import asyncpg.exceptions as pg
+    from sqlalchemy.exc import DBAPIError
+
+    import app.workers.loop as loop_module
+
+    calls = {"jobs": 0, "dispatch": 0}
+
+    async def rejecting_job(*_: Any) -> None:
+        calls["jobs"] += 1
+        try:
+            raise pg.InvalidPasswordError("password authentication failed")
+        except Exception as e:
+            raise DBAPIError("connect", None, e) from e
+
+    async def dispatch(*_: Any) -> None:
+        calls["dispatch"] += 1
+
+    settings_env.setenv("WORKER_TICK_SECONDS", "0.01")
+    settings_env.setenv("TELEGRAM_BOT_TOKEN", "")
+    settings_env.setattr(loop_module, "run_job", rejecting_job)
+    settings_env.setattr(loop_module, "dispatch_due", dispatch)
+    stop = asyncio.Event()
+    task = asyncio.create_task(loop_module.run_loop(stop))
+    await asyncio.sleep(0.3)  # ~30 normal ticks
+    stop.set()
+    await asyncio.wait_for(task, timeout=2)
+    assert calls == {"jobs": 1, "dispatch": 0}  # one attempt, then a long pause
