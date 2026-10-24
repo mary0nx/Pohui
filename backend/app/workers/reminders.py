@@ -23,10 +23,13 @@ from app.models import (
     RecurringRule,
     Reminder,
     ScheduledPayment,
+    ShoppingItem,
+    ShoppingList,
     Task,
 )
 from app.models.enums import (
     EventStatus,
+    ItemStatus,
     NotificationCategory,
     ReminderTarget,
     Rsvp,
@@ -40,6 +43,10 @@ from app.modules.notifications.service import enqueue
 GRACE = timedelta(minutes=15)  # reminders older than this are dropped, not sent late
 LOOKAHEAD = timedelta(hours=26)
 MORNING = time(9, 0)
+# Day plans (shopping and tasks for today) go out at MORNING; if the worker was down then,
+# they are still sent later in the day, but not after this hour.
+DAY_PLAN_UNTIL = time(21, 0)
+DAY_PLAN_LIST = 8
 OVERDUE_LOOKBACK = timedelta(days=7)
 
 
@@ -321,6 +328,105 @@ async def schedule_document_reminders(db: AsyncSession, now: datetime) -> int:
     return created
 
 
+def _plan_day(now: datetime, zone: str) -> date | None:
+    """The family's local date when its morning day-plan is due now, else None."""
+    local = now.astimezone(ZoneInfo(zone))
+    return local.date() if MORNING <= local.time() < DAY_PLAN_UNTIL else None
+
+
+def _names(names: list[str]) -> str:
+    shown = ", ".join(names[:DAY_PLAN_LIST])
+    return shown + (f" и ещё {len(names) - DAY_PLAN_LIST}" if len(names) > DAY_PLAN_LIST else "")
+
+
+async def schedule_shopping_day(db: AsyncSession, now: datetime) -> int:
+    """Morning reminder with the items planned for today (shopping lists are family-wide)."""
+    created = 0
+    rows = (
+        await db.execute(
+            select(ShoppingItem, Family)
+            .join(ShoppingList, ShoppingList.id == ShoppingItem.list_id)
+            .join(Family, Family.id == ShoppingItem.family_id)
+            .where(
+                ShoppingItem.status == ItemStatus.needed,
+                ShoppingList.archived_at.is_(None),
+                # Every timezone's "today" lies within a day of the UTC date.
+                ShoppingItem.planned_for >= (now - timedelta(days=1)).date(),
+                ShoppingItem.planned_for <= (now + timedelta(days=1)).date(),
+            )
+            .order_by(ShoppingItem.position)
+        )
+    ).all()
+    by_family: dict[uuid.UUID, tuple[Family, list[ShoppingItem]]] = {}
+    for item, family in rows:
+        by_family.setdefault(family.id, (family, []))[1].append(item)
+    for family, items in by_family.values():
+        day = _plan_day(now, family.timezone)
+        today = [i for i in items if i.planned_for == day]
+        if day is None or not today:
+            continue
+        list_ids = {i.list_id for i in today}
+        link = f"/home/shopping/{next(iter(list_ids))}" if len(list_ids) == 1 else "/home/shopping"
+        for uid in await _members(db, family.id):
+            created += await enqueue(
+                db,
+                user_id=uid,
+                family_id=family.id,
+                category=NotificationCategory.shopping_reminder,
+                title="🛒 Купить сегодня",
+                body=_names([i.name for i in today]),
+                link=link,
+                dedupe_key=f"shop-day:{family.id}:{day.isoformat()}:{uid}",
+            )
+    return created
+
+
+async def schedule_task_day(db: AsyncSession, now: datetime) -> int:
+    """Morning reminder with each member's open tasks due today."""
+    created = 0
+    rows = (
+        await db.execute(
+            select(Task, Family)
+            .join(Family, Family.id == Task.family_id)
+            .where(
+                Task.status.in_([TaskStatus.todo, TaskStatus.in_progress]),
+                Task.due_at >= now - timedelta(days=1),
+                Task.due_at <= now + timedelta(days=2),
+            )
+            .order_by(Task.due_at)
+        )
+    ).all()
+    by_family: dict[uuid.UUID, tuple[Family, list[Task]]] = {}
+    for task, family in rows:
+        by_family.setdefault(family.id, (family, []))[1].append(task)
+    for family, tasks in by_family.values():
+        day = _plan_day(now, family.timezone)
+        if day is None:
+            continue
+        zone = ZoneInfo(family.timezone)
+        today = [t for t in tasks if t.due_at and t.due_at.astimezone(zone).date() == day]
+        if not today:
+            continue
+        members = await _members(db, family.id)
+        mine: dict[uuid.UUID, list[str]] = {}
+        for task in today:
+            target = task.assignee_id if task.assignee_id in members else None
+            for uid in _recipients_for(task, members, target):
+                mine.setdefault(uid, []).append(task.title)
+        for uid, titles in mine.items():
+            created += await enqueue(
+                db,
+                user_id=uid,
+                family_id=family.id,
+                category=NotificationCategory.task_reminder,
+                title="📝 Задачи на сегодня",
+                body=_names(titles),
+                link="/home/tasks",
+                dedupe_key=f"task-day:{family.id}:{day.isoformat()}:{uid}",
+            )
+    return created
+
+
 async def schedule_all(db: AsyncSession, now: datetime) -> dict[str, int]:
     return {
         "events": await schedule_event_reminders(db, now),
@@ -329,4 +435,6 @@ async def schedule_all(db: AsyncSession, now: datetime) -> dict[str, int]:
         "overdue": await schedule_overdue_tasks(db, now),
         "payments": await schedule_payment_reminders(db, now),
         "documents": await schedule_document_reminders(db, now),
+        "shopping_day": await schedule_shopping_day(db, now),
+        "task_day": await schedule_task_day(db, now),
     }

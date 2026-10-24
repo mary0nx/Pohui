@@ -39,6 +39,10 @@ interface TgWebApp {
   openTelegramLink(url: string): void;
   onEvent(event: EventName, cb: () => void): void;
   offEvent(event: EventName, cb: () => void): void;
+  CloudStorage?: {
+    setItem(key: string, value: string, cb?: (err: string | null, ok?: boolean) => void): void;
+    getItem(key: string, cb: (err: string | null, value?: string) => void): void;
+  };
 }
 
 declare global {
@@ -128,4 +132,30 @@ export function openExternal(url: string): void {
   const tg = webApp();
   if (tg?.initData) tg.openLink(url);
   else window.open(url, "_blank", "noopener,noreferrer");
+}
+
+/**
+ * Telegram CloudStorage: small per-user values synced across the user's devices (Bot API 6.9+).
+ * Resolves to null outside Telegram, on older clients or on any error.
+ */
+export function cloudGet(key: string): Promise<string | null> {
+  const tg = webApp();
+  if (!tg?.CloudStorage || !tg.isVersionAtLeast("6.9")) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    try {
+      tg.CloudStorage!.getItem(key, (err, value) => resolve(err || !value ? null : value));
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+export function cloudSet(key: string, value: string): void {
+  const tg = webApp();
+  if (!tg?.CloudStorage || !tg.isVersionAtLeast("6.9")) return;
+  try {
+    tg.CloudStorage.setItem(key, value);
+  } catch {
+    /* best effort: the local copy still applies */
+  }
 }

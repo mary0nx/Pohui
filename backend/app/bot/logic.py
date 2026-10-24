@@ -14,6 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai import assistant, proposals
+from app.ai.providers import ai_available
 from app.ai.providers.base import AIUnavailable
 from app.ai.tools.registry import ToolContext
 from app.core.errors import AppError
@@ -23,15 +24,26 @@ from app.models import Family, FamilyMember, User
 from app.models.enums import Channel, ProposalStatus
 from app.security.access import FamilyContext
 
-HELP = (
+HELP_BASE = (
     "<b>Family OS</b> — семейный бюджет, календарь, покупки и задачи.\n\n"
     "/app — открыть приложение\n"
     "/settings — настройки уведомлений\n"
     "/cancel — отменить ожидающие подтверждения действия\n"
-    "/help — эта справка\n\n"
-    "Можно просто написать: «Добавь 45 злотых за продукты», «Что у нас в субботу?», "
+    "/help — эта справка"
+)
+HELP_AI = (
+    "\n\nМожно просто написать: «Добавь 45 злотых за продукты», «Что у нас в субботу?», "
     "«Добавь молоко и хлеб в покупки»."
 )
+NO_AI_REPLY = (
+    "Записи добавляются в приложении: откройте Family OS кнопкой ниже. "
+    "Сюда будут приходить напоминания и уведомления."
+)
+
+
+def help_text() -> str:
+    """The free-text examples only make sense while the AI assistant is configured."""
+    return HELP_BASE + (HELP_AI if ai_available() else "")
 
 
 @dataclass
@@ -103,7 +115,7 @@ async def start(
             open_app_path="/",
         )
     return BotReply(
-        text=f"С возвращением, {html.escape(first_name)}! Уведомления будут приходить сюда.\n\n{HELP}",
+        text=f"С возвращением, {html.escape(first_name)}! Уведомления будут приходить сюда.\n\n{help_text()}",
         open_app_path="/",
     )
 
@@ -119,6 +131,8 @@ async def cancel(db: AsyncSession, tg_user_id: int) -> BotReply:
 
 
 async def ai_message(db: AsyncSession, tg_user_id: int, text: str) -> BotReply:
+    if not ai_available():
+        return BotReply(text=NO_AI_REPLY, open_app_path="/")
     ctx = await family_context_for(db, tg_user_id)
     if ctx is None:
         return BotReply(

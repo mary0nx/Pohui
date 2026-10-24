@@ -1,14 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Copy, LogOut, Moon, Share2, Sparkles, Trash2, UserMinus, UserPlus } from "lucide-react";
+import { Bell, Check, Copy, LogOut, Moon, Palette as PaletteIcon, Share2, Sparkles, Trash2, UserMinus, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 
 import { api, errorMessage } from "@/api/client";
-import { useFamily, useSession } from "@/app/session";
-import { useTheme, type ThemeMode } from "@/app/theme";
+import { useAiEnabled, useFamily, useSession } from "@/app/session";
+import { PALETTES, useTheme, type ThemeMode } from "@/app/theme";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Avatar, Badge, Button, Card, ConfirmDialog, Input, Section, Segmented, Select, Sheet, Switch, useToast } from "@/components/ui";
 import { useI18n, type Locale } from "@/i18n";
+import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/format";
 import { webApp } from "@/lib/telegram";
 import type { Family, Invitation, InvitationCreated, Member, Role } from "@/types/api";
@@ -19,7 +20,8 @@ const TIMEZONES = ["Europe/Warsaw", "Europe/Berlin", "Europe/London", "Europe/Ky
 export function ProfilePage() {
   const { f, familyId, family, me, userId, role, tz } = useFamily();
   const { refreshMe, logout, setActiveFamily } = useSession();
-  const { mode, setMode } = useTheme();
+  const { mode, setMode, palette, setPalette, resolved } = useTheme();
+  const aiEnabled = useAiEnabled();
   const { locale, setLocale, t } = useI18n();
   const qc = useQueryClient();
   const toast = useToast();
@@ -204,6 +206,37 @@ export function ProfilePage() {
               ]}
             />
           </div>
+          <div>
+            <p className="mb-1.5 flex items-center gap-2 px-1 text-sm font-medium text-muted">
+              <PaletteIcon className="size-4" /> Цвет
+            </p>
+            <div className="grid grid-cols-4 gap-2" role="radiogroup" aria-label="Цветовая палитра">
+              {PALETTES.map((p) => {
+                const active = p.id === palette;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setPalette(p.id)}
+                    className={cn(
+                      "flex flex-col items-center gap-1.5 rounded-2xl border px-1 py-2.5 text-xs transition",
+                      active ? "border-accent bg-accent-soft font-medium text-accent-strong" : "border-border text-muted",
+                    )}
+                  >
+                    <span
+                      className="flex size-8 items-center justify-center rounded-full shadow-sm"
+                      style={resolved === "dark" ? { background: p.dark, color: "#111418" } : { background: p.light, color: "#ffffff" }}
+                    >
+                      {active && <Check className="size-4" strokeWidth={3} aria-hidden />}
+                    </span>
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <Select label={t("settings.language")} value={locale} onChange={(e) => setLocale(e.target.value as Locale)} hint="Перевод на английский и польский пока частичный">
             <option value="ru">Русский</option>
             <option value="en">English</option>
@@ -214,11 +247,13 @@ export function ProfilePage() {
           <Link to="/profile/notifications" className="flex items-center gap-3 px-4 py-3.5">
             <Bell className="size-5 text-accent" /> Уведомления
           </Link>
-          <Link to="/profile/ai" className="flex items-center gap-3 px-4 py-3.5">
-            <Sparkles className="size-5 text-accent" /> AI-ассистент и память
-          </Link>
+          {aiEnabled && (
+            <Link to="/profile/ai" className="flex items-center gap-3 px-4 py-3.5">
+              <Sparkles className="size-5 text-accent" /> AI-ассистент и память
+            </Link>
+          )}
         </Card>
-        {family && isAdmin && <Switch label="AI выполняет простые команды сразу" description="Например, «добавь 45 zł за продукты». Удаление и массовые изменения всегда требуют подтверждения." checked={family.ai_auto_execute} onChange={(v) => patch.mutate({ ai_auto_execute: v })} />}
+        {aiEnabled && family && isAdmin && <Switch label="AI выполняет простые команды сразу" description="Например, «добавь 45 zł за продукты». Удаление и массовые изменения всегда требуют подтверждения." checked={family.ai_auto_execute} onChange={(v) => patch.mutate({ ai_auto_execute: v })} />}
       </Section>
 
       <Section title="Опасная зона">

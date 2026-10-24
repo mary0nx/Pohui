@@ -2,6 +2,7 @@ import { CalendarDays, Home, House, User, Wallet } from "lucide-react";
 import { useEffect } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 
+import { useAiEnabled } from "@/app/session";
 import { useI18n } from "@/i18n";
 import { cn } from "@/lib/cn";
 import { haptic, showBackButton } from "@/lib/telegram";
@@ -42,7 +43,7 @@ export function AppShell() {
     window.scrollTo({ top: 0 });
   }, [location.pathname]);
   const onAssistant = location.pathname.startsWith("/assistant");
-  const showFab = !onAssistant && !location.pathname.startsWith("/profile");
+  const showFab = useAiEnabled() && !onAssistant && !location.pathname.startsWith("/profile");
   return (
     <div className="mx-auto min-h-dvh w-full max-w-lg">
       <main className={cn("pt-safe animate-fade-in px-4", onAssistant ? "pb-0" : "pb-nav")} key={location.pathname.split("/")[1]}>

@@ -2,8 +2,12 @@ import { ListChecks, Plus, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 
+import { useFamily } from "@/app/session";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Button, Card, Chips, EmptyState, ErrorState, LoadingBlock } from "@/components/ui";
+import { Button, Card, Chips, EmptyState, ErrorState, LoadingBlock, Segmented } from "@/components/ui";
+import { WeekPlanner } from "@/components/WeekPlanner";
+import { zonedDate } from "@/lib/time";
+import type { Task } from "@/types/api";
 
 import { useTasks, useTaskStats } from "./api";
 import { TaskRow } from "./TaskRow";
@@ -18,15 +22,28 @@ const FILTERS = [
 ];
 
 export function TasksPage() {
+  const { tz } = useFamily();
   const [filter, setFilter] = useState("all");
   const [params, setParams] = useSearchParams();
   const creating = params.get("new") === "1";
+  const view = params.get("view") === "week" ? "week" : "list";
+  const [newDay, setNewDay] = useState<string | undefined>();
   const query =
     filter === "done" ? { status: "done" } : filter === "overdue" ? { status: "open", due: "overdue" } : filter === "all" ? { status: "open" } : { status: "open", assignee: filter };
   const tasks = useTasks(query);
+  const week = useTasks({ status: "open", limit: 200 });
   const stats = useTaskStats();
 
-  const setCreating = (v: boolean) => setParams(v ? { new: "1" } : {}, { replace: true });
+  const setCreating = (v: boolean) => {
+    if (!v) setNewDay(undefined);
+    setParams({ ...(view === "week" ? { view: "week" } : {}), ...(v ? { new: "1" } : {}) }, { replace: true });
+  };
+  const byDay = new Map<string, Task[]>();
+  for (const t of week.data ?? []) {
+    if (!t.due_at) continue;
+    const day = zonedDate(t.due_at, tz);
+    byDay.set(day, [...(byDay.get(day) ?? []), t]);
+  }
 
   return (
     <div className="space-y-3">
@@ -48,23 +65,61 @@ export function TasksPage() {
           </p>
         </Card>
       )}
-      <Chips value={filter} onChange={setFilter} options={FILTERS} />
-      {tasks.isPending ? (
-        <LoadingBlock rows={4} />
-      ) : tasks.isError ? (
-        <ErrorState error={tasks.error} onRetry={() => tasks.refetch()} />
-      ) : tasks.data.length === 0 ? (
-        <Card>
-          <EmptyState icon={<ListChecks className="size-6" />} title={filter === "done" ? "Пока ничего не выполнено" : "Всё сделано!"} text="Добавьте домашнее дело или назначьте его партнёру." />
-        </Card>
+      <Segmented
+        value={view}
+        onChange={(v) => setParams(v === "week" ? { view: "week" } : {}, { replace: true })}
+        options={[
+          { value: "list", label: "Список" },
+          { value: "week", label: "Неделя" },
+        ]}
+      />
+      {view === "week" ? (
+        week.isPending ? (
+          <LoadingBlock rows={4} />
+        ) : week.isError ? (
+          <ErrorState error={week.error} onRetry={() => week.refetch()} />
+        ) : (
+          <WeekPlanner
+            tz={tz}
+            addLabel="Добавить задачу"
+            onAdd={(day) => {
+              setNewDay(day);
+              setCreating(true);
+            }}
+            renderDay={(day) => {
+              const items = byDay.get(day);
+              if (!items?.length) return null;
+              return (
+                <div className="divide-y divide-border">
+                  {items.map((t) => (
+                    <TaskRow key={t.id} task={t} />
+                  ))}
+                </div>
+              );
+            }}
+          />
+        )
       ) : (
-        <Card className="divide-y divide-border p-0">
-          {tasks.data.map((t) => (
-            <TaskRow key={t.id} task={t} />
-          ))}
-        </Card>
+        <>
+          <Chips value={filter} onChange={setFilter} options={FILTERS} />
+          {tasks.isPending ? (
+            <LoadingBlock rows={4} />
+          ) : tasks.isError ? (
+            <ErrorState error={tasks.error} onRetry={() => tasks.refetch()} />
+          ) : tasks.data.length === 0 ? (
+            <Card>
+              <EmptyState icon={<ListChecks className="size-6" />} title={filter === "done" ? "Пока ничего не выполнено" : "Всё сделано!"} text="Добавьте домашнее дело или назначьте его партнёру." />
+            </Card>
+          ) : (
+            <Card className="divide-y divide-border p-0">
+              {tasks.data.map((t) => (
+                <TaskRow key={t.id} task={t} />
+              ))}
+            </Card>
+          )}
+        </>
       )}
-      <TaskSheet open={creating} onOpenChange={setCreating} />
+      <TaskSheet open={creating} onOpenChange={setCreating} defaultDate={newDay} />
     </div>
   );
 }

@@ -167,7 +167,7 @@ async def add_items(
         return []
     await _ensure_capacity(db, lst, len(items))
     existing = {
-        i.name.lower(): i
+        (i.name.lower(), i.planned_for): i
         for i in (
             await db.execute(
                 select(ShoppingItem).where(
@@ -186,7 +186,8 @@ async def add_items(
     )
     result: list[ShoppingItem] = []
     for data in items:
-        same = existing.get(data.name.lower()) if merge else None
+        # Same item for the same day merges; a different day is a separate line.
+        same = existing.get((data.name.lower(), data.planned_for)) if merge else None
         if same is not None and (same.unit or None) == (data.unit or None):
             # Merge duplicates of a still-needed item instead of creating a second line.
             if data.quantity is not None:
@@ -210,9 +211,10 @@ async def add_items(
             store=data.store,
             added_by=ctx.user_id,
             position=max_pos,
+            planned_for=data.planned_for,
         )
         db.add(item)
-        existing[item.name.lower()] = item
+        existing[(item.name.lower(), item.planned_for)] = item
         result.append(item)
     lst.updated_at = utcnow()
     await db.flush()
@@ -252,7 +254,16 @@ async def update_item(
     db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID, item_id: uuid.UUID, data: ItemPatch
 ) -> ShoppingItem:
     item = await _get_item(db, ctx, list_id, item_id)
-    for field in ("name", "quantity", "unit", "category", "note", "estimated_price", "store"):
+    for field in (
+        "name",
+        "quantity",
+        "unit",
+        "category",
+        "note",
+        "estimated_price",
+        "store",
+        "planned_for",
+    ):
         if field in data.model_fields_set:
             setattr(item, field, getattr(data, field))
     if data.status is not None and data.status != item.status:

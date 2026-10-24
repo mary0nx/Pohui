@@ -1,12 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Archive, Check, History, ListPlus, MoreHorizontal, Send, Trash2 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 
 import { api, errorMessage, newIdempotencyKey } from "@/api/client";
 import { useFamily } from "@/app/session";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Button, Card, ConfirmDialog, EmptyState, ErrorState, IconButton, Input, LoadingBlock, Sheet, Textarea, useToast } from "@/components/ui";
+import { Button, Card, ConfirmDialog, EmptyState, ErrorState, IconButton, Input, LoadingBlock, Segmented, Sheet, Textarea, useToast } from "@/components/ui";
+import { shortDayLabel, WeekPlanner } from "@/components/WeekPlanner";
 import { cn } from "@/lib/cn";
 import { formatMoney, formatQty, timeAgo } from "@/lib/format";
 import { haptic } from "@/lib/telegram";
@@ -16,7 +17,10 @@ import { useListDetail, useShoppingInvalidate } from "./api";
 
 export function ShoppingListPage() {
   const { listId } = useParams();
-  const { f, currency, familyId, memberName } = useFamily();
+  const { f, currency, familyId, memberName, tz } = useFamily();
+  const [params, setParams] = useSearchParams();
+  const view = params.get("view") === "week" ? "week" : "list";
+  const [dayAdd, setDayAdd] = useState<{ day: string; text: string } | null>(null);
   const q = useListDetail(listId);
   const qc = useQueryClient();
   const invalidate = useShoppingInvalidate();
@@ -50,6 +54,17 @@ export function ShoppingListPage() {
     },
     onError: (e) => toast.show(errorMessage(e), "error"),
   });
+  const addForDay = useMutation({
+    mutationFn: (v: { day: string; text: string }) =>
+      api<ShoppingItem[]>(f(`/shopping/lists/${listId}/items/bulk`), { body: { text: v.text, planned_for: v.day }, idempotencyKey: newIdempotencyKey() }),
+    onSuccess: async (items, v) => {
+      haptic("light");
+      toast.show(`${shortDayLabel(v.day)}: добавлено ${items.length}`);
+      setDayAdd(null);
+      await invalidate();
+    },
+    onError: (e) => toast.show(errorMessage(e), "error"),
+  });
   const toggle = useMutation({
     mutationFn: (item: ShoppingItem) => api<ShoppingItem>(f(`/shopping/lists/${listId}/items/${item.id}`), { method: "PATCH", body: { status: item.status === "needed" ? "bought" : "needed" } }),
     onMutate: async (item) => {
@@ -69,7 +84,16 @@ export function ShoppingListPage() {
     mutationFn: (item: ShoppingItem) =>
       api(f(`/shopping/lists/${listId}/items/${item.id}`), {
         method: "PATCH",
-        body: { name: item.name, quantity: item.quantity || null, unit: item.unit || null, note: item.note || null, estimated_price: item.estimated_price || null, store: item.store || null, category: item.category || null },
+        body: {
+          name: item.name,
+          quantity: item.quantity || null,
+          unit: item.unit || null,
+          note: item.note || null,
+          estimated_price: item.estimated_price || null,
+          store: item.store || null,
+          category: item.category || null,
+          planned_for: item.planned_for || null,
+        },
       }),
     onSuccess: async () => {
       setEdit(null);
@@ -106,7 +130,9 @@ export function ShoppingListPage() {
     const bought = items.filter((i) => i.status === "bought");
     const byCat = new Map<string, ShoppingItem[]>();
     for (const i of needed) byCat.set(i.category ?? "", [...(byCat.get(i.category ?? "") ?? []), i]);
-    return { byCat: [...byCat.entries()], bought };
+    const byDay = new Map<string, ShoppingItem[]>();
+    for (const i of items) if (i.planned_for) byDay.set(i.planned_for, [...(byDay.get(i.planned_for) ?? []), i]);
+    return { byCat: [...byCat.entries()], bought, byDay };
   }, [q.data]);
 
   if (q.isPending) return <LoadingBlock rows={5} />;
@@ -125,64 +151,113 @@ export function ShoppingListPage() {
           </IconButton>
         }
       />
-      {list.archived_at ? (
-        <Card className="flex items-center justify-between">
-          <span className="text-sm text-muted">Список в архиве</span>
-          <Button size="sm" variant="soft" onClick={() => archive.mutate(false)}>
-            Восстановить
-          </Button>
-        </Card>
-      ) : (
-        <form
-          className="flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (text.trim()) add.mutate(text.trim());
+      <Segmented
+        value={view}
+        onChange={(v) => setParams(v === "week" ? { view: "week" } : {}, { replace: true })}
+        options={[
+          { value: "list", label: "Список" },
+          { value: "week", label: "По дням" },
+        ]}
+      />
+      {view === "week" ? (
+        <WeekPlanner
+          tz={tz}
+          addLabel="Добавить покупку"
+          onAdd={(day) => (list.archived_at ? toast.show("Список в архиве", "error") : setDayAdd({ day, text: "" }))}
+          renderDay={(day) => {
+            const items = grouped.byDay.get(day);
+            if (!items?.length) return null;
+            return (
+              <div className="divide-y divide-border">
+                {items.map((i) => (
+                  <ItemRow key={i.id} item={i} onToggle={() => toggle.mutate(i)} onEdit={() => setEdit(i)} meta={memberName(i.added_by)} showDay={false} />
+                ))}
+              </div>
+            );
           }}
-        >
-          <Input aria-label="Новый товар" placeholder="Молоко 2 л, хлеб…" value={text} onChange={(e) => setText(e.target.value)} className="flex-1" enterKeyHint="send" />
-          <Button type="submit" aria-label="Добавить" className="w-12 px-0" loading={add.isPending} disabled={!text.trim()}>
-            <Send className="size-5" />
-          </Button>
-          <Button type="button" variant="secondary" aria-label="Добавить списком" className="w-12 px-0" onClick={() => setBulk("")}>
-            <ListPlus className="size-5" />
-          </Button>
-        </form>
-      )}
-
-      {list.items.length === 0 ? (
-        <Card>
-          <EmptyState title="Список пуст" text="Введите товары через запятую: «молоко, хлеб, яйца 10 шт»." />
-        </Card>
+        />
       ) : (
         <>
-          {grouped.byCat.map(([cat, items]) => (
-            <section key={cat || "none"}>
-              {cat && <h3 className="mb-1.5 px-1 text-xs font-semibold uppercase tracking-wide text-muted">{cat}</h3>}
-              <Card className="divide-y divide-border p-0">
-                {items.map((i) => (
-                  <ItemRow key={i.id} item={i} onToggle={() => toggle.mutate(i)} onEdit={() => setEdit(i)} meta={memberName(i.added_by)} />
-                ))}
-              </Card>
-            </section>
-          ))}
-          {grouped.bought.length > 0 && (
-            <section>
-              <div className="mb-1.5 flex items-center justify-between px-1">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Куплено · {grouped.bought.length}</h3>
-                <button type="button" className="text-sm font-medium text-accent" onClick={() => clearBought.mutate()}>
-                  Очистить
-                </button>
-              </div>
-              <Card className="divide-y divide-border p-0 opacity-70">
-                {grouped.bought.map((i) => (
-                  <ItemRow key={i.id} item={i} onToggle={() => toggle.mutate(i)} onEdit={() => setEdit(i)} meta={i.bought_by ? `купил(а) ${memberName(i.bought_by)}` : ""} />
-                ))}
-              </Card>
-            </section>
+          {list.archived_at ? (
+            <Card className="flex items-center justify-between">
+              <span className="text-sm text-muted">Список в архиве</span>
+              <Button size="sm" variant="soft" onClick={() => archive.mutate(false)}>
+                Восстановить
+              </Button>
+            </Card>
+          ) : (
+            <form
+              className="flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (text.trim()) add.mutate(text.trim());
+              }}
+            >
+              <Input aria-label="Новый товар" placeholder="Молоко 2 л, хлеб…" value={text} onChange={(e) => setText(e.target.value)} className="flex-1" enterKeyHint="send" />
+              <Button type="submit" aria-label="Добавить" className="w-12 px-0" loading={add.isPending} disabled={!text.trim()}>
+                <Send className="size-5" />
+              </Button>
+              <Button type="button" variant="secondary" aria-label="Добавить списком" className="w-12 px-0" onClick={() => setBulk("")}>
+                <ListPlus className="size-5" />
+              </Button>
+            </form>
+          )}
+
+          {list.items.length === 0 ? (
+            <Card>
+              <EmptyState title="Список пуст" text="Введите товары через запятую: «молоко, хлеб, яйца 10 шт»." />
+            </Card>
+          ) : (
+            <>
+              {grouped.byCat.map(([cat, items]) => (
+                <section key={cat || "none"}>
+                  {cat && <h3 className="mb-1.5 px-1 text-xs font-semibold uppercase tracking-wide text-muted">{cat}</h3>}
+                  <Card className="divide-y divide-border p-0">
+                    {items.map((i) => (
+                      <ItemRow key={i.id} item={i} onToggle={() => toggle.mutate(i)} onEdit={() => setEdit(i)} meta={memberName(i.added_by)} />
+                    ))}
+                  </Card>
+                </section>
+              ))}
+              {grouped.bought.length > 0 && (
+                <section>
+                  <div className="mb-1.5 flex items-center justify-between px-1">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Куплено · {grouped.bought.length}</h3>
+                    <button type="button" className="text-sm font-medium text-accent" onClick={() => clearBought.mutate()}>
+                      Очистить
+                    </button>
+                  </div>
+                  <Card className="divide-y divide-border p-0 opacity-70">
+                    {grouped.bought.map((i) => (
+                      <ItemRow key={i.id} item={i} onToggle={() => toggle.mutate(i)} onEdit={() => setEdit(i)} meta={i.bought_by ? `купил(а) ${memberName(i.bought_by)}` : ""} />
+                    ))}
+                  </Card>
+                </section>
+              )}
+            </>
           )}
         </>
       )}
+
+      <Sheet
+        open={dayAdd !== null}
+        onOpenChange={(v) => !v && setDayAdd(null)}
+        title={dayAdd ? `Купить: ${shortDayLabel(dayAdd.day)}` : ""}
+        description="Через запятую или с новой строки. Утром в этот день придёт напоминание."
+        footer={
+          <Button block loading={addForDay.isPending} disabled={!dayAdd?.text.trim()} onClick={() => dayAdd && addForDay.mutate({ day: dayAdd.day, text: dayAdd.text.trim() })}>
+            Добавить
+          </Button>
+        }
+      >
+        <Textarea
+          aria-label="Что купить"
+          rows={4}
+          placeholder={"Молоко 2 л, хлеб\nЯйца 10 шт"}
+          value={dayAdd?.text ?? ""}
+          onChange={(e) => dayAdd && setDayAdd({ ...dayAdd, text: e.target.value })}
+        />
+      </Sheet>
 
       <Sheet
         open={bulk !== null}
@@ -225,6 +300,13 @@ export function ShoppingListPage() {
               <Input label="Магазин" value={edit.store ?? ""} onChange={(e) => setEdit({ ...edit, store: e.target.value })} />
             </div>
             <Input label="Категория" placeholder="Молочное, овощи…" value={edit.category ?? ""} onChange={(e) => setEdit({ ...edit, category: e.target.value })} />
+            <Input
+              label="День покупки"
+              type="date"
+              hint="Утром в этот день придёт напоминание. Оставьте пустым, если день не важен."
+              value={edit.planned_for ?? ""}
+              onChange={(e) => setEdit({ ...edit, planned_for: e.target.value || null })}
+            />
             <Input label="Комментарий" value={edit.note ?? ""} onChange={(e) => setEdit({ ...edit, note: e.target.value })} />
             <p className="text-xs text-muted">Добавил(а): {memberName(edit.added_by)}</p>
           </div>
@@ -280,7 +362,7 @@ export function ShoppingListPage() {
   );
 }
 
-function ItemRow({ item, onToggle, onEdit, meta }: { item: ShoppingItem; onToggle: () => void; onEdit: () => void; meta: string }) {
+function ItemRow({ item, onToggle, onEdit, meta, showDay = true }: { item: ShoppingItem; onToggle: () => void; onEdit: () => void; meta: string; showDay?: boolean }) {
   const bought = item.status === "bought";
   return (
     <div className="flex items-center gap-3 px-3 py-2">
@@ -297,7 +379,7 @@ function ItemRow({ item, onToggle, onEdit, meta }: { item: ShoppingItem; onToggl
       <button type="button" onClick={onEdit} className="min-w-0 flex-1 py-1 text-left">
         <span className={cn("block truncate text-[15px]", bought && "line-through")}>{item.name}</span>
         <span className="block truncate text-xs text-muted">
-          {[formatQty(item.quantity, item.unit), item.store, item.note, meta].filter(Boolean).join(" · ")}
+          {[showDay && item.planned_for && `на ${shortDayLabel(item.planned_for)}`, formatQty(item.quantity, item.unit), item.store, item.note, meta].filter(Boolean).join(" · ")}
         </span>
       </button>
     </div>

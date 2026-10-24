@@ -333,6 +333,8 @@ export interface ShoppingItem {
   bought_by: UUID | null;
   bought_at: string | null;
   position: number;
+  /** YYYY-MM-DD: day to buy it (week planner); a reminder goes out that morning. */
+  planned_for: string | null;
   updated_at: string;
 }
 
@@ -500,6 +502,7 @@ export type NotificationCategory =
   | "task_assigned"
   | "task_reminder"
   | "shopping_update"
+  | "shopping_reminder"
   | "goal_update"
   | "document_expiry"
   | "custom_reminder"

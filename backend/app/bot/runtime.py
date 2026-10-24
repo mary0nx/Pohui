@@ -77,7 +77,7 @@ async def on_app(message: Message) -> None:
 
 @router.message(Command("help"))
 async def on_help(message: Message) -> None:
-    await _send(message, logic.BotReply(text=logic.HELP, open_app_path="/"))
+    await _send(message, logic.BotReply(text=logic.help_text(), open_app_path="/"))
 
 
 @router.message(Command("settings"))

@@ -47,6 +47,16 @@ async def test_bot_ai_and_inline_confirmation(couple: tuple[Actor, Actor]) -> No
 
 async def test_bot_without_family_or_ai(client) -> None:  # type: ignore[no-untyped-def]
     async with get_sessionmaker()() as db:
+        # AI switched off (no key, no provider): free text points to the app, help has no AI examples.
         reply = await logic.ai_message(db, 424242, "привет")
-        assert "создайте семью" in reply.text
+        assert reply.text == logic.NO_AI_REPLY and reply.open_app_path == "/"
+        assert "Добавь" not in logic.help_text()
         assert (await logic.cancel(db, 424242)).text == "Нечего отменять."
+    set_provider(ScriptedProvider([text("unused")]))
+    try:
+        async with get_sessionmaker()() as db:
+            reply = await logic.ai_message(db, 424242, "привет")
+            assert "создайте семью" in reply.text
+        assert "Добавь" in logic.help_text()
+    finally:
+        set_provider(None)

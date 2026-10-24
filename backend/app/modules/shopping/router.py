@@ -86,7 +86,10 @@ async def add_bulk(
     idem = Idempotency(db, ctx.user_id, idempotency_key, f"shop-bulk:{list_id}", body)
     if (replay := await idem.begin()) is not None:
         return replay
-    items = await service.add_items(db, ctx, list_id, parse_items(body.text))
+    parsed = [
+        item.model_copy(update={"planned_for": body.planned_for}) for item in parse_items(body.text)
+    ]
+    items = await service.add_items(db, ctx, list_id, parsed)
     out = [ItemOut.model_validate(i) for i in items]
     await idem.finish(201, out)
     return out

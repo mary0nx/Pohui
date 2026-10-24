@@ -41,6 +41,7 @@ class ShoppingItem(UUIDPk, Timestamps, Base):
         sa.CheckConstraint(
             "estimated_price IS NULL OR estimated_price >= 0", name="price_non_negative"
         ),
+        sa.Index("ix_shopping_items_family_planned", "family_id", "planned_for"),
     )
 
     family_id: Mapped[uuid.UUID] = family_fk()
@@ -63,6 +64,8 @@ class ShoppingItem(UUIDPk, Timestamps, Base):
     bought_by: Mapped[uuid.UUID | None] = user_fk()
     bought_at: Mapped[datetime | None]
     position: Mapped[int] = mapped_column(server_default="0")
+    # Day the item should be bought (week planner); the family gets a reminder that morning.
+    planned_for: Mapped[date | None] = mapped_column(sa.Date)
 
 
 class Task(UUIDPk, Timestamps, Base):

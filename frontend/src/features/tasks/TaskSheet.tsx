@@ -23,7 +23,18 @@ interface Form {
   visibility: Visibility;
 }
 
-export function TaskSheet({ open, onOpenChange, task }: { open: boolean; onOpenChange: (v: boolean) => void; task?: Task | null }) {
+export function TaskSheet({
+  open,
+  onOpenChange,
+  task,
+  defaultDate,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  task?: Task | null;
+  /** YYYY-MM-DD for a new task created from a day of the week planner. */
+  defaultDate?: string;
+}) {
   const { f, tz, members, userId } = useFamily();
   const toast = useToast();
   const invalidate = useTasksInvalidate();
@@ -47,9 +58,9 @@ export function TaskSheet({ open, onOpenChange, task }: { open: boolean; onOpenC
             reminder: "",
             visibility: task.visibility,
           }
-        : { title: "", description: "", assignee_id: "", date: "", time: "20:00", priority: "normal", recurrence: "", points: "", reminder: "", visibility: "family" },
+        : { title: "", description: "", assignee_id: "", date: defaultDate ?? "", time: "20:00", priority: "normal", recurrence: "", points: "", reminder: "", visibility: "family" },
     );
-  }, [open, task, tz]);
+  }, [open, task, tz, defaultDate]);
 
   const save = useMutation({
     mutationFn: (v: Form) => {

@@ -147,6 +147,7 @@ class NotificationCategory(StrEnum):
     task_assigned = "task_assigned"
     task_reminder = "task_reminder"
     shopping_update = "shopping_update"
+    shopping_reminder = "shopping_reminder"
     goal_update = "goal_update"
     document_expiry = "document_expiry"
     custom_reminder = "custom_reminder"

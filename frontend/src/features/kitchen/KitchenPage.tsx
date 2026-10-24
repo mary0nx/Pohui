@@ -3,7 +3,7 @@ import { ChefHat, Minus, Plus, ShoppingCart, Trash2, UtensilsCrossed } from "luc
 import { useState } from "react";
 
 import { api, errorMessage } from "@/api/client";
-import { useFamily } from "@/app/session";
+import { useAiEnabled, useFamily } from "@/app/session";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PrivateMark, VisibilityPicker } from "@/components/Visibility";
 import { Badge, Button, Card, EmptyState, ErrorState, IconButton, Input, LoadingBlock, Segmented, Select, Sheet, Textarea, useToast } from "@/components/ui";
@@ -153,6 +153,7 @@ interface RecipeForm {
 
 function RecipesTab() {
   const { f, familyId } = useFamily();
+  const aiEnabled = useAiEnabled();
   const toast = useToast();
   const invalidate = useKitchenInvalidate();
   const q = useQuery({ queryKey: ["recipes", familyId], queryFn: () => api<Recipe[]>(f("/kitchen/recipes")) });
@@ -194,7 +195,7 @@ function RecipesTab() {
         <ErrorState error={q.error} onRetry={() => q.refetch()} />
       ) : q.data.length === 0 ? (
         <Card>
-          <EmptyState icon={<ChefHat className="size-6" />} title="Рецептов пока нет" text="Сохраните любимые блюда или попросите ассистента предложить меню." />
+          <EmptyState icon={<ChefHat className="size-6" />} title="Рецептов пока нет" text={aiEnabled ? "Сохраните любимые блюда или попросите ассистента предложить меню." : "Сохраните любимые блюда, чтобы быстро собирать меню и покупки."} />
         </Card>
       ) : (
         q.data.map((r) => (

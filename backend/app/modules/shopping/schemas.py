@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, Field
@@ -38,6 +38,7 @@ class ItemCreate(BaseModel):
     note: str | None = Field(None, max_length=300)
     estimated_price: Decimal | None = Field(None, ge=0, max_digits=14, decimal_places=2)
     store: str | None = Field(None, max_length=100)
+    planned_for: date | None = None
 
 
 class ItemPatch(BaseModel):
@@ -49,6 +50,7 @@ class ItemPatch(BaseModel):
     estimated_price: Decimal | None = Field(None, ge=0, max_digits=14, decimal_places=2)
     store: str | None = Field(None, max_length=100)
     status: ItemStatus | None = None
+    planned_for: date | None = None
 
 
 class ItemOut(ORMModel):
@@ -66,11 +68,13 @@ class ItemOut(ORMModel):
     bought_by: uuid.UUID | None
     bought_at: datetime | None
     position: int
+    planned_for: date | None
     updated_at: datetime
 
 
 class BulkText(BaseModel):
     text: str = Field(min_length=1, max_length=5000)
+    planned_for: date | None = None
 
 
 class ListDetail(ListOut):

@@ -56,6 +56,80 @@
   color-scheme: dark;
 }
 
+/* Accent palettes (Профиль → Приложение → Цвет). Mint is the default above. */
+[data-palette="ocean"] {
+  --accent: #2563eb;
+  --accent-strong: #1d4ed8;
+  --accent-soft: #e7eefd;
+  --accent-fg: #ffffff;
+}
+[data-theme="dark"][data-palette="ocean"] {
+  --accent: #5b8def;
+  --accent-strong: #82a8f5;
+  --accent-soft: #172440;
+  --accent-fg: #0a1530;
+}
+[data-palette="lavender"] {
+  --accent: #7c3aed;
+  --accent-strong: #6d28d9;
+  --accent-soft: #f1eafd;
+  --accent-fg: #ffffff;
+}
+[data-theme="dark"][data-palette="lavender"] {
+  --accent: #a07cf0;
+  --accent-strong: #bb9ef5;
+  --accent-soft: #2a1f44;
+  --accent-fg: #170f2b;
+}
+[data-palette="rose"] {
+  --accent: #be185d;
+  --accent-strong: #9d174d;
+  --accent-soft: #fce8f1;
+  --accent-fg: #ffffff;
+}
+[data-theme="dark"][data-palette="rose"] {
+  --accent: #ec6aa0;
+  --accent-strong: #f28fb9;
+  --accent-soft: #3b1a2a;
+  --accent-fg: #2a0c19;
+}
+[data-palette="sunset"] {
+  --accent: #c2410c;
+  --accent-strong: #9a3412;
+  --accent-soft: #fdeee4;
+  --accent-fg: #ffffff;
+}
+[data-theme="dark"][data-palette="sunset"] {
+  --accent: #f28c4b;
+  --accent-strong: #f6a874;
+  --accent-soft: #3a2416;
+  --accent-fg: #2a1407;
+}
+[data-palette="forest"] {
+  --accent: #16803c;
+  --accent-strong: #11692f;
+  --accent-soft: #e5f4ea;
+  --accent-fg: #ffffff;
+}
+[data-theme="dark"][data-palette="forest"] {
+  --accent: #45b86e;
+  --accent-strong: #6ccb8d;
+  --accent-soft: #16301f;
+  --accent-fg: #082012;
+}
+[data-palette="graphite"] {
+  --accent: #374151;
+  --accent-strong: #1f2937;
+  --accent-soft: #e9ebee;
+  --accent-fg: #ffffff;
+}
+[data-theme="dark"][data-palette="graphite"] {
+  --accent: #c4cad2;
+  --accent-strong: #e2e6ea;
+  --accent-soft: #2a3036;
+  --accent-fg: #111418;
+}
+
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);

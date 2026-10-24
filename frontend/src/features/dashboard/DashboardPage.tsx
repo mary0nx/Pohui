@@ -16,7 +16,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 
 import { api } from "@/api/client";
-import { useFamily } from "@/app/session";
+import { useAiEnabled, useFamily } from "@/app/session";
 import { PrivateMark } from "@/components/Visibility";
 import { Badge, Card, CardHeader, EmptyState, ErrorState, ProgressBar, Skeleton } from "@/components/ui";
 import { TransactionSheet } from "@/features/finance/TransactionSheet";
@@ -36,6 +36,7 @@ function greeting(): string {
 
 export function DashboardPage() {
   const { f, tz, familyId } = useFamily();
+  const aiEnabled = useAiEnabled();
   const [txOpen, setTxOpen] = useState(false);
   const q = useQuery({ queryKey: ["dashboard", familyId], queryFn: () => api<Dashboard>(f("/dashboard")), refetchInterval: 60_000 });
 
@@ -138,12 +139,14 @@ export function DashboardPage() {
         })}
       </div>
 
-      <Link to="/assistant" className="flex items-center gap-3 rounded-card border border-accent/20 bg-accent-soft p-4 text-accent-strong">
-        <Sparkles className="size-5 shrink-0" />
-        <span className="text-[15px]">
-          <b>Спросите ассистента:</b> «Сколько мы потратили на продукты?»
-        </span>
-      </Link>
+      {aiEnabled && (
+        <Link to="/assistant" className="flex items-center gap-3 rounded-card border border-accent/20 bg-accent-soft p-4 text-accent-strong">
+          <Sparkles className="size-5 shrink-0" />
+          <span className="text-[15px]">
+            <b>Спросите ассистента:</b> «Сколько мы потратили на продукты?»
+          </span>
+        </Link>
+      )}
 
       {d.is_empty && (
         <Card>

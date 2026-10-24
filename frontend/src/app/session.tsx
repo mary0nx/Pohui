@@ -156,6 +156,11 @@ export function useSession(): SessionValue {
   return ctx;
 }
 
+/** The AI assistant is shown only when the server has it configured (OPENAI_API_KEY + AI_MODEL). */
+export function useAiEnabled(): boolean {
+  return useSession().meta?.ai_available === true;
+}
+
 /** Current family; only used below the gate that guarantees an active family. */
 export function useFamily() {
   const { me } = useSession();

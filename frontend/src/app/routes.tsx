@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate, useRouteError } from "react-router";
 
 import { ErrorState } from "@/components/ui";
 
+import { AiGate } from "@/app/AiGate";
 import { AppShell } from "@/components/layout/AppShell";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
 
@@ -34,10 +35,22 @@ export const router = createBrowserRouter([
       { path: "home/documents", lazy: async () => ({ Component: (await import("@/features/documents/DocumentsPage")).DocumentsPage }) },
       { path: "home/documents/:docId", lazy: async () => ({ Component: (await import("@/features/documents/DocumentsPage")).DocumentsPage }) },
       { path: "home/life", lazy: async () => ({ Component: (await import("@/features/life/LifePage")).LifePage }) },
-      { path: "assistant", lazy: async () => ({ Component: (await import("@/features/assistant/AssistantPage")).AssistantPage }) },
+      {
+        path: "assistant",
+        lazy: async () => {
+          const { AssistantPage } = await import("@/features/assistant/AssistantPage");
+          return { Component: () => <AiGate><AssistantPage /></AiGate> };
+        },
+      },
       { path: "profile", lazy: async () => ({ Component: (await import("@/features/settings/ProfilePage")).ProfilePage }) },
       { path: "profile/notifications", lazy: async () => ({ Component: (await import("@/features/settings/NotificationsPage")).NotificationsPage }) },
-      { path: "profile/ai", lazy: async () => ({ Component: (await import("@/features/settings/AiSettingsPage")).AiSettingsPage }) },
+      {
+        path: "profile/ai",
+        lazy: async () => {
+          const { AiSettingsPage } = await import("@/features/settings/AiSettingsPage");
+          return { Component: () => <AiGate><AiSettingsPage /></AiGate> };
+        },
+      },
       { path: "inbox", lazy: async () => ({ Component: (await import("@/features/settings/InboxPage")).InboxPage }) },
       { path: "join", element: <Navigate to="/" replace /> },
       { path: "*", element: <Navigate to="/" replace /> },

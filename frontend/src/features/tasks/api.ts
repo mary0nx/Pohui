@@ -4,7 +4,7 @@ import { api } from "@/api/client";
 import { useFamily } from "@/app/session";
 import type { Task, TaskComment, TaskStats } from "@/types/api";
 
-export function useTasks(params: { status: string; assignee?: string; due?: string }) {
+export function useTasks(params: { status: string; assignee?: string; due?: string; limit?: number }) {
   const { f, familyId } = useFamily();
   return useQuery({ queryKey: ["tasks", familyId, params], queryFn: () => api<Task[]>(f("/tasks"), { query: params }), refetchInterval: 30_000 });
 }

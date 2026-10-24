@@ -79,9 +79,15 @@
       отзыв Data API Supabase, `CORS_ORIGIN_REGEX` (проверено локально в Docker с лимитом 512 МБ:
       миграции, API, фоновые задачи; вход по подписанному initData и создание семьи из сборки Pages)
 
+### Версия 0.2.0
+- [x] AI скрыт без ключа (интерфейс и бот), код сохранён
+- [x] Цветовые палитры + синхронизация темы через Telegram CloudStorage
+- [x] Покупки по дням недели с утренним напоминанием
+- [x] Задачи по дням недели с утренним напоминанием
+
 ## Требует ваших ключей / окружения (код готов, живьём не проверено)
-- [ ] Backend в интернете: создать Render + Supabase по `docs/RENDER_SUPABASE.md` (нужны ваши
-      аккаунты), затем `VITE_API_URL` в Cloudflare Pages
+- [x] Backend в интернете: Render + Supabase (`familyos-api-pf2z.onrender.com`), сайт
+      `pohui.pages.dev` с `VITE_API_URL`, вход через Telegram проверен
 - [ ] Реальный бот Telegram: `/start`, доставка уведомлений, вебхук — нужен `TELEGRAM_BOT_TOKEN`
 - [ ] Открытие внутри клиентов Telegram (iOS/Android/Desktop/Web) — нужен домен с HTTPS
 - [ ] Реальные ответы OpenAI — нужны `OPENAI_API_KEY` и `AI_MODEL` (логика проверена на сценарном провайдере)

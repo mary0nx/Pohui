@@ -223,4 +223,6 @@ async def test_payment_reminder(couple: tuple[Actor, Actor]) -> None:
         "overdue": 0,
         "payments": 0,
         "documents": 0,
+        "shopping_day": 0,
+        "task_day": 0,
     }
