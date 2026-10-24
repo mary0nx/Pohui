@@ -68,7 +68,14 @@
       загрузка документа, бэкап и проверка восстановления выполнены успешно
 - [x] GitHub Actions: backend (ruff, mypy, pytest, alembic check), frontend (tsc, vitest, build), e2e
 
+### Исправления после развёртывания
+- [x] Frontend на Cloudflare Pages без backend: вместо падения `V.dev_auth` — проверка ответов
+      API и экран «Сервер недоступен»; поддержка `VITE_API_URL` и CORS для раздельного размещения
+      (проверено локально: статический хостинг с SPA-фолбэком + API на другом адресе)
+
 ## Требует ваших ключей / окружения (код готов, живьём не проверено)
+- [ ] Backend в интернете: Oracle Free Tier не зарегистрировался; нужен VPS, домашний сервер
+      с Cloudflare Tunnel или другой вариант из `docs/CLOUDFLARE_PAGES.md`
 - [ ] Реальный бот Telegram: `/start`, доставка уведомлений, вебхук — нужен `TELEGRAM_BOT_TOKEN`
 - [ ] Открытие внутри клиентов Telegram (iOS/Android/Desktop/Web) — нужен домен с HTTPS
 - [ ] Реальные ответы OpenAI — нужны `OPENAI_API_KEY` и `AI_MODEL` (логика проверена на сценарном провайдере)

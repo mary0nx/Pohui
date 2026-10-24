@@ -7,6 +7,8 @@ export interface Route {
   status?: number;
   body?: unknown;
   handler?: Handler;
+  /** Raw (non-JSON) response, e.g. an index.html served by a static host. */
+  raw?: { text: string; contentType: string };
 }
 
 export interface FetchMock {
@@ -24,8 +26,9 @@ export function mockFetch(routes: Route[]): FetchMock {
     state.calls.push({ method, url, body, headers: (init.headers ?? {}) as Record<string, string> });
     const route = routes.find((r) => (r.method ?? "GET") === method && r.path.test(url.pathname));
     if (!route) return new Response(JSON.stringify({ error: { code: "not_found", message: `no mock for ${method} ${url.pathname}` } }), { status: 404 });
-    const payload = route.handler ? route.handler(body, url, init) : route.body;
     const status = route.status ?? 200;
+    if (route.raw) return new Response(route.raw.text, { status, headers: { "Content-Type": route.raw.contentType } });
+    const payload = route.handler ? route.handler(body, url, init) : route.body;
     if (status === 204) return new Response(null, { status: 204 });
     return new Response(JSON.stringify(payload ?? null), { status, headers: { "Content-Type": "application/json" } });
   });
@@ -76,3 +79,6 @@ export const dashboard = (overrides: Record<string, unknown> = {}) => ({
   is_empty: true,
   ...overrides,
 });
+
+/** What Cloudflare Pages (SPA fallback) returns for /api/* when no backend is behind it. */
+export const SPA_INDEX_HTML = { text: '<!doctype html><html lang="ru"><head><title>Family OS</title></head><body><div id="root"></div></body></html>', contentType: "text/html; charset=utf-8" };

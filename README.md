@@ -5,6 +5,7 @@
 **Telegram Mini App** плюс **Telegram-бот** для команд, уведомлений и AI-запросов.
 
 * **Пошаговая инструкция запуска для новичка — [`docs/SETUP_GUIDE.md`](docs/SETUP_GUIDE.md)**
+* **Frontend на Cloudflare Pages + отдельный backend — [`docs/CLOUDFLARE_PAGES.md`](docs/CLOUDFLARE_PAGES.md)**
 * **Полностью бесплатный вариант (Oracle Free + DuckDNS + Backblaze B2) — [`docs/FREE_SETUP_GUIDE.md`](docs/FREE_SETUP_GUIDE.md)**
 * Требования и функциональность — [`PROJECT_SPEC.md`](PROJECT_SPEC.md)
 * Архитектура и потоки данных — [`ARCHITECTURE.md`](ARCHITECTURE.md)

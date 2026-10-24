@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Home, Send, ShieldAlert, Users } from "lucide-react";
+import { Home, RefreshCw, Send, ServerOff, ShieldAlert, Users } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -46,6 +46,48 @@ export function OutsideTelegram() {
       <Card>
         <p className="font-semibold">Откройте приложение в Telegram</p>
         <p className="mt-1 text-sm text-muted">Family OS работает как Telegram Mini App. Найдите бота семьи в Telegram и нажмите «Открыть».</p>
+      </Card>
+    </Centered>
+  );
+}
+
+/** Shown when the Family OS API cannot be reached or answers with something that is not the
+ * API (for example a static host serving index.html). Nothing private is loaded here. */
+export function BackendUnavailable({ message, onRetry }: { message: string | null; onRetry: () => void }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <Centered>
+      <Logo />
+      <Card className="space-y-3">
+        <div className="flex items-start gap-3">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-warning-soft text-warning">
+            <ServerOff className="size-5" />
+          </span>
+          <div>
+            <p className="font-semibold">Сервер Family OS недоступен</p>
+            <p className="mt-1 text-sm text-muted">Приложение открылось, но не может связаться со своим сервером. Ваши данные в безопасности — они хранятся на сервере, а не здесь.</p>
+          </div>
+        </div>
+        {message && <p className="rounded-2xl bg-surface-2 p-3 text-sm break-words">{message}</p>}
+        <p className="text-xs text-muted">
+          Если вы администратор: проверьте, что backend запущен и что при сборке фронтенда указан правильный адрес API (переменная VITE_API_URL).
+        </p>
+        <Button
+          block
+          variant="secondary"
+          icon={<RefreshCw className="size-4" />}
+          loading={busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await onRetry();
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          Повторить
+        </Button>
       </Card>
     </Centered>
   );

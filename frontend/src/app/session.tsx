@@ -1,12 +1,20 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
-import { api, ApiError, onUnauthorized } from "@/api/client";
+import { api, ApiError, BACKEND_UNAVAILABLE, CONFIG_ERROR_CODE, INVALID_RESPONSE, onUnauthorized } from "@/api/client";
+import { parseMe, parseMeta, parseTokenOut } from "@/api/contracts";
 import { getToken, setToken } from "@/lib/session";
 import { isInsideTelegram, startParam, telegramInitData } from "@/lib/telegram";
 import type { Family, Me, Meta, TokenOut } from "@/types/api";
 
-type Status = "loading" | "ready" | "dev-login" | "outside-telegram" | "error";
+type Status = "loading" | "ready" | "dev-login" | "outside-telegram" | "backend-unavailable" | "error";
+
+/** Errors meaning the API itself is unreachable or misconfigured, not a problem of this user. */
+const BACKEND_PROBLEM_CODES = new Set([BACKEND_UNAVAILABLE, INVALID_RESPONSE, CONFIG_ERROR_CODE, "network_error"]);
+
+function isBackendProblem(e: unknown): boolean {
+  return e instanceof ApiError && (BACKEND_PROBLEM_CODES.has(e.code) || e.status >= 500);
+}
 
 interface SessionValue {
   status: Status;
@@ -19,6 +27,7 @@ interface SessionValue {
   refreshMe: () => Promise<Me | null>;
   setActiveFamily: (id: string) => Promise<void>;
   logout: () => Promise<void>;
+  retry: () => Promise<void>;
 }
 
 const SessionContext = createContext<SessionValue | null>(null);
@@ -46,7 +55,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const telegramLogin = useCallback(async () => {
-    const out = await api<TokenOut>("/auth/telegram", { body: { init_data: telegramInitData() } });
+    const out = parseTokenOut(await api<unknown>("/auth/telegram", { body: { init_data: telegramInitData() } }), "/auth/telegram");
     applyToken(out);
   }, [applyToken]);
 
@@ -54,11 +63,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setStatus("loading");
     setError(null);
     try {
-      const m = await api<Meta>("/meta");
+      const m = parseMeta(await api<unknown>("/meta"));
       setMeta(m);
       if (getToken()) {
         try {
-          setMe(await api<Me>("/me"));
+          setMe(parseMe(await api<unknown>("/me")));
           setStatus("ready");
           return;
         } catch (e) {
@@ -72,7 +81,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setStatus(m.dev_auth ? "dev-login" : "outside-telegram");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка запуска");
-      setStatus("error");
+      setStatus(isBackendProblem(e) ? "backend-unavailable" : "error");
     }
   }, [telegramLogin]);
 
@@ -101,7 +110,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const devLogin = useCallback(
     async (telegramId: number, name: string) => {
-      const out = await api<TokenOut>("/auth/dev", { body: { telegram_id: telegramId, first_name: name } });
+      const out = parseTokenOut(await api<unknown>("/auth/dev", { body: { telegram_id: telegramId, first_name: name } }), "/auth/dev");
       qc.clear();
       applyToken(out);
     },
@@ -109,13 +118,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 
   const refreshMe = useCallback(async () => {
-    const m = await api<Me>("/me");
+    const m = parseMe(await api<unknown>("/me"));
     setMe(m);
     return m;
   }, []);
 
   const setActiveFamily = useCallback(async (id: string) => {
-    setMe(await api<Me>("/me", { method: "PATCH", body: { active_family_id: id } }));
+    setMe(parseMe(await api<unknown>("/me", { method: "PATCH", body: { active_family_id: id } })));
   }, []);
 
   const logout = useCallback(async () => {
@@ -130,8 +139,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [qc, meta]);
 
   const value = useMemo<SessionValue>(
-    () => ({ status, error, meta, me, pendingInvite, clearInvite: () => setPendingInvite(null), devLogin, refreshMe, setActiveFamily, logout }),
-    [status, error, meta, me, pendingInvite, devLogin, refreshMe, setActiveFamily, logout],
+    () => ({ status, error, meta, me, pendingInvite, clearInvite: () => setPendingInvite(null), devLogin, refreshMe, setActiveFamily, logout, retry: boot }),
+    [status, error, meta, me, pendingInvite, devLogin, refreshMe, setActiveFamily, logout, boot],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

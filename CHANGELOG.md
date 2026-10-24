@@ -2,6 +2,23 @@
 
 Формат: [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/), версии — SemVer.
 
+## [0.1.1] — 2026-10-24
+
+### Исправлено
+- Frontend на статическом хостинге без backend (Cloudflare Pages) падал с
+  `undefined is not an object (evaluating 'V.dev_auth')`: Pages отдаёт `index.html` со
+  статусом 200 на `/api/*`, а клиент API возвращал `undefined` вместо ошибки. Теперь HTML,
+  пустой и некорректный ответ дают понятную ошибку, ответы `/meta`, `/me`, `/auth/*`
+  проверяются по схеме, а при недоступном сервере показывается экран «Сервер Family OS
+  недоступен» с адресом API и кнопкой повтора.
+
+### Добавлено
+- `VITE_API_URL` с проверкой формата для размещения frontend отдельно от API;
+  `frontend/.env.example`, `frontend/public/_headers` для Cloudflare Pages.
+- Тесты: ответ SPA-фолбэка, пустой/битый JSON, нарушение контракта `/meta`, вход внутри
+  Telegram; backend-тесты контракта `/meta`, JSON 404 для `/api/*`, CORS.
+- `docs/CLOUDFLARE_PAGES.md`: настройки Pages и варианты размещения backend.
+
 ## [0.1.0] — 2026-10-24
 
 Первая рабочая версия.
