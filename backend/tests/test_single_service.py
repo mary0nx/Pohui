@@ -268,5 +268,10 @@ def test_unrecognised_database_errors_get_a_safe_signature() -> None:
     odd = wrapped(pg.FeatureNotSupportedError("something about postgres.secretref"))
     assert classify_database_error(odd) == "database_error"
     signature = error_signature(odd)
-    assert signature == "DBAPIError>FeatureNotSupportedError(0A000)"
+    assert signature == "DBAPIError>FeatureNotSupportedError(0A000): something about …"
     assert "secretref" not in signature
+
+    breaker = wrapped(pg.InternalServerError("(EAUTHBREAKER) too many authentication errors"))
+    assert classify_database_error(breaker) == "database_temporarily_blocked"
+    unknown = wrapped(pg.InternalServerError("(ESOMETHING) host db.ref.supabase.co said 42"))
+    assert error_signature(unknown).endswith(": (ESOMETHING) host … said …")

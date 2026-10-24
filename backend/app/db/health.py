@@ -8,6 +8,7 @@ They never include the connection string, user names or server messages.
 from __future__ import annotations
 
 import logging
+import re
 import socket
 from collections.abc import Iterator
 
@@ -50,6 +51,12 @@ def classify_database_error(exc: BaseException) -> str:
         message = str(err).lower()
         if "tenant or user not found" in message or "tenant/user" in message:
             return "database_user_wrong"
+        if "authbreaker" in message or "too many authentication" in message:
+            return "database_temporarily_blocked"
+        if "maxclients" in message or "max client" in message:
+            return "database_too_many_connections"
+        if "ssl" in message and "requir" in message:
+            return "database_ssl_required"
         if isinstance(err, socket.gaierror):
             return "database_host_not_found"
         if isinstance(err, ConnectionRefusedError | TimeoutError):
@@ -59,15 +66,29 @@ def classify_database_error(exc: BaseException) -> str:
     return "database_error"
 
 
+_IDENTIFYING = re.compile(r"\S*[.@:/=\"'\\]\S*|\d+")
+
+
+def _redact(message: str) -> str:
+    """Keep the wording of a server message, drop anything that may identify the database
+    (user names like postgres.<ref>, hosts, quoted names, numbers). Passwords are never part
+    of PostgreSQL or pooler error messages."""
+    return _IDENTIFYING.sub("…", message).strip()[:120]
+
+
 def error_signature(exc: BaseException) -> str:
-    """Exception class names and SQLSTATE codes of the chain, e.g. `DBAPIError>InternalServerError
-    (XX000)`: enough to tell failures apart, without messages that may contain user names."""
+    """Exception classes, SQLSTATE codes and the redacted server message of the chain, e.g.
+    `InternalServerError(XX000): (EXAMPLE) too many …`: enough to tell failures apart."""
     parts: list[str] = []
+    message = ""
     for err in _chain(exc):
         name = type(err).__name__
         sqlstate = getattr(err, "sqlstate", None)
         parts.append(f"{name}({sqlstate})" if isinstance(sqlstate, str) else name)
-    return ">".join(dict.fromkeys(parts))[:200]
+        if isinstance(sqlstate, str) and not message:
+            message = _redact(str(err))
+    signature = ">".join(dict.fromkeys(parts))
+    return f"{signature}: {message}"[:250] if message else signature[:250]
 
 
 async def database_problem() -> tuple[str, str] | None:
