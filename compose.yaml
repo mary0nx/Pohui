@@ -105,6 +105,19 @@ services:
     restart: unless-stopped
     networks: [internal]
 
+  # Optional: Cloudflare Tunnel instead of public ports 80/443 (home PC, no port forwarding).
+  # Enable with COMPOSE_PROFILES=bot,tunnel and SITE_ADDRESS=:80; Cloudflare terminates HTTPS.
+  tunnel:
+    image: cloudflare/cloudflared:2026.10.3
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      - web
+    restart: unless-stopped
+    networks: [internal]
+    profiles: ["tunnel"]
+
 networks:
   internal: {}
 

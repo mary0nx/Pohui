@@ -461,3 +461,39 @@ df -h                                # свободное место на дис
 
 **Никогда** не выполняйте `docker compose down -v` на рабочем сервере — флаг `-v` удаляет
 базу данных и файлы.
+
+---
+
+## Вариант: Cloudflare Tunnel (без открытия портов, подходит для домашнего компьютера)
+
+Туннель нужен, если сервер стоит дома или вы не хотите открывать порты 80/443.
+HTTPS тогда обеспечивает Cloudflare. Нужен **свой домен, подключённый к Cloudflare**.
+
+1. **Подключить домен к Cloudflare.** dash.cloudflare.com → «Add a domain» → введите домен →
+   тариф **Free** → Cloudflare покажет два адреса NS-серверов (вида `xxx.ns.cloudflare.com`).
+   У регистратора домена замените NS-серверы на эти два. Дождитесь письма «domain is active»
+   (от минут до суток). Если домен покупаете прямо в Cloudflare — этот шаг делается сам.
+2. **Создать туннель.** dash.cloudflare.com → **Zero Trust** → **Networks** → **Tunnels** →
+   **Create a tunnel** → тип **Cloudflared** → имя `familyos` → Save.
+   На экране установки выберите Docker и скопируйте **токен** — длинную строку после `--token`
+   (начинается с `eyJ`). Сам предложенный `docker run` выполнять не нужно.
+3. **Указать адрес.** В том же туннеле → вкладка **Public Hostname** (или «Routes») →
+   **Add a public hostname**:
+   - Subdomain: `family`, Domain: ваш домен;
+   - Service: Type **HTTP**, URL **`web:80`**.
+   Сохраните.
+4. **В `.env` на сервере** измените/добавьте:
+   ```
+   SITE_ADDRESS=:80
+   COMPOSE_PROFILES=bot,tunnel
+   CLOUDFLARE_TUNNEL_TOKEN=<токен_из_шага_2>
+   ```
+   Адреса `FRONTEND_URL`, `BACKEND_URL`, `CORS_ORIGINS`, `TELEGRAM_WEBHOOK_URL` остаются
+   `https://family.<ваш_домен>`.
+5. Шаг 4.3 (открытие портов 80/443) не нужен. Запуск как обычно:
+   ```
+   docker compose up -d
+   docker compose logs tunnel --tail=20
+   ```
+   В логах должно быть `Registered tunnel connection` (обычно 4 раза).
+6. Проверка: `curl https://family.<ваш_домен>/health/ready` → `{"status":"ok"}`.
