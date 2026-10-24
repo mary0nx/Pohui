@@ -245,3 +245,28 @@ async def test_readiness_reports_missing_migrations(client: AsyncClient) -> None
     finally:
         async with get_engine().begin() as conn:
             await conn.execute(text("ALTER TABLE alembic_version_hidden RENAME TO alembic_version"))
+
+
+def test_unrecognised_database_errors_get_a_safe_signature() -> None:
+    import asyncpg.exceptions as pg
+    from sqlalchemy.exc import DBAPIError
+
+    from app.db.health import classify_database_error, error_signature
+
+    def wrapped(inner: Exception) -> Exception:
+        try:
+            try:
+                raise inner
+            except Exception as e:
+                raise DBAPIError("connect", None, e) from e
+        except Exception as outer:
+            return outer
+
+    pooler = wrapped(pg.InternalServerError("(ENOTFOUND) tenant/user postgres.secretref not found"))
+    assert classify_database_error(pooler) == "database_user_wrong"
+
+    odd = wrapped(pg.FeatureNotSupportedError("something about postgres.secretref"))
+    assert classify_database_error(odd) == "database_error"
+    signature = error_signature(odd)
+    assert signature == "DBAPIError>FeatureNotSupportedError(0A000)"
+    assert "secretref" not in signature

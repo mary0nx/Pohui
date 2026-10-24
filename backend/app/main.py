@@ -139,11 +139,13 @@ def create_app() -> FastAPI:
     @app.get("/health/ready", tags=["meta"])
     async def ready() -> JSONResponse:
         problem = await database_problem()
-        if problem is not None:
-            return JSONResponse(
-                status_code=503, content={"status": "unavailable", "problem": problem}
-            )
-        return JSONResponse({"status": "ok"})
+        if problem is None:
+            return JSONResponse({"status": "ok"})
+        code, signature = problem
+        body = {"status": "unavailable", "problem": code}
+        if code == "database_error":
+            body["error"] = signature  # unrecognised failure: class names help diagnose it
+        return JSONResponse(status_code=503, content=body)
 
     app.include_router(api_router)
     if settings.embedded_bot:

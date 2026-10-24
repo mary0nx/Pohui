@@ -46,8 +46,9 @@ def classify_database_error(exc: BaseException) -> str:
             return "database_name_wrong"
         if isinstance(err, pg.TooManyConnectionsError):
             return "database_too_many_connections"
-        # Supabase's pooler answers an unknown project/user this way.
-        if "tenant or user not found" in str(err).lower():
+        # Supabase's pooler answers an unknown project/user this way (wording varies by version).
+        message = str(err).lower()
+        if "tenant or user not found" in message or "tenant/user" in message:
             return "database_user_wrong"
         if isinstance(err, socket.gaierror):
             return "database_host_not_found"
@@ -58,13 +59,24 @@ def classify_database_error(exc: BaseException) -> str:
     return "database_error"
 
 
-async def database_problem() -> str | None:
-    """None when the database is reachable and migrated, else a problem code."""
+def error_signature(exc: BaseException) -> str:
+    """Exception class names and SQLSTATE codes of the chain, e.g. `DBAPIError>InternalServerError
+    (XX000)`: enough to tell failures apart, without messages that may contain user names."""
+    parts: list[str] = []
+    for err in _chain(exc):
+        name = type(err).__name__
+        sqlstate = getattr(err, "sqlstate", None)
+        parts.append(f"{name}({sqlstate})" if isinstance(sqlstate, str) else name)
+    return ">".join(dict.fromkeys(parts))[:200]
+
+
+async def database_problem() -> tuple[str, str] | None:
+    """None when the database is reachable and migrated, else (problem code, error signature)."""
     try:
         async with get_sessionmaker()() as session:
             migrated = await session.scalar(text("SELECT to_regclass('public.alembic_version')"))
     except Exception as exc:
         code = classify_database_error(exc)
         log.warning("readiness check failed", extra={"ctx": {"problem": code}}, exc_info=True)
-        return code
-    return None if migrated is not None else "database_not_migrated"
+        return code, error_signature(exc)
+    return None if migrated is not None else ("database_not_migrated", "")
