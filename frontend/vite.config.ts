@@ -11,7 +11,7 @@ export default defineConfig({
     host: true,
     proxy: { "/api": "http://localhost:8000", "/health": "http://localhost:8000" },
   },
-  preview: { port: 4173, proxy: { "/api": "http://localhost:8000" } },
+  preview: { port: 4173, proxy: { "/api": process.env.E2E_API ?? "http://localhost:8000" } },
   build: { target: "es2022", sourcemap: false, chunkSizeWarningLimit: 900 },
   test: {
     environment: "jsdom",
