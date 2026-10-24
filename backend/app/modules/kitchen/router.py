@@ -93,7 +93,9 @@ async def delete_recipe(recipe_id: uuid.UUID, ctx: Ctx, db: DB) -> None:
 
 
 @router.get("/meal-plan", response_model=list[MealEntryOut])
-async def meal_plan(ctx: Ctx, db: DB, date_from: date | None = None, date_to: date | None = None) -> list[MealEntryOut]:
+async def meal_plan(
+    ctx: Ctx, db: DB, date_from: date | None = None, date_to: date | None = None
+) -> list[MealEntryOut]:
     start = date_from or local_today(ctx.family.timezone)
     end = date_to or start + timedelta(days=6)
     return [MealEntryOut.model_validate(e) for e in await service.list_plan(db, ctx, start, end)]

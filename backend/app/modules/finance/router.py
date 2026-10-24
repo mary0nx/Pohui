@@ -78,7 +78,10 @@ async def delete_account(account_id: uuid.UUID, ctx: Ctx, db: DB) -> None:
 
 @router.get("/categories", response_model=list[CategoryOut])
 async def list_categories(ctx: Ctx, db: DB, include_archived: bool = False) -> list[CategoryOut]:
-    return [CategoryOut.model_validate(c) for c in await service.list_categories(db, ctx, include_archived)]
+    return [
+        CategoryOut.model_validate(c)
+        for c in await service.list_categories(db, ctx, include_archived)
+    ]
 
 
 @router.post("/categories", response_model=CategoryOut, status_code=201)
@@ -89,7 +92,9 @@ async def create_category(body: CategoryCreate, ctx: Ctx, db: DB) -> CategoryOut
 
 
 @router.patch("/categories/{category_id}", response_model=CategoryOut)
-async def patch_category(category_id: uuid.UUID, body: CategoryPatch, ctx: Ctx, db: DB) -> CategoryOut:
+async def patch_category(
+    category_id: uuid.UUID, body: CategoryPatch, ctx: Ctx, db: DB
+) -> CategoryOut:
     cat = await service.update_category(db, ctx, category_id, body)
     await db.commit()
     return CategoryOut.model_validate(cat)
@@ -224,7 +229,9 @@ async def create_recurring(body: RecurringCreate, ctx: Ctx, db: DB) -> Recurring
 
 
 @router.patch("/recurring/{rule_id}", response_model=RecurringOut)
-async def patch_recurring(rule_id: uuid.UUID, body: RecurringPatch, ctx: Ctx, db: DB) -> RecurringOut:
+async def patch_recurring(
+    rule_id: uuid.UUID, body: RecurringPatch, ctx: Ctx, db: DB
+) -> RecurringOut:
     await recurring.update_rule(db, ctx, rule_id, body)
     await db.commit()
     return next(r for r in await recurring.list_rules(db, ctx) if r.id == rule_id)
@@ -253,7 +260,9 @@ async def _scheduled_out(db: DB, ctx: Ctx, sp_id: uuid.UUID) -> ScheduledPayment
 
 
 @router.post("/scheduled-payments/{sp_id}/pay", response_model=ScheduledPaymentOut)
-async def pay_scheduled(sp_id: uuid.UUID, body: PayScheduled, ctx: Ctx, db: DB) -> ScheduledPaymentOut:
+async def pay_scheduled(
+    sp_id: uuid.UUID, body: PayScheduled, ctx: Ctx, db: DB
+) -> ScheduledPaymentOut:
     await recurring.pay_scheduled(db, ctx, sp_id, body)
     await db.commit()
     return await _scheduled_out(db, ctx, sp_id)
@@ -296,7 +305,9 @@ async def delete_goal(goal_id: uuid.UUID, ctx: Ctx, db: DB) -> None:
 
 @router.get("/goals/{goal_id}/contributions", response_model=list[ContributionOut])
 async def list_contributions(goal_id: uuid.UUID, ctx: Ctx, db: DB) -> list[ContributionOut]:
-    return [ContributionOut.model_validate(c) for c in await goals.list_contributions(db, ctx, goal_id)]
+    return [
+        ContributionOut.model_validate(c) for c in await goals.list_contributions(db, ctx, goal_id)
+    ]
 
 
 @router.post("/goals/{goal_id}/contributions", response_model=GoalOut, status_code=201)

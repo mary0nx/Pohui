@@ -55,4 +55,6 @@ IdempotencyKeyHeader = Annotated[str | None, Header(alias="Idempotency-Key")]
 
 
 async def auth_rate_limit(request: Request) -> None:
-    await get_rate_limiter().hit(f"auth:{client_ip(request)}", get_settings().auth_rate_limit_per_minute)
+    await get_rate_limiter().hit(
+        f"auth:{client_ip(request)}", get_settings().auth_rate_limit_per_minute
+    )

@@ -28,7 +28,14 @@ async def test_shared_expense_visible_to_partner(couple: tuple[Actor, Actor]) ->
     alice, bob = couple
     card = (await accounts(alice))["Общая карта"]
     food = await category(alice, "Продукты")
-    tx = await add_tx(alice, kind="expense", amount="45.50", account_id=card["id"], category_id=food, description="Biedronka")
+    tx = await add_tx(
+        alice,
+        kind="expense",
+        amount="45.50",
+        account_id=card["id"],
+        category_id=food,
+        description="Biedronka",
+    )
     assert tx["visibility"] == "family"
 
     listing = (await bob.get(bob.f("/finance/transactions"))).json()
@@ -41,18 +48,31 @@ async def test_shared_expense_visible_to_partner(couple: tuple[Actor, Actor]) ->
 
 async def test_private_records_hidden_from_partner(couple: tuple[Actor, Actor]) -> None:
     alice, bob = couple
-    r = await alice.post(alice.f("/finance/accounts"), {"name": "Моя карта", "kind": "card", "visibility": "private"})
+    r = await alice.post(
+        alice.f("/finance/accounts"), {"name": "Моя карта", "kind": "card", "visibility": "private"}
+    )
     private_acc = r.json()
-    tx = await add_tx(alice, kind="expense", amount="99.99", account_id=private_acc["id"], description="Секретный подарок")
+    tx = await add_tx(
+        alice,
+        kind="expense",
+        amount="99.99",
+        account_id=private_acc["id"],
+        description="Секретный подарок",
+    )
     assert tx["visibility"] == "private"
 
     assert "Моя карта" not in await accounts(bob)
     assert (await bob.get(bob.f("/finance/transactions"))).json()["total"] == 0
     assert (await bob.get(bob.f(f"/finance/transactions/{tx['id']}"))).status_code == 404
-    assert (await bob.patch(bob.f(f"/finance/transactions/{tx['id']}"), {"amount": "1"})).status_code == 404
+    assert (
+        await bob.patch(bob.f(f"/finance/transactions/{tx['id']}"), {"amount": "1"})
+    ).status_code == 404
     assert (await bob.delete(bob.f(f"/finance/transactions/{tx['id']}"))).status_code == 404
     # Bob cannot spend from Alice's private account.
-    r = await bob.post(bob.f("/finance/transactions"), {"kind": "expense", "amount": "1", "account_id": private_acc["id"]})
+    r = await bob.post(
+        bob.f("/finance/transactions"),
+        {"kind": "expense", "amount": "1", "account_id": private_acc["id"]},
+    )
     assert r.status_code == 404
     bob_summary = (await bob.get(bob.f("/finance/summary?scope=all"))).json()
     assert Decimal(bob_summary["family"]["expense"]) == 0
@@ -82,13 +102,22 @@ async def test_transfers_excluded_and_refunds_reduce_expense(couple: tuple[Actor
     assert Decimal(accs["Общая карта"]["balance"]) == Decimal("4700")
     assert Decimal(accs["Наличные"]["balance"]) == Decimal("150")
     # Transfer validation
-    r = await alice.post(alice.f("/finance/transactions"), {"kind": "transfer", "amount": "1", "account_id": cash})
+    r = await alice.post(
+        alice.f("/finance/transactions"), {"kind": "transfer", "amount": "1", "account_id": cash}
+    )
     assert r.status_code == 422
-    r = await alice.post(alice.f("/finance/transactions"), {"kind": "transfer", "amount": "1", "account_id": cash, "to_account_id": cash})
+    r = await alice.post(
+        alice.f("/finance/transactions"),
+        {"kind": "transfer", "amount": "1", "account_id": cash, "to_account_id": cash},
+    )
     assert r.status_code == 422
-    r = await alice.post(alice.f("/finance/transactions"), {"kind": "expense", "amount": "-5", "account_id": cash})
+    r = await alice.post(
+        alice.f("/finance/transactions"), {"kind": "expense", "amount": "-5", "account_id": cash}
+    )
     assert r.status_code == 422
-    r = await alice.post(alice.f("/finance/transactions"), {"kind": "expense", "amount": "1.005", "account_id": cash})
+    r = await alice.post(
+        alice.f("/finance/transactions"), {"kind": "expense", "amount": "1.005", "account_id": cash}
+    )
     assert r.status_code == 422
 
 
@@ -116,10 +145,14 @@ async def test_budgets_and_alerts(couple: tuple[Actor, Actor]) -> None:
     month = date.today().replace(day=1).isoformat()
     r = await alice.put(alice.f("/finance/budgets"), {"month": month, "limit_amount": "1000"})
     assert r.status_code == 200
-    r = await alice.put(alice.f("/finance/budgets"), {"month": month, "category_id": food, "limit_amount": "100"})
+    r = await alice.put(
+        alice.f("/finance/budgets"), {"month": month, "category_id": food, "limit_amount": "100"}
+    )
     assert r.status_code == 200
     # Upsert replaces the limit instead of duplicating.
-    r = await alice.put(alice.f("/finance/budgets"), {"month": month, "category_id": food, "limit_amount": "200"})
+    r = await alice.put(
+        alice.f("/finance/budgets"), {"month": month, "category_id": food, "limit_amount": "200"}
+    )
     assert len(r.json()) == 2
     await add_tx(bob, kind="expense", amount="170", account_id=card, category_id=food)
     budgets = (await alice.get(alice.f("/finance/budgets"))).json()
@@ -140,7 +173,13 @@ async def test_recurring_payments_no_duplicates(couple: tuple[Actor, Actor]) -> 
     start = date.today() - timedelta(days=40)
     r = await alice.post(
         alice.f("/finance/recurring"),
-        {"name": "Аренда", "amount": "2500", "account_id": card, "frequency": "monthly", "start_date": start.isoformat()},
+        {
+            "name": "Аренда",
+            "amount": "2500",
+            "account_id": card,
+            "frequency": "monthly",
+            "start_date": start.isoformat(),
+        },
     )
     assert r.status_code == 201, r.text
     rule = r.json()
@@ -181,7 +220,14 @@ async def test_auto_create_recurring_is_idempotent(couple: tuple[Actor, Actor]) 
     start = date.today() - timedelta(days=3)
     await alice.post(
         alice.f("/finance/recurring"),
-        {"name": "Netflix", "amount": "43", "account_id": card, "frequency": "weekly", "start_date": start.isoformat(), "auto_create": True},
+        {
+            "name": "Netflix",
+            "amount": "43",
+            "account_id": card,
+            "frequency": "weekly",
+            "start_date": start.isoformat(),
+            "auto_create": True,
+        },
     )
     async with get_sessionmaker()() as db:
         created = await auto_create_due(db)
@@ -190,13 +236,19 @@ async def test_auto_create_recurring_is_idempotent(couple: tuple[Actor, Actor]) 
         again = await auto_create_due(db)
         await db.commit()
         count = await db.scalar(select(func.count()).select_from(Transaction))
-        paid = await db.scalar(select(func.count()).select_from(ScheduledPayment).where(ScheduledPayment.status == "paid"))
+        paid = await db.scalar(
+            select(func.count())
+            .select_from(ScheduledPayment)
+            .where(ScheduledPayment.status == "paid")
+        )
     assert created == 1 and again == 0 and count == 1 and paid == 1
 
 
 async def test_savings_goal_forecast_and_achievement(couple: tuple[Actor, Actor]) -> None:
     alice, bob = couple
-    r = await alice.post(alice.f("/finance/goals"), {"name": "Отпуск", "target_amount": "3000", "emoji": "🏖"})
+    r = await alice.post(
+        alice.f("/finance/goals"), {"name": "Отпуск", "target_amount": "3000", "emoji": "🏖"}
+    )
     goal = r.json()
     r = await bob.post(bob.f(f"/finance/goals/{goal['id']}/contributions"), {"amount": "1000"})
     g = r.json()
@@ -209,7 +261,11 @@ async def test_savings_goal_forecast_and_achievement(couple: tuple[Actor, Actor]
     history = (await bob.get(bob.f(f"/finance/goals/{goal['id']}/contributions"))).json()
     assert len(history) == 2
     async with get_sessionmaker()() as db:
-        n = await db.scalar(select(func.count()).select_from(Notification).where(Notification.category == "goal_update"))
+        n = await db.scalar(
+            select(func.count())
+            .select_from(Notification)
+            .where(Notification.category == "goal_update")
+        )
     assert n == 2  # both members
 
 
@@ -218,13 +274,19 @@ async def test_csv_import_dedupes(couple: tuple[Actor, Actor]) -> None:
     card = (await accounts(alice))["Общая карта"]["id"]
     csv = "Дата;Сумма;Описание;Категория\n01.03.2026;-12,50;Кофе;Кафе и рестораны\n01.03.2026;-12,50;Кофе;Кафе и рестораны\n2026-03-02;3000;Зарплата;Зарплата\nbad;row;x;y\n"
     files = {"file": ("bank.csv", csv.encode(), "text/csv")}
-    r = await alice.post(alice.f("/finance/import"), data={"account_id": card, "dry_run": "true"}, files=files)
+    r = await alice.post(
+        alice.f("/finance/import"), data={"account_id": card, "dry_run": "true"}, files=files
+    )
     assert r.status_code == 200, r.text
     assert r.json()["created"] == 3 and len(r.json()["errors"]) == 1
     assert (await alice.get(alice.f("/finance/transactions"))).json()["total"] == 0
-    r = await alice.post(alice.f("/finance/import"), data={"account_id": card, "dry_run": "false"}, files=files)
+    r = await alice.post(
+        alice.f("/finance/import"), data={"account_id": card, "dry_run": "false"}, files=files
+    )
     assert r.json()["created"] == 3
-    r = await alice.post(alice.f("/finance/import"), data={"account_id": card, "dry_run": "false"}, files=files)
+    r = await alice.post(
+        alice.f("/finance/import"), data={"account_id": card, "dry_run": "false"}, files=files
+    )
     assert r.json()["created"] == 0 and r.json()["skipped_duplicates"] == 3
     txs = (await alice.get(alice.f("/finance/transactions?kind=expense"))).json()
     assert txs["total"] == 2 and txs["items"][0]["category_id"] is not None
@@ -234,10 +296,17 @@ async def test_other_family_isolation(couple: tuple[Actor, Actor], eve: Actor) -
     alice, _ = couple
     card = (await accounts(alice))["Общая карта"]["id"]
     tx = await add_tx(alice, kind="expense", amount="5", account_id=card)
-    for path in ("/finance/accounts", "/finance/transactions", "/finance/summary", "/finance/budgets"):
+    for path in (
+        "/finance/accounts",
+        "/finance/transactions",
+        "/finance/summary",
+        "/finance/budgets",
+    ):
         assert (await eve.get(alice.f(path))).status_code == 404
     # Using Alice's account id inside Eve's own family must fail.
-    r = await eve.post(eve.f("/finance/transactions"), {"kind": "expense", "amount": "1", "account_id": card})
+    r = await eve.post(
+        eve.f("/finance/transactions"), {"kind": "expense", "amount": "1", "account_id": card}
+    )
     assert r.status_code == 404
     assert (await eve.get(eve.f(f"/finance/transactions/{tx['id']}"))).status_code == 404
     assert (await eve.get(eve.f("/finance/transactions"))).json()["total"] == 0

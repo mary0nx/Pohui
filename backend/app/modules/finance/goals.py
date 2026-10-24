@@ -64,7 +64,9 @@ async def _enrich(db: AsyncSession, goal: SavingsGoal, today: date) -> GoalOut:
     return out
 
 
-async def list_goals(db: AsyncSession, ctx: FamilyContext, include_archived: bool = False) -> list[GoalOut]:
+async def list_goals(
+    db: AsyncSession, ctx: FamilyContext, include_archived: bool = False
+) -> list[GoalOut]:
     stmt = select(SavingsGoal).where(visible(SavingsGoal, ctx))
     if not include_archived:
         stmt = stmt.where(SavingsGoal.status != GoalStatus.archived)
@@ -150,7 +152,9 @@ async def add_contribution(
         goal.status = GoalStatus.achieved
         goal.achieved_at = utcnow()
         just_achieved = True
-    audit(db, ctx, "goal.contribute", "savings_goal", goal.id, f"{goal.name}: {data.amount}", obj=goal)
+    audit(
+        db, ctx, "goal.contribute", "savings_goal", goal.id, f"{goal.name}: {data.amount}", obj=goal
+    )
     return goal, just_achieved
 
 
@@ -163,7 +167,9 @@ async def list_contributions(
             await db.execute(
                 select(SavingsContribution)
                 .where(SavingsContribution.goal_id == goal.id)
-                .order_by(SavingsContribution.contributed_on.desc(), SavingsContribution.created_at.desc())
+                .order_by(
+                    SavingsContribution.contributed_on.desc(), SavingsContribution.created_at.desc()
+                )
             )
         ).scalars()
     )

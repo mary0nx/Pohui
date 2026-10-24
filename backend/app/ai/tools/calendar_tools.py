@@ -49,12 +49,22 @@ async def get_events(tc: ToolContext, a: EventsArgs) -> dict[str, Any]:
     }
 
 
-register(Tool("get_calendar_events", "События календаря за период (по умолчанию ближайшая неделя).", EventsArgs, "read", get_events))
+register(
+    Tool(
+        "get_calendar_events",
+        "События календаря за период (по умолчанию ближайшая неделя).",
+        EventsArgs,
+        "read",
+        get_events,
+    )
+)
 
 
 class CreateEventArgs(ToolArgs):
     title: str = Field(min_length=1, max_length=200)
-    start: str = Field(description="Начало ГГГГ-ММ-ДДTЧЧ:ММ по местному времени семьи (или дата для события на весь день)")
+    start: str = Field(
+        description="Начало ГГГГ-ММ-ДДTЧЧ:ММ по местному времени семьи (или дата для события на весь день)"
+    )
     end: str | None = Field(None, description="Окончание ГГГГ-ММ-ДДTЧЧ:ММ; по умолчанию +1 час")
     all_day: bool = False
     location: str | None = Field(None, max_length=300)
@@ -102,7 +112,16 @@ async def execute_event(tc: ToolContext, args: dict[str, Any]) -> dict[str, Any]
     return {"created_event_id": str(event.id), "starts_at": event.starts_at.isoformat()}
 
 
-register(Tool("create_calendar_event", "Создать событие в календаре.", CreateEventArgs, "auto", execute_event, prepare=prepare_event))
+register(
+    Tool(
+        "create_calendar_event",
+        "Создать событие в календаре.",
+        CreateEventArgs,
+        "auto",
+        execute_event,
+        prepare=prepare_event,
+    )
+)
 
 
 class UpdateEventArgs(ToolArgs):
@@ -149,12 +168,24 @@ async def prepare_update_event(tc: ToolContext, a: UpdateEventArgs) -> Prepared:
 
 
 async def execute_update_event(tc: ToolContext, args: dict[str, Any]) -> dict[str, Any]:
-    patch = EventPatch.model_validate({k: v for k, v in args.items() if k != "event_id" and v is not None})
+    patch = EventPatch.model_validate(
+        {k: v for k, v in args.items() if k != "event_id" and v is not None}
+    )
     ev = await service.update_event(tc.db, tc.ctx, uuid.UUID(args["event_id"]), patch)
     return {"updated_event_id": str(ev.id)}
 
 
-register(Tool("update_calendar_event", "Изменить или отменить событие (нужен event_id).", UpdateEventArgs, "confirm", execute_update_event, prepare=prepare_update_event, current_version=_event_version))
+register(
+    Tool(
+        "update_calendar_event",
+        "Изменить или отменить событие (нужен event_id).",
+        UpdateEventArgs,
+        "confirm",
+        execute_update_event,
+        prepare=prepare_update_event,
+        current_version=_event_version,
+    )
+)
 
 
 class ReminderArgs(ToolArgs):
@@ -175,8 +206,19 @@ async def prepare_reminder(tc: ToolContext, a: ReminderArgs) -> Prepared:
 
 
 async def execute_reminder(tc: ToolContext, args: dict[str, Any]) -> dict[str, Any]:
-    rem = await service.create_custom_reminder(tc.db, tc.ctx, args["title"], datetime.fromisoformat(args["remind_at"]))
+    rem = await service.create_custom_reminder(
+        tc.db, tc.ctx, args["title"], datetime.fromisoformat(args["remind_at"])
+    )
     return {"created_reminder_id": str(rem.id)}
 
 
-register(Tool("create_reminder", "Создать личное напоминание в Telegram на указанное время.", ReminderArgs, "auto", execute_reminder, prepare=prepare_reminder))
+register(
+    Tool(
+        "create_reminder",
+        "Создать личное напоминание в Telegram на указанное время.",
+        ReminderArgs,
+        "auto",
+        execute_reminder,
+        prepare=prepare_reminder,
+    )
+)

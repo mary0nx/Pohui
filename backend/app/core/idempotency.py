@@ -40,7 +40,9 @@ class Idempotency:
             return None
         stmt = (
             insert(IdempotencyKey)
-            .values(id=uuid.uuid4(), user_id=self.user_id, key=self.key, request_hash=self.request_hash)
+            .values(
+                id=uuid.uuid4(), user_id=self.user_id, key=self.key, request_hash=self.request_hash
+            )
             .on_conflict_do_nothing(index_elements=["user_id", "key"])
             .returning(IdempotencyKey.id)
         )

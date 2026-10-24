@@ -58,7 +58,9 @@ async def members(ctx: Ctx, db: DB) -> list[MemberOut]:
 
 
 @router.patch("/families/{family_id}/members/{member_id}", response_model=list[MemberOut])
-async def patch_member(member_id: uuid.UUID, body: MemberPatch, ctx: Ctx, db: DB) -> list[MemberOut]:
+async def patch_member(
+    member_id: uuid.UUID, body: MemberPatch, ctx: Ctx, db: DB
+) -> list[MemberOut]:
     await service.change_role(db, ctx, member_id, body.role)
     await db.commit()
     return await service.list_members(db, ctx.family_id)
@@ -78,9 +80,7 @@ async def leave(ctx: Ctx, db: DB) -> None:
     await delete_files_quietly(keys)
 
 
-@router.post(
-    "/families/{family_id}/invitations", response_model=InvitationCreated, status_code=201
-)
+@router.post("/families/{family_id}/invitations", response_model=InvitationCreated, status_code=201)
 async def create_invitation(body: InvitationCreate, ctx: Ctx, db: DB) -> InvitationCreated:
     out = await service.create_invitation(db, ctx, body)
     await db.commit()

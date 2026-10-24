@@ -22,7 +22,9 @@ router = APIRouter(prefix="/families/{family_id}/life", tags=["life"])
 
 
 @router.get("/items", response_model=list[LifeItemOut])
-async def items(ctx: Ctx, db: DB, kind: LifeItemKind | None = None, status: LifeItemStatus | None = None) -> list[LifeItemOut]:
+async def items(
+    ctx: Ctx, db: DB, kind: LifeItemKind | None = None, status: LifeItemStatus | None = None
+) -> list[LifeItemOut]:
     return [LifeItemOut.model_validate(i) for i in await service.list_items(db, ctx, kind, status)]
 
 

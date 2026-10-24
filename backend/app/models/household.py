@@ -83,7 +83,9 @@ class Task(UUIDPk, Timestamps, Base):
     )
     due_at: Mapped[datetime | None]
     priority: Mapped[Priority] = mapped_column(
-        enum_type(Priority, "priority"), server_default=Priority.normal.value, default=Priority.normal
+        enum_type(Priority, "priority"),
+        server_default=Priority.normal.value,
+        default=Priority.normal,
     )
     category: Mapped[str | None] = mapped_column(sa.String(32))
     status: Mapped[TaskStatus] = mapped_column(
@@ -206,9 +208,7 @@ class LifeItem(UUIDPk, Timestamps, Base):
 
 class Habit(UUIDPk, Timestamps, Base):
     __tablename__ = "habits"
-    __table_args__ = (
-        sa.CheckConstraint("target_per_week BETWEEN 1 AND 7", name="target_range"),
-    )
+    __table_args__ = (sa.CheckConstraint("target_per_week BETWEEN 1 AND 7", name="target_range"),)
 
     family_id: Mapped[uuid.UUID] = family_fk()
     title: Mapped[str] = mapped_column(sa.String(100))

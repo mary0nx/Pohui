@@ -24,25 +24,34 @@ from app.security.access import FamilyContext, ensure_can_delete, get_visible, v
 PRIVATE_BY_DEFAULT = {LifeItemKind.note, LifeItemKind.wish, LifeItemKind.journal}
 
 
-async def list_items(db: AsyncSession, ctx: FamilyContext, kind: LifeItemKind | None, status: LifeItemStatus | None) -> list[LifeItem]:
+async def list_items(
+    db: AsyncSession, ctx: FamilyContext, kind: LifeItemKind | None, status: LifeItemStatus | None
+) -> list[LifeItem]:
     stmt = select(LifeItem).where(visible(LifeItem, ctx))
     if kind:
         stmt = stmt.where(LifeItem.kind == kind)
     if status:
         stmt = stmt.where(LifeItem.status == status)
-    stmt = stmt.order_by(LifeItem.status == LifeItemStatus.done, LifeItem.happened_on.desc().nulls_last(), LifeItem.created_at.desc())
+    stmt = stmt.order_by(
+        LifeItem.status == LifeItemStatus.done,
+        LifeItem.happened_on.desc().nulls_last(),
+        LifeItem.created_at.desc(),
+    )
     return list((await db.execute(stmt.limit(300))).scalars())
 
 
 async def create_item(db: AsyncSession, ctx: FamilyContext, data: LifeItemCreate) -> LifeItem:
-    visibility = data.visibility or (Visibility.private if data.kind in PRIVATE_BY_DEFAULT else Visibility.family)
+    visibility = data.visibility or (
+        Visibility.private if data.kind in PRIVATE_BY_DEFAULT else Visibility.family
+    )
     item = LifeItem(
         family_id=ctx.family_id,
         kind=data.kind,
         title=data.title,
         body=data.body,
         status=data.status,
-        happened_on=data.happened_on or (local_today(ctx.family.timezone) if data.kind == LifeItemKind.journal else None),
+        happened_on=data.happened_on
+        or (local_today(ctx.family.timezone) if data.kind == LifeItemKind.journal else None),
         planned_for=data.planned_for,
         price=data.price,
         url=data.url,
@@ -53,11 +62,21 @@ async def create_item(db: AsyncSession, ctx: FamilyContext, data: LifeItemCreate
     db.add(item)
     await db.flush()
     # Audit summaries never contain note bodies.
-    audit(db, ctx, f"life.{data.kind.value}.create", "life_item", item.id, item.title if visibility == Visibility.family else None, obj=item)
+    audit(
+        db,
+        ctx,
+        f"life.{data.kind.value}.create",
+        "life_item",
+        item.id,
+        item.title if visibility == Visibility.family else None,
+        obj=item,
+    )
     return item
 
 
-async def update_item(db: AsyncSession, ctx: FamilyContext, item_id: uuid.UUID, data: LifeItemPatch) -> LifeItem:
+async def update_item(
+    db: AsyncSession, ctx: FamilyContext, item_id: uuid.UUID, data: LifeItemPatch
+) -> LifeItem:
     item = await get_visible(db, LifeItem, item_id, ctx, lock=True)
     for field in ("title", "body", "happened_on", "planned_for", "price", "url"):
         if field in data.model_fields_set:
@@ -76,7 +95,15 @@ async def update_item(db: AsyncSession, ctx: FamilyContext, item_id: uuid.UUID, 
                 link="/home/life",
                 obj=item,
             )
-    audit(db, ctx, f"life.{item.kind.value}.update", "life_item", item.id, item.title if item.visibility == Visibility.family else None, obj=item)
+    audit(
+        db,
+        ctx,
+        f"life.{item.kind.value}.update",
+        "life_item",
+        item.id,
+        item.title if item.visibility == Visibility.family else None,
+        obj=item,
+    )
     await db.flush()
     return item
 
@@ -94,26 +121,56 @@ def _week_start(day: date) -> date:
 async def list_habits(db: AsyncSession, ctx: FamilyContext) -> list[HabitOut]:
     today = local_today(ctx.family.timezone)
     start = _week_start(today)
-    habits = (await db.execute(select(Habit).where(visible(Habit, ctx), Habit.archived_at.is_(None)).order_by(Habit.created_at))).scalars().all()
+    habits = (
+        (
+            await db.execute(
+                select(Habit)
+                .where(visible(Habit, ctx), Habit.archived_at.is_(None))
+                .order_by(Habit.created_at)
+            )
+        )
+        .scalars()
+        .all()
+    )
     out = []
     for h in habits:
-        checkins = (await db.execute(select(HabitCheckin).where(HabitCheckin.habit_id == h.id, HabitCheckin.day >= start))).scalars().all()
+        checkins = (
+            (
+                await db.execute(
+                    select(HabitCheckin).where(
+                        HabitCheckin.habit_id == h.id, HabitCheckin.day >= start
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
         item = HabitOut.model_validate(h)
         item.week_days = sorted({c.day for c in checkins})
         item.week_count = len(item.week_days)
-        item.checked_today_by_me = any(c.day == today and c.user_id == ctx.user_id for c in checkins)
+        item.checked_today_by_me = any(
+            c.day == today and c.user_id == ctx.user_id for c in checkins
+        )
         out.append(item)
     return out
 
 
 async def create_habit(db: AsyncSession, ctx: FamilyContext, data: HabitCreate) -> Habit:
-    habit = Habit(family_id=ctx.family_id, title=data.title, target_per_week=data.target_per_week, visibility=data.visibility, created_by=ctx.user_id)
+    habit = Habit(
+        family_id=ctx.family_id,
+        title=data.title,
+        target_per_week=data.target_per_week,
+        visibility=data.visibility,
+        created_by=ctx.user_id,
+    )
     db.add(habit)
     await db.flush()
     return habit
 
 
-async def checkin(db: AsyncSession, ctx: FamilyContext, habit_id: uuid.UUID, day: date | None, done: bool) -> None:
+async def checkin(
+    db: AsyncSession, ctx: FamilyContext, habit_id: uuid.UUID, day: date | None, done: bool
+) -> None:
     habit = await get_visible(db, Habit, habit_id, ctx)
     today = local_today(ctx.family.timezone)
     day = day or today
@@ -122,11 +179,23 @@ async def checkin(db: AsyncSession, ctx: FamilyContext, habit_id: uuid.UUID, day
     if done:
         await db.execute(
             insert(HabitCheckin)
-            .values(id=uuid.uuid4(), family_id=ctx.family_id, habit_id=habit.id, user_id=ctx.user_id, day=day)
+            .values(
+                id=uuid.uuid4(),
+                family_id=ctx.family_id,
+                habit_id=habit.id,
+                user_id=ctx.user_id,
+                day=day,
+            )
             .on_conflict_do_nothing(index_elements=["habit_id", "user_id", "day"])
         )
     else:
-        await db.execute(delete(HabitCheckin).where(HabitCheckin.habit_id == habit.id, HabitCheckin.user_id == ctx.user_id, HabitCheckin.day == day))
+        await db.execute(
+            delete(HabitCheckin).where(
+                HabitCheckin.habit_id == habit.id,
+                HabitCheckin.user_id == ctx.user_id,
+                HabitCheckin.day == day,
+            )
+        )
 
 
 async def archive_habit(db: AsyncSession, ctx: FamilyContext, habit_id: uuid.UUID) -> None:

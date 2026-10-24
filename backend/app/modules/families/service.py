@@ -90,9 +90,9 @@ async def create_family(db: AsyncSession, user: User, data: FamilyCreate) -> Fam
 async def list_members(db: AsyncSession, family_id: uuid.UUID) -> list[MemberOut]:
     rows = (
         await db.execute(
-            select(FamilyMember).where(FamilyMember.family_id == family_id).order_by(
-                FamilyMember.joined_at
-            )
+            select(FamilyMember)
+            .where(FamilyMember.family_id == family_id)
+            .order_by(FamilyMember.joined_at)
         )
     ).scalars()
     return [
@@ -144,12 +144,16 @@ async def delete_family(db: AsyncSession, ctx: FamilyContext, confirm_name: str)
     if confirm_name.strip() != ctx.family.name:
         raise ValidationFailed("Название семьи введено неверно", code="confirmation_mismatch")
     keys = (
-        await db.execute(
-            select(Document.storage_key).where(
-                Document.family_id == ctx.family_id, Document.storage_key.is_not(None)
+        (
+            await db.execute(
+                select(Document.storage_key).where(
+                    Document.family_id == ctx.family_id, Document.storage_key.is_not(None)
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     # Transactions reference accounts with RESTRICT; remove them before the cascade.
     await db.execute(delete(Transaction).where(Transaction.family_id == ctx.family_id))
     await db.execute(delete(Family).where(Family.id == ctx.family_id))
@@ -176,15 +180,19 @@ async def purge_private_data(
     """Delete a departing member's private records in the family. Returns storage keys of
     deleted documents (files are removed after commit)."""
     keys = (
-        await db.execute(
-            select(Document.storage_key).where(
-                Document.family_id == family_id,
-                Document.created_by == user_id,
-                Document.visibility == Visibility.private,
-                Document.storage_key.is_not(None),
+        (
+            await db.execute(
+                select(Document.storage_key).where(
+                    Document.family_id == family_id,
+                    Document.created_by == user_id,
+                    Document.visibility == Visibility.private,
+                    Document.storage_key.is_not(None),
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     await db.execute(
         delete(Document).where(
             Document.family_id == family_id,
@@ -208,9 +216,7 @@ async def purge_private_data(
     return [k for k in keys if k]
 
 
-async def remove_member(
-    db: AsyncSession, ctx: FamilyContext, member_id: uuid.UUID
-) -> list[str]:
+async def remove_member(db: AsyncSession, ctx: FamilyContext, member_id: uuid.UUID) -> list[str]:
     member = await db.scalar(
         select(FamilyMember).where(
             FamilyMember.id == member_id, FamilyMember.family_id == ctx.family_id
@@ -332,7 +338,7 @@ async def create_invitation(
 
 def _normalize_token(token: str) -> str:
     token = token.strip()
-    return token[len(INVITE_PREFIX):] if token.startswith(INVITE_PREFIX) else token
+    return token[len(INVITE_PREFIX) :] if token.startswith(INVITE_PREFIX) else token
 
 
 async def _usable_invitation(

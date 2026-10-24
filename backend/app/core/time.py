@@ -48,7 +48,9 @@ def local_range_bounds(start: date, end_exclusive: date, zone: str) -> tuple[dat
     return local_day_bounds(start, zone)[0], local_day_bounds(end_exclusive, zone)[0]
 
 
-def step_date(d: date, freq: Frequency, interval: int, n: int, anchor_day: int | None = None) -> date:
+def step_date(
+    d: date, freq: Frequency, interval: int, n: int, anchor_day: int | None = None
+) -> date:
     """n-th occurrence date starting at d. Monthly/yearly keep the anchor day, clamped to
     month length (31st -> 30th/28th)."""
     if freq == Frequency.daily:

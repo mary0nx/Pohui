@@ -10,7 +10,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import ColumnElement, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -95,3 +95,23 @@ async def notify_family(
         ):
             count += 1
     return count
+
+
+# Skipped rows stay visible in the inbox only when Telegram delivery was impossible, not when
+# the user muted the category.
+DELIVERY_SKIPS = ["bot not started", "bot blocked", "telegram disabled by user"]
+
+
+def inbox_condition(user_id: uuid.UUID) -> ColumnElement[bool]:
+    """Notifications a user sees in the in-app inbox: due (or already sent) and not muted."""
+    return (
+        (Notification.user_id == user_id)
+        & (
+            (Notification.scheduled_for <= utcnow())
+            | (Notification.status == NotificationStatus.sent)
+        )
+        & (
+            (Notification.status != NotificationStatus.skipped)
+            | Notification.last_error.in_(DELIVERY_SKIPS)
+        )
+    )

@@ -44,7 +44,9 @@ def pantry_out(item: PantryItem, today: date) -> PantryOut:
     out = PantryOut.model_validate(item)
     if item.expires_on:
         out.expired = item.expires_on < today
-        out.expiring_soon = not out.expired and item.expires_on <= today + timedelta(days=EXPIRING_DAYS)
+        out.expiring_soon = not out.expired and item.expires_on <= today + timedelta(
+            days=EXPIRING_DAYS
+        )
     return out
 
 
@@ -52,7 +54,9 @@ async def list_pantry(db: AsyncSession, ctx: FamilyContext) -> list[PantryOut]:
     today = local_today(ctx.family.timezone)
     rows = (
         await db.execute(
-            select(PantryItem).where(PantryItem.family_id == ctx.family_id).order_by(PantryItem.expires_on.nulls_last(), PantryItem.name)
+            select(PantryItem)
+            .where(PantryItem.family_id == ctx.family_id)
+            .order_by(PantryItem.expires_on.nulls_last(), PantryItem.name)
         )
     ).scalars()
     return [pantry_out(i, today) for i in rows]
@@ -66,7 +70,9 @@ async def create_pantry(db: AsyncSession, ctx: FamilyContext, data: PantryCreate
     return item
 
 
-async def update_pantry(db: AsyncSession, ctx: FamilyContext, item_id: uuid.UUID, data: PantryPatch) -> PantryItem:
+async def update_pantry(
+    db: AsyncSession, ctx: FamilyContext, item_id: uuid.UUID, data: PantryPatch
+) -> PantryItem:
     item = await get_visible(db, PantryItem, item_id, ctx, lock=True)
     for field in data.model_fields_set:
         setattr(item, field, getattr(data, field))
@@ -74,7 +80,9 @@ async def update_pantry(db: AsyncSession, ctx: FamilyContext, item_id: uuid.UUID
     return item
 
 
-async def adjust_pantry(db: AsyncSession, ctx: FamilyContext, item_id: uuid.UUID, data: PantryAdjust) -> PantryItem:
+async def adjust_pantry(
+    db: AsyncSession, ctx: FamilyContext, item_id: uuid.UUID, data: PantryAdjust
+) -> PantryItem:
     item = await get_visible(db, PantryItem, item_id, ctx, lock=True)
     new = (item.quantity or Decimal("0")) + data.delta
     if new < 0:
@@ -93,12 +101,22 @@ async def delete_pantry(db: AsyncSession, ctx: FamilyContext, item_id: uuid.UUID
 
 async def recipe_out(db: AsyncSession, recipe: Recipe) -> RecipeOut:
     out = RecipeOut.model_validate(recipe)
-    rows = (await db.execute(select(RecipeIngredient).where(RecipeIngredient.recipe_id == recipe.id).order_by(RecipeIngredient.position))).scalars()
-    out.ingredients = [IngredientOut(id=r.id, name=r.name, quantity=r.quantity, unit=r.unit) for r in rows]
+    rows = (
+        await db.execute(
+            select(RecipeIngredient)
+            .where(RecipeIngredient.recipe_id == recipe.id)
+            .order_by(RecipeIngredient.position)
+        )
+    ).scalars()
+    out.ingredients = [
+        IngredientOut(id=r.id, name=r.name, quantity=r.quantity, unit=r.unit) for r in rows
+    ]
     return out
 
 
-async def list_recipes(db: AsyncSession, ctx: FamilyContext, q: str | None = None) -> list[RecipeOut]:
+async def list_recipes(
+    db: AsyncSession, ctx: FamilyContext, q: str | None = None
+) -> list[RecipeOut]:
     stmt = select(Recipe).where(visible(Recipe, ctx))
     if q:
         stmt = stmt.where(Recipe.title.ilike(f"%{q.replace('%', '')}%"))
@@ -108,10 +126,20 @@ async def list_recipes(db: AsyncSession, ctx: FamilyContext, q: str | None = Non
 
 def _set_ingredients(db: AsyncSession, recipe_id: uuid.UUID, ingredients: list) -> None:  # type: ignore[type-arg]
     for pos, ing in enumerate(ingredients):
-        db.add(RecipeIngredient(recipe_id=recipe_id, name=ing.name.strip(), quantity=ing.quantity, unit=ing.unit, position=pos))
+        db.add(
+            RecipeIngredient(
+                recipe_id=recipe_id,
+                name=ing.name.strip(),
+                quantity=ing.quantity,
+                unit=ing.unit,
+                position=pos,
+            )
+        )
 
 
-async def create_recipe(db: AsyncSession, ctx: FamilyContext, data: RecipeCreate, source: str = "manual") -> Recipe:
+async def create_recipe(
+    db: AsyncSession, ctx: FamilyContext, data: RecipeCreate, source: str = "manual"
+) -> Recipe:
     recipe = Recipe(
         family_id=ctx.family_id,
         title=data.title,
@@ -132,7 +160,9 @@ async def create_recipe(db: AsyncSession, ctx: FamilyContext, data: RecipeCreate
     return recipe
 
 
-async def update_recipe(db: AsyncSession, ctx: FamilyContext, recipe_id: uuid.UUID, data: RecipePatch) -> Recipe:
+async def update_recipe(
+    db: AsyncSession, ctx: FamilyContext, recipe_id: uuid.UUID, data: RecipePatch
+) -> Recipe:
     recipe = await get_visible(db, Recipe, recipe_id, ctx, lock=True)
     for field in ("title", "description", "instructions", "servings", "prep_minutes", "tags"):
         if field in data.model_fields_set and getattr(data, field) is not None:
@@ -150,12 +180,18 @@ async def delete_recipe(db: AsyncSession, ctx: FamilyContext, recipe_id: uuid.UU
     await db.delete(recipe)
 
 
-async def list_plan(db: AsyncSession, ctx: FamilyContext, date_from: date, date_to: date) -> list[MealPlanEntry]:
+async def list_plan(
+    db: AsyncSession, ctx: FamilyContext, date_from: date, date_to: date
+) -> list[MealPlanEntry]:
     return list(
         (
             await db.execute(
                 select(MealPlanEntry)
-                .where(MealPlanEntry.family_id == ctx.family_id, MealPlanEntry.day >= date_from, MealPlanEntry.day <= date_to)
+                .where(
+                    MealPlanEntry.family_id == ctx.family_id,
+                    MealPlanEntry.day >= date_from,
+                    MealPlanEntry.day <= date_to,
+                )
                 .order_by(MealPlanEntry.day, MealPlanEntry.meal_type)
             )
         ).scalars()
@@ -173,7 +209,16 @@ async def set_plan_entry(db: AsyncSession, ctx: FamilyContext, data: MealEntryIn
         raise ValidationFailed("Укажите блюдо или рецепт")
     stmt = (
         insert(MealPlanEntry)
-        .values(id=uuid.uuid4(), family_id=ctx.family_id, day=data.day, meal_type=data.meal_type, title=title, recipe_id=data.recipe_id, servings=data.servings, created_by=ctx.user_id)
+        .values(
+            id=uuid.uuid4(),
+            family_id=ctx.family_id,
+            day=data.day,
+            meal_type=data.meal_type,
+            title=title,
+            recipe_id=data.recipe_id,
+            servings=data.servings,
+            created_by=ctx.user_id,
+        )
         .on_conflict_do_update(
             index_elements=["family_id", "day", "meal_type"],
             set_={"title": title, "recipe_id": data.recipe_id, "servings": data.servings},
@@ -187,7 +232,11 @@ async def set_plan_entry(db: AsyncSession, ctx: FamilyContext, data: MealEntryIn
 
 
 async def delete_plan_entry(db: AsyncSession, ctx: FamilyContext, entry_id: uuid.UUID) -> None:
-    res = await db.execute(delete(MealPlanEntry).where(MealPlanEntry.id == entry_id, MealPlanEntry.family_id == ctx.family_id))
+    res = await db.execute(
+        delete(MealPlanEntry).where(
+            MealPlanEntry.id == entry_id, MealPlanEntry.family_id == ctx.family_id
+        )
+    )
     if not res.rowcount:  # type: ignore[attr-defined]
         raise NotFound()
 
@@ -196,7 +245,9 @@ def _key(name: str, unit: str | None) -> tuple[str, str]:
     return name.strip().lower(), (unit or "").strip().lower()
 
 
-async def shopping_from_plan(db: AsyncSession, ctx: FamilyContext, data: ShoppingFromPlan) -> ShoppingFromPlanOut:
+async def shopping_from_plan(
+    db: AsyncSession, ctx: FamilyContext, data: ShoppingFromPlan
+) -> ShoppingFromPlanOut:
     if data.date_to < data.date_from or (data.date_to - data.date_from).days > 31:
         raise ValidationFailed("Период до 31 дня")
     entries = await list_plan(db, ctx, data.date_from, data.date_to)
@@ -205,18 +256,26 @@ async def shopping_from_plan(db: AsyncSession, ctx: FamilyContext, data: Shoppin
     for e in entries:
         if e.recipe_id is None:
             continue
-        recipe = await db.scalar(select(Recipe).where(Recipe.id == e.recipe_id, visible(Recipe, ctx)))
+        recipe = await db.scalar(
+            select(Recipe).where(Recipe.id == e.recipe_id, visible(Recipe, ctx))
+        )
         if recipe is None:
             continue
         factor = Decimal(e.servings) / Decimal(recipe.servings or 1)
-        for ing in (await db.execute(select(RecipeIngredient).where(RecipeIngredient.recipe_id == recipe.id))).scalars():
+        for ing in (
+            await db.execute(
+                select(RecipeIngredient).where(RecipeIngredient.recipe_id == recipe.id)
+            )
+        ).scalars():
             k = _key(ing.name, ing.unit)
             need.setdefault(k, (ing.name, None, ing.unit))
             if ing.quantity is not None:
                 totals[k] += Decimal(ing.quantity) * factor
     covered: list[str] = []
     if data.subtract_pantry:
-        for p in (await db.execute(select(PantryItem).where(PantryItem.family_id == ctx.family_id))).scalars():
+        for p in (
+            await db.execute(select(PantryItem).where(PantryItem.family_id == ctx.family_id))
+        ).scalars():
             k = _key(p.name, p.unit)
             if k not in need:
                 continue
@@ -227,15 +286,23 @@ async def shopping_from_plan(db: AsyncSession, ctx: FamilyContext, data: Shoppin
                     totals.pop(k)
             elif k not in totals and (p.quantity is None or p.quantity > 0):
                 covered.append(need.pop(k)[0])
-    lst = await shopping.get_list(db, ctx, data.list_id) if data.list_id else await shopping.default_list(db, ctx)
+    lst = (
+        await shopping.get_list(db, ctx, data.list_id)
+        if data.list_id
+        else await shopping.default_list(db, ctx)
+    )
     items = [
         ItemCreate(
             name=name[0].upper() + name[1:],
-            quantity=totals[k].quantize(Decimal("0.001")) if k in totals and totals[k] > 0 else None,
+            quantity=totals[k].quantize(Decimal("0.001"))
+            if k in totals and totals[k] > 0
+            else None,
             unit=unit,
             category="Из меню",
         )
         for k, (name, _, unit) in need.items()
     ]
     added = await shopping.add_items(db, ctx, lst.id, items) if items else []
-    return ShoppingFromPlanOut(list_id=lst.id, added=[i.name for i in added], covered_by_pantry=covered)
+    return ShoppingFromPlanOut(
+        list_id=lst.id, added=[i.name for i in added], covered_by_pantry=covered
+    )

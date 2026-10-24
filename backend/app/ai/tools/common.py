@@ -24,7 +24,9 @@ def parse_local_datetime(value: str, zone: str) -> datetime:
     try:
         dt = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
     except ValueError as exc:
-        raise ToolError(f"Не удалось разобрать дату/время «{value[:40]}»; нужен формат ГГГГ-ММ-ДДTЧЧ:ММ") from exc
+        raise ToolError(
+            f"Не удалось разобрать дату/время «{value[:40]}»; нужен формат ГГГГ-ММ-ДДTЧЧ:ММ"
+        ) from exc
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=ZoneInfo(zone))
     return dt
@@ -34,7 +36,9 @@ def parse_date(value: str) -> date:
     try:
         return date.fromisoformat(value.strip()[:10])
     except ValueError as exc:
-        raise ToolError(f"Не удалось разобрать дату «{value[:40]}»; нужен формат ГГГГ-ММ-ДД") from exc
+        raise ToolError(
+            f"Не удалось разобрать дату «{value[:40]}»; нужен формат ГГГГ-ММ-ДД"
+        ) from exc
 
 
 def day_noon(d: date, zone: str) -> datetime:
@@ -54,16 +58,24 @@ def _match(names: dict[str, object], query: str) -> object | None:
     return contains[0] if len(contains) == 1 else None
 
 
-async def resolve_category(tc: ToolContext, name: str | None, kind: CategoryKind) -> Category | None:
+async def resolve_category(
+    tc: ToolContext, name: str | None, kind: CategoryKind
+) -> Category | None:
     if not name:
         return None
     cats = (
-        await tc.db.execute(
-            select(Category).where(
-                Category.family_id == tc.ctx.family_id, Category.kind == kind, Category.archived_at.is_(None)
+        (
+            await tc.db.execute(
+                select(Category).where(
+                    Category.family_id == tc.ctx.family_id,
+                    Category.kind == kind,
+                    Category.archived_at.is_(None),
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     found = _match({c.name.lower(): c for c in cats}, name)
     if found is None:
         options = ", ".join(sorted(c.name for c in cats if c.parent_id is None))
@@ -72,17 +84,23 @@ async def resolve_category(tc: ToolContext, name: str | None, kind: CategoryKind
     return found
 
 
-async def resolve_account(tc: ToolContext, name: str | None, private: bool | None = None) -> Account:
+async def resolve_account(
+    tc: ToolContext, name: str | None, private: bool | None = None
+) -> Account:
     stmt = select(Account).where(visible(Account, tc.ctx), Account.archived_at.is_(None))
     if private is not None:
-        stmt = stmt.where(Account.visibility == (Visibility.private if private else Visibility.family))
+        stmt = stmt.where(
+            Account.visibility == (Visibility.private if private else Visibility.family)
+        )
     accounts = (await tc.db.execute(stmt.order_by(Account.created_at))).scalars().all()
     if not accounts:
         raise ToolError("Нет доступных счетов — создайте счёт в разделе «Финансы»")
     if name:
         found = _match({a.name.lower(): a for a in accounts}, name)
         if found is None:
-            raise ToolError(f"Счёт «{name}» не найден. Доступные: {', '.join(a.name for a in accounts)}")
+            raise ToolError(
+                f"Счёт «{name}» не найден. Доступные: {', '.join(a.name for a in accounts)}"
+            )
         assert isinstance(found, Account)
         return found
     # Default: the account this user used most recently, else the first one.
@@ -102,10 +120,16 @@ async def resolve_member(tc: ToolContext, name: str | None) -> uuid.UUID | None:
     if name.strip().lower() in {"я", "меня", "мне", "me", "себе"}:
         return tc.ctx.user_id
     rows = (
-        await tc.db.execute(
-            select(User).join(FamilyMember, FamilyMember.user_id == User.id).where(FamilyMember.family_id == tc.ctx.family_id)
+        (
+            await tc.db.execute(
+                select(User)
+                .join(FamilyMember, FamilyMember.user_id == User.id)
+                .where(FamilyMember.family_id == tc.ctx.family_id)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     lookup: dict[str, object] = {}
     for u in rows:
         lookup[u.first_name.lower()] = u.id
@@ -113,7 +137,8 @@ async def resolve_member(tc: ToolContext, name: str | None) -> uuid.UUID | None:
             lookup[u.username.lower()] = u.id
     found = _match(lookup, name)
     if found is None:
-        raise ToolError(f"Участник «{name}» не найден. В семье: {', '.join(u.first_name for u in rows)}")
+        raise ToolError(
+            f"Участник «{name}» не найден. В семье: {', '.join(u.first_name for u in rows)}"
+        )
     assert isinstance(found, uuid.UUID)
     return found
-

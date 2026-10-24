@@ -21,7 +21,11 @@ async def test_start_marks_user_reachable(alice: Actor) -> None:
 async def test_bot_ai_and_inline_confirmation(couple: tuple[Actor, Actor]) -> None:
     alice, bob = couple
     await alice.patch(alice.f(), {"ai_auto_execute": False})
-    set_provider(ScriptedProvider([call("create_task", {"title": "Купить лампочку"}), text("Подтвердите, пожалуйста")]))
+    set_provider(
+        ScriptedProvider(
+            [call("create_task", {"title": "Купить лампочку"}), text("Подтвердите, пожалуйста")]
+        )
+    )
     try:
         async with get_sessionmaker()() as db:
             reply = await logic.ai_message(db, 1001, "создай задачу купить лампочку")

@@ -60,7 +60,11 @@ async def list_history(list_id: uuid.UUID, ctx: Ctx, db: DB) -> list[HistoryOut]
 
 @router.post("/lists/{list_id}/items", response_model=list[ItemOut], status_code=201)
 async def add_item(
-    list_id: uuid.UUID, body: ItemCreate, ctx: Ctx, db: DB, idempotency_key: IdempotencyKeyHeader = None
+    list_id: uuid.UUID,
+    body: ItemCreate,
+    ctx: Ctx,
+    db: DB,
+    idempotency_key: IdempotencyKeyHeader = None,
 ):  # type: ignore[no-untyped-def]
     idem = Idempotency(db, ctx.user_id, idempotency_key, f"shop:{list_id}", body)
     if (replay := await idem.begin()) is not None:
@@ -73,7 +77,11 @@ async def add_item(
 
 @router.post("/lists/{list_id}/items/bulk", response_model=list[ItemOut], status_code=201)
 async def add_bulk(
-    list_id: uuid.UUID, body: BulkText, ctx: Ctx, db: DB, idempotency_key: IdempotencyKeyHeader = None
+    list_id: uuid.UUID,
+    body: BulkText,
+    ctx: Ctx,
+    db: DB,
+    idempotency_key: IdempotencyKeyHeader = None,
 ):  # type: ignore[no-untyped-def]
     idem = Idempotency(db, ctx.user_id, idempotency_key, f"shop-bulk:{list_id}", body)
     if (replay := await idem.begin()) is not None:
@@ -85,7 +93,9 @@ async def add_bulk(
 
 
 @router.patch("/lists/{list_id}/items/{item_id}", response_model=ItemOut)
-async def patch_item(list_id: uuid.UUID, item_id: uuid.UUID, body: ItemPatch, ctx: Ctx, db: DB) -> ItemOut:
+async def patch_item(
+    list_id: uuid.UUID, item_id: uuid.UUID, body: ItemPatch, ctx: Ctx, db: DB
+) -> ItemOut:
     item = await service.update_item(db, ctx, list_id, item_id, body)
     out = ItemOut.model_validate(item)
     await db.commit()

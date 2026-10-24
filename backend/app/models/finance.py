@@ -114,7 +114,9 @@ class Budget(UUIDPk, Timestamps, Base):
 
     __tablename__ = "budgets"
     __table_args__ = (
-        sa.UniqueConstraint("family_id", "month", "category_id", postgresql_nulls_not_distinct=True),
+        sa.UniqueConstraint(
+            "family_id", "month", "category_id", postgresql_nulls_not_distinct=True
+        ),
         sa.CheckConstraint("limit_amount >= 0", name="limit_non_negative"),
         sa.CheckConstraint("EXTRACT(DAY FROM month) = 1", name="month_first_day"),
     )

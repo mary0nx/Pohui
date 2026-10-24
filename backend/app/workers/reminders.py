@@ -61,11 +61,17 @@ def _offset_text(minutes: int) -> str:
 
 async def _members(db: AsyncSession, family_id: uuid.UUID) -> list[uuid.UUID]:
     return list(
-        (await db.execute(select(FamilyMember.user_id).where(FamilyMember.family_id == family_id))).scalars()
+        (
+            await db.execute(
+                select(FamilyMember.user_id).where(FamilyMember.family_id == family_id)
+            )
+        ).scalars()
     )
 
 
-def _recipients_for(obj: object, members: list[uuid.UUID], default: uuid.UUID | None) -> list[uuid.UUID]:
+def _recipients_for(
+    obj: object, members: list[uuid.UUID], default: uuid.UUID | None
+) -> list[uuid.UUID]:
     if getattr(obj, "visibility", Visibility.family) == Visibility.private:
         owner = getattr(obj, "created_by", None)
         return [owner] if owner in members else []
@@ -78,7 +84,10 @@ async def schedule_event_reminders(db: AsyncSession, now: datetime) -> int:
         await db.execute(
             select(Reminder, CalendarEvent)
             .join(CalendarEvent, CalendarEvent.id == Reminder.target_id)
-            .where(Reminder.target_type == ReminderTarget.event, CalendarEvent.status == EventStatus.confirmed)
+            .where(
+                Reminder.target_type == ReminderTarget.event,
+                CalendarEvent.status == EventStatus.confirmed,
+            )
         )
     ).all()
     for rem, event in rows:
@@ -87,7 +96,13 @@ async def schedule_event_reminders(db: AsyncSession, now: datetime) -> int:
         if not occs:
             continue
         skipped = set(
-            (await db.execute(select(EventException.occurrence_start).where(EventException.event_id == event.id))).scalars()
+            (
+                await db.execute(
+                    select(EventException.occurrence_start).where(
+                        EventException.event_id == event.id
+                    )
+                )
+            ).scalars()
         )
         members = await _members(db, event.family_id)
         if rem.for_all_members and event.visibility == Visibility.family:
@@ -163,14 +178,18 @@ async def schedule_task_reminders(db: AsyncSession, now: datetime) -> int:
 async def schedule_custom_reminders(db: AsyncSession, now: datetime) -> int:
     created = 0
     rows = (
-        await db.execute(
-            select(Reminder).where(
-                Reminder.target_type == ReminderTarget.custom,
-                Reminder.remind_at >= now - GRACE,
-                Reminder.remind_at <= now + LOOKAHEAD,
+        (
+            await db.execute(
+                select(Reminder).where(
+                    Reminder.target_type == ReminderTarget.custom,
+                    Reminder.remind_at >= now - GRACE,
+                    Reminder.remind_at <= now + LOOKAHEAD,
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     for rem in rows:
         if rem.created_by is None or rem.remind_at is None:
             continue
@@ -193,14 +212,18 @@ async def schedule_custom_reminders(db: AsyncSession, now: datetime) -> int:
 async def schedule_overdue_tasks(db: AsyncSession, now: datetime) -> int:
     created = 0
     tasks = (
-        await db.execute(
-            select(Task).where(
-                Task.status.in_([TaskStatus.todo, TaskStatus.in_progress]),
-                Task.due_at < now,
-                Task.due_at > now - OVERDUE_LOOKBACK,
+        (
+            await db.execute(
+                select(Task).where(
+                    Task.status.in_([TaskStatus.todo, TaskStatus.in_progress]),
+                    Task.due_at < now,
+                    Task.due_at > now - OVERDUE_LOOKBACK,
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     for task in tasks:
         assert task.due_at is not None
         members = await _members(db, task.family_id)
@@ -240,7 +263,9 @@ async def schedule_payment_reminders(db: AsyncSession, now: datetime) -> int:
         )
     ).all()
     for sp, rule, family in rows:
-        fire_at = _morning_of(sp.due_date - timedelta(days=rule.remind_days_before), family.timezone)
+        fire_at = _morning_of(
+            sp.due_date - timedelta(days=rule.remind_days_before), family.timezone
+        )
         if fire_at > now + LOOKAHEAD:
             continue
         members = await _members(db, family.id)
@@ -275,7 +300,9 @@ async def schedule_document_reminders(db: AsyncSession, now: datetime) -> int:
     ).all()
     for doc, family in rows:
         assert doc.expires_on is not None and doc.remind_days_before is not None
-        fire_at = _morning_of(doc.expires_on - timedelta(days=doc.remind_days_before), family.timezone)
+        fire_at = _morning_of(
+            doc.expires_on - timedelta(days=doc.remind_days_before), family.timezone
+        )
         if fire_at > now + LOOKAHEAD:
             continue
         members = await _members(db, family.id)

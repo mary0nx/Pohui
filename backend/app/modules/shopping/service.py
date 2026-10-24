@@ -27,7 +27,9 @@ from app.security.access import FamilyContext, ensure_can_delete, get_visible
 MAX_ITEMS_PER_LIST = 500
 
 
-async def list_lists(db: AsyncSession, ctx: FamilyContext, include_archived: bool = False) -> list[ListOut]:
+async def list_lists(
+    db: AsyncSession, ctx: FamilyContext, include_archived: bool = False
+) -> list[ListOut]:
     stmt = (
         select(
             ShoppingList,
@@ -56,24 +58,29 @@ async def get_list(db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID) -> 
 async def list_detail(db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID) -> ListDetail:
     lst = await get_list(db, ctx, list_id)
     items = (
-        await db.execute(
-            select(ShoppingItem)
-            .where(ShoppingItem.list_id == lst.id)
-            .order_by(
-                (ShoppingItem.status == ItemStatus.bought),
-                ShoppingItem.category.nulls_last(),
-                ShoppingItem.position,
-                ShoppingItem.created_at,
+        (
+            await db.execute(
+                select(ShoppingItem)
+                .where(ShoppingItem.list_id == lst.id)
+                .order_by(
+                    (ShoppingItem.status == ItemStatus.bought),
+                    ShoppingItem.category.nulls_last(),
+                    ShoppingItem.position,
+                    ShoppingItem.created_at,
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     out = ListDetail.model_validate(lst)
     out.items = [ItemOut.model_validate(i) for i in items]
     out.items_total = len(items)
     out.items_needed = sum(1 for i in items if i.status == ItemStatus.needed)
     out.estimated_total = sum(
         (
-            Decimal(i.estimated_price) * (Decimal(i.quantity) if i.quantity and i.unit in (None, "шт") else 1)
+            Decimal(i.estimated_price)
+            * (Decimal(i.quantity) if i.quantity and i.unit in (None, "шт") else 1)
             for i in items
             if i.estimated_price is not None and i.status == ItemStatus.needed
         ),
@@ -84,9 +91,9 @@ async def list_detail(db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID) 
 
 async def create_list(db: AsyncSession, ctx: FamilyContext, data: ListCreate) -> ShoppingList:
     count = await db.scalar(
-        select(func.count()).select_from(ShoppingList).where(
-            ShoppingList.family_id == ctx.family_id, ShoppingList.archived_at.is_(None)
-        )
+        select(func.count())
+        .select_from(ShoppingList)
+        .where(ShoppingList.family_id == ctx.family_id, ShoppingList.archived_at.is_(None))
     )
     if (count or 0) >= 30:
         raise Conflict("Слишком много активных списков — архивируйте ненужные")
@@ -97,22 +104,35 @@ async def create_list(db: AsyncSession, ctx: FamilyContext, data: ListCreate) ->
     return lst
 
 
-async def update_list(db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID, data: ListPatch) -> ShoppingList:
+async def update_list(
+    db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID, data: ListPatch
+) -> ShoppingList:
     lst = await get_list(db, ctx, list_id)
     if data.name is not None:
         audit(db, ctx, "shopping.list.rename", "shopping_list", lst.id, f"{lst.name} → {data.name}")
         lst.name = data.name
     if data.archived is not None:
         lst.archived_at = utcnow() if data.archived else None
-        audit(db, ctx, "shopping.list.archive" if data.archived else "shopping.list.restore", "shopping_list", lst.id, lst.name)
+        audit(
+            db,
+            ctx,
+            "shopping.list.archive" if data.archived else "shopping.list.restore",
+            "shopping_list",
+            lst.id,
+            lst.name,
+        )
     await db.flush()
     return lst
 
 
-async def delete_list(db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID, confirm: bool) -> None:
+async def delete_list(
+    db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID, confirm: bool
+) -> None:
     lst = await get_list(db, ctx, list_id)
     ensure_can_delete(lst, ctx)
-    items = await db.scalar(select(func.count()).select_from(ShoppingItem).where(ShoppingItem.list_id == lst.id))
+    items = await db.scalar(
+        select(func.count()).select_from(ShoppingItem).where(ShoppingItem.list_id == lst.id)
+    )
     if items and not confirm:
         raise Conflict(
             "В списке есть товары. Подтвердите удаление или архивируйте список",
@@ -124,13 +144,21 @@ async def delete_list(db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID, 
 
 
 async def _ensure_capacity(db: AsyncSession, lst: ShoppingList, adding: int) -> None:
-    count = await db.scalar(select(func.count()).select_from(ShoppingItem).where(ShoppingItem.list_id == lst.id))
+    count = await db.scalar(
+        select(func.count()).select_from(ShoppingItem).where(ShoppingItem.list_id == lst.id)
+    )
     if (count or 0) + adding > MAX_ITEMS_PER_LIST:
         raise ValidationFailed(f"В списке может быть не больше {MAX_ITEMS_PER_LIST} товаров")
 
 
 async def add_items(
-    db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID, items: list[ItemCreate], *, merge: bool = True, notify: bool = True
+    db: AsyncSession,
+    ctx: FamilyContext,
+    list_id: uuid.UUID,
+    items: list[ItemCreate],
+    *,
+    merge: bool = True,
+    notify: bool = True,
 ) -> list[ShoppingItem]:
     lst = await get_list(db, ctx, list_id)
     if lst.archived_at is not None:
@@ -142,18 +170,31 @@ async def add_items(
         i.name.lower(): i
         for i in (
             await db.execute(
-                select(ShoppingItem).where(ShoppingItem.list_id == lst.id, ShoppingItem.status == ItemStatus.needed)
+                select(ShoppingItem).where(
+                    ShoppingItem.list_id == lst.id, ShoppingItem.status == ItemStatus.needed
+                )
             )
         ).scalars()
     }
-    max_pos = await db.scalar(select(func.coalesce(func.max(ShoppingItem.position), 0)).where(ShoppingItem.list_id == lst.id)) or 0
+    max_pos = (
+        await db.scalar(
+            select(func.coalesce(func.max(ShoppingItem.position), 0)).where(
+                ShoppingItem.list_id == lst.id
+            )
+        )
+        or 0
+    )
     result: list[ShoppingItem] = []
     for data in items:
         same = existing.get(data.name.lower()) if merge else None
         if same is not None and (same.unit or None) == (data.unit or None):
             # Merge duplicates of a still-needed item instead of creating a second line.
             if data.quantity is not None:
-                same.quantity = (same.quantity or Decimal("0")) + data.quantity if same.quantity else data.quantity
+                same.quantity = (
+                    (same.quantity or Decimal("0")) + data.quantity
+                    if same.quantity
+                    else data.quantity
+                )
             result.append(same)
             continue
         max_pos += 1
@@ -190,10 +231,16 @@ async def add_items(
     return result
 
 
-async def _get_item(db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID, item_id: uuid.UUID) -> ShoppingItem:
+async def _get_item(
+    db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID, item_id: uuid.UUID
+) -> ShoppingItem:
     item = await db.scalar(
         select(ShoppingItem)
-        .where(ShoppingItem.id == item_id, ShoppingItem.list_id == list_id, ShoppingItem.family_id == ctx.family_id)
+        .where(
+            ShoppingItem.id == item_id,
+            ShoppingItem.list_id == list_id,
+            ShoppingItem.family_id == ctx.family_id,
+        )
         .with_for_update()
     )
     if item is None:
@@ -201,7 +248,9 @@ async def _get_item(db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID, it
     return item
 
 
-async def update_item(db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID, item_id: uuid.UUID, data: ItemPatch) -> ShoppingItem:
+async def update_item(
+    db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID, item_id: uuid.UUID, data: ItemPatch
+) -> ShoppingItem:
     item = await _get_item(db, ctx, list_id, item_id)
     for field in ("name", "quantity", "unit", "category", "note", "estimated_price", "store"):
         if field in data.model_fields_set:
@@ -220,11 +269,15 @@ async def update_item(db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID, 
     return item
 
 
-async def set_item_status(db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID, item_id: uuid.UUID, status: ItemStatus) -> ShoppingItem:
+async def set_item_status(
+    db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID, item_id: uuid.UUID, status: ItemStatus
+) -> ShoppingItem:
     return await update_item(db, ctx, list_id, item_id, ItemPatch(status=status))
 
 
-async def delete_item(db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID, item_id: uuid.UUID) -> None:
+async def delete_item(
+    db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID, item_id: uuid.UUID
+) -> None:
     item = await _get_item(db, ctx, list_id, item_id)
     audit(db, ctx, "shopping.item.delete", "shopping_list", list_id, item.name)
     await db.delete(item)
@@ -233,30 +286,55 @@ async def delete_item(db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID, 
 async def clear_bought(db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID) -> int:
     lst = await get_list(db, ctx, list_id)
     items = (
-        await db.execute(select(ShoppingItem).where(ShoppingItem.list_id == lst.id, ShoppingItem.status == ItemStatus.bought))
-    ).scalars().all()
+        (
+            await db.execute(
+                select(ShoppingItem).where(
+                    ShoppingItem.list_id == lst.id, ShoppingItem.status == ItemStatus.bought
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
     for i in items:
         await db.delete(i)
     if items:
-        audit(db, ctx, "shopping.clear_bought", "shopping_list", lst.id, f"{lst.name}: {len(items)}")
+        audit(
+            db, ctx, "shopping.clear_bought", "shopping_list", lst.id, f"{lst.name}: {len(items)}"
+        )
     return len(items)
 
 
-async def history(db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID, limit: int = 50) -> list[HistoryOut]:
+async def history(
+    db: AsyncSession, ctx: FamilyContext, list_id: uuid.UUID, limit: int = 50
+) -> list[HistoryOut]:
     lst = await get_list(db, ctx, list_id)
     rows = (
         await db.execute(
             select(AuditLog, User.first_name)
             .outerjoin(User, User.id == AuditLog.actor_id)
-            .where(AuditLog.family_id == ctx.family_id, AuditLog.entity_type == "shopping_list", AuditLog.entity_id == lst.id)
+            .where(
+                AuditLog.family_id == ctx.family_id,
+                AuditLog.entity_type == "shopping_list",
+                AuditLog.entity_id == lst.id,
+            )
             .order_by(AuditLog.created_at.desc())
             .limit(limit)
         )
     ).all()
-    return [HistoryOut(action=a.action, summary=a.summary, actor_name=n, created_at=a.created_at) for a, n in rows]
+    return [
+        HistoryOut(action=a.action, summary=a.summary, actor_name=n, created_at=a.created_at)
+        for a, n in rows
+    ]
 
 
-async def search_items(db: AsyncSession, ctx: FamilyContext, query: str | None, only_needed: bool = True, limit: int = 100) -> list[tuple[ShoppingItem, ShoppingList]]:
+async def search_items(
+    db: AsyncSession,
+    ctx: FamilyContext,
+    query: str | None,
+    only_needed: bool = True,
+    limit: int = 100,
+) -> list[tuple[ShoppingItem, ShoppingList]]:
     stmt = (
         select(ShoppingItem, ShoppingList)
         .join(ShoppingList, ShoppingList.id == ShoppingItem.list_id)
@@ -266,7 +344,14 @@ async def search_items(db: AsyncSession, ctx: FamilyContext, query: str | None, 
         stmt = stmt.where(ShoppingItem.status == ItemStatus.needed)
     if query:
         stmt = stmt.where(ShoppingItem.name.ilike(f"%{query.replace('%', '')}%"))
-    return [(i, lst) for i, lst in (await db.execute(stmt.order_by(ShoppingList.created_at, ShoppingItem.position).limit(limit))).all()]
+    return [
+        (i, lst)
+        for i, lst in (
+            await db.execute(
+                stmt.order_by(ShoppingList.created_at, ShoppingItem.position).limit(limit)
+            )
+        ).all()
+    ]
 
 
 async def default_list(db: AsyncSession, ctx: FamilyContext) -> ShoppingList:

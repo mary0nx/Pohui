@@ -21,21 +21,31 @@ from app.security.access import FamilyContext, ensure_can_delete, get_visible, v
 OPEN = (TaskStatus.todo, TaskStatus.in_progress)
 
 
-async def _check_assignee(db: AsyncSession, ctx: FamilyContext, assignee_id: uuid.UUID | None, visibility: Visibility) -> None:
+async def _check_assignee(
+    db: AsyncSession, ctx: FamilyContext, assignee_id: uuid.UUID | None, visibility: Visibility
+) -> None:
     if assignee_id is None:
         return
     if visibility == Visibility.private and assignee_id != ctx.user_id:
         raise ValidationFailed("Личную задачу можно назначить только себе")
     member = await db.scalar(
-        select(FamilyMember.id).where(FamilyMember.family_id == ctx.family_id, FamilyMember.user_id == assignee_id)
+        select(FamilyMember.id).where(
+            FamilyMember.family_id == ctx.family_id, FamilyMember.user_id == assignee_id
+        )
     )
     if member is None:
         raise ValidationFailed("Исполнитель должен быть участником семьи")
 
 
-async def _set_reminder(db: AsyncSession, ctx: FamilyContext, task: Task, minutes: int | None) -> None:
+async def _set_reminder(
+    db: AsyncSession, ctx: FamilyContext, task: Task, minutes: int | None
+) -> None:
     await cancel_pending_reminders(db, task.id)
-    await db.execute(delete(Reminder).where(Reminder.target_type == ReminderTarget.task, Reminder.target_id == task.id))
+    await db.execute(
+        delete(Reminder).where(
+            Reminder.target_type == ReminderTarget.task, Reminder.target_id == task.id
+        )
+    )
     if minutes is not None:
         db.add(
             Reminder(
@@ -75,7 +85,9 @@ async def _notify_assignee(db: AsyncSession, ctx: FamilyContext, task: Task) -> 
         )
 
 
-async def create_task(db: AsyncSession, ctx: FamilyContext, data: TaskCreate, *, notify: bool = True) -> Task:
+async def create_task(
+    db: AsyncSession, ctx: FamilyContext, data: TaskCreate, *, notify: bool = True
+) -> Task:
     await _check_assignee(db, ctx, data.assignee_id, data.visibility)
     if data.recurrence_freq and data.due_at is None:
         raise ValidationFailed("Для повторяющейся задачи укажите срок")
@@ -130,7 +142,11 @@ async def _spawn_next(db: AsyncSession, ctx: FamilyContext, task: Task) -> Task 
     db.add(nxt)
     await db.flush()
     task.next_task_id = nxt.id
-    old_rem = await db.scalar(select(Reminder).where(Reminder.target_type == ReminderTarget.task, Reminder.target_id == task.id))
+    old_rem = await db.scalar(
+        select(Reminder).where(
+            Reminder.target_type == ReminderTarget.task, Reminder.target_id == task.id
+        )
+    )
     if old_rem is not None:
         db.add(
             Reminder(
@@ -144,7 +160,9 @@ async def _spawn_next(db: AsyncSession, ctx: FamilyContext, task: Task) -> Task 
     return nxt
 
 
-async def update_task(db: AsyncSession, ctx: FamilyContext, task_id: uuid.UUID, data: TaskPatch) -> Task:
+async def update_task(
+    db: AsyncSession, ctx: FamilyContext, task_id: uuid.UUID, data: TaskPatch
+) -> Task:
     task = await get_visible(db, Task, task_id, ctx, lock=True)
     previous_assignee = task.assignee_id
     if data.unassign:
@@ -177,7 +195,9 @@ async def update_task(db: AsyncSession, ctx: FamilyContext, task_id: uuid.UUID, 
     return task
 
 
-async def set_status(db: AsyncSession, ctx: FamilyContext, task: Task, status: TaskStatus) -> Task | None:
+async def set_status(
+    db: AsyncSession, ctx: FamilyContext, task: Task, status: TaskStatus
+) -> Task | None:
     """Returns the spawned next occurrence for recurring tasks, if any."""
     task.status = status
     nxt = None
@@ -192,7 +212,9 @@ async def set_status(db: AsyncSession, ctx: FamilyContext, task: Task, status: T
     return nxt
 
 
-async def complete_task(db: AsyncSession, ctx: FamilyContext, task_id: uuid.UUID) -> tuple[Task, Task | None]:
+async def complete_task(
+    db: AsyncSession, ctx: FamilyContext, task_id: uuid.UUID
+) -> tuple[Task, Task | None]:
     task = await get_visible(db, Task, task_id, ctx, lock=True)
     if task.status == TaskStatus.done:
         return task, None  # idempotent
@@ -205,7 +227,11 @@ async def delete_task(db: AsyncSession, ctx: FamilyContext, task_id: uuid.UUID) 
     task = await get_visible(db, Task, task_id, ctx)
     ensure_can_delete(task, ctx)
     await cancel_pending_reminders(db, task.id)
-    await db.execute(delete(Reminder).where(Reminder.target_type == ReminderTarget.task, Reminder.target_id == task.id))
+    await db.execute(
+        delete(Reminder).where(
+            Reminder.target_type == ReminderTarget.task, Reminder.target_id == task.id
+        )
+    )
     audit(db, ctx, "task.delete", "task", task.id, task.title, obj=task)
     await db.delete(task)
 
@@ -247,7 +273,9 @@ async def list_tasks(
         stmt = stmt.where(Task.due_at < now)
     elif due == "today":
         zone = ZoneInfo(ctx.family.timezone)
-        end_of_day = datetime.combine(now.astimezone(zone).date() + timedelta(days=1), datetime.min.time(), tzinfo=zone)
+        end_of_day = datetime.combine(
+            now.astimezone(zone).date() + timedelta(days=1), datetime.min.time(), tzinfo=zone
+        )
         stmt = stmt.where(Task.due_at < end_of_day)
     elif due == "week":
         stmt = stmt.where(Task.due_at < now + timedelta(days=7))
@@ -258,33 +286,45 @@ async def list_tasks(
     else:
         stmt = stmt.order_by(Task.due_at.asc().nulls_last(), Task.priority.desc(), Task.created_at)
     tasks = (await db.execute(stmt.limit(limit).offset(offset))).scalars().all()
-    counts = dict(
-        (
-            await db.execute(
-                select(TaskComment.task_id, func.count())
-                .where(TaskComment.task_id.in_([t.id for t in tasks]))
-                .group_by(TaskComment.task_id)
-            )
-        ).all()
-    ) if tasks else {}
+    counts = (
+        dict(
+            (
+                await db.execute(
+                    select(TaskComment.task_id, func.count())
+                    .where(TaskComment.task_id.in_([t.id for t in tasks]))
+                    .group_by(TaskComment.task_id)
+                )
+            ).all()
+        )
+        if tasks
+        else {}
+    )
     return [_to_out(t, now, counts.get(t.id, 0)) for t in tasks]
 
 
 async def task_out(db: AsyncSession, task: Task) -> TaskOut:
-    count = await db.scalar(select(func.count()).select_from(TaskComment).where(TaskComment.task_id == task.id))
+    count = await db.scalar(
+        select(func.count()).select_from(TaskComment).where(TaskComment.task_id == task.id)
+    )
     return _to_out(task, utcnow(), count or 0)
 
 
-async def add_comment(db: AsyncSession, ctx: FamilyContext, task_id: uuid.UUID, data: CommentCreate) -> TaskComment:
+async def add_comment(
+    db: AsyncSession, ctx: FamilyContext, task_id: uuid.UUID, data: CommentCreate
+) -> TaskComment:
     task = await get_visible(db, Task, task_id, ctx)
-    comment = TaskComment(family_id=ctx.family_id, task_id=task.id, body=data.body.strip(), created_by=ctx.user_id)
+    comment = TaskComment(
+        family_id=ctx.family_id, task_id=task.id, body=data.body.strip(), created_by=ctx.user_id
+    )
     db.add(comment)
     await db.flush()
     audit(db, ctx, "task.comment", "task", task.id, task.title, obj=task)
     return comment
 
 
-async def list_comments(db: AsyncSession, ctx: FamilyContext, task_id: uuid.UUID) -> list[tuple[TaskComment, str | None]]:
+async def list_comments(
+    db: AsyncSession, ctx: FamilyContext, task_id: uuid.UUID
+) -> list[tuple[TaskComment, str | None]]:
     task = await get_visible(db, Task, task_id, ctx)
     return [
         (c, n)
@@ -299,27 +339,41 @@ async def list_comments(db: AsyncSession, ctx: FamilyContext, task_id: uuid.UUID
     ]
 
 
-async def task_history(db: AsyncSession, ctx: FamilyContext, task_id: uuid.UUID) -> list[HistoryOut]:
+async def task_history(
+    db: AsyncSession, ctx: FamilyContext, task_id: uuid.UUID
+) -> list[HistoryOut]:
     task = await get_visible(db, Task, task_id, ctx)
     rows = (
         await db.execute(
             select(AuditLog, User.first_name)
             .outerjoin(User, User.id == AuditLog.actor_id)
-            .where(AuditLog.entity_type == "task", AuditLog.entity_id == task.id, AuditLog.family_id == ctx.family_id)
+            .where(
+                AuditLog.entity_type == "task",
+                AuditLog.entity_id == task.id,
+                AuditLog.family_id == ctx.family_id,
+            )
             .order_by(AuditLog.created_at.desc())
             .limit(50)
         )
     ).all()
-    return [HistoryOut(action=a.action, summary=a.summary, actor_name=n, created_at=a.created_at) for a, n in rows]
+    return [
+        HistoryOut(action=a.action, summary=a.summary, actor_name=n, created_at=a.created_at)
+        for a, n in rows
+    ]
 
 
 async def stats(db: AsyncSession, ctx: FamilyContext) -> TaskStats:
     now = utcnow()
     zone = ZoneInfo(ctx.family.timezone)
     today = now.astimezone(zone).date()
-    week_start = datetime.combine(today - timedelta(days=today.weekday()), datetime.min.time(), tzinfo=zone)
+    week_start = datetime.combine(
+        today - timedelta(days=today.weekday()), datetime.min.time(), tzinfo=zone
+    )
     month_start = datetime.combine(today.replace(day=1), datetime.min.time(), tzinfo=zone)
-    family_only = and_(Task.family_id == ctx.family_id, or_(Task.visibility == Visibility.family, Task.created_by == ctx.user_id))
+    family_only = and_(
+        Task.family_id == ctx.family_id,
+        or_(Task.visibility == Visibility.family, Task.created_by == ctx.user_id),
+    )
 
     async def done_since(since: datetime) -> tuple[int, int]:
         row = (
@@ -329,13 +383,17 @@ async def stats(db: AsyncSession, ctx: FamilyContext) -> TaskStats:
                 )
             )
         ).one()
-        return int(row[0]), int(row[1])
+        return int(row[0] or 0), int(row[1] or 0)
 
     w = await done_since(week_start)
     m = await done_since(month_start)
-    open_total = await db.scalar(select(func.count()).select_from(Task).where(family_only, Task.status.in_(OPEN)))
+    open_total = await db.scalar(
+        select(func.count()).select_from(Task).where(family_only, Task.status.in_(OPEN))
+    )
     overdue = await db.scalar(
-        select(func.count()).select_from(Task).where(family_only, Task.status.in_(OPEN), Task.due_at < now)
+        select(func.count())
+        .select_from(Task)
+        .where(family_only, Task.status.in_(OPEN), Task.due_at < now)
     )
     return TaskStats(
         done_this_week=w[0],

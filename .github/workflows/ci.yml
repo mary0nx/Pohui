@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16.15-alpine
+        env:
+          POSTGRES_USER: familyos
+          POSTGRES_PASSWORD: familyos
+          POSTGRES_DB: familyos_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U familyos" --health-interval 5s --health-timeout 5s --health-retries 20
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.32"
+      - run: uv sync --frozen --python 3.12
+      - run: uv run ruff check app tests scripts
+      - run: uv run ruff format --check app tests scripts
+      - run: uv run mypy app
+      - run: uv run pytest -q
+        env:
+          TEST_DATABASE_URL: postgresql+asyncpg://familyos:familyos@localhost:5432/familyos_test
+      # The test run leaves the database at head: models and migrations must match.
+      - run: uv run alembic check
+        env:
+          DATABASE_URL: postgresql+asyncpg://familyos:familyos@localhost:5432/familyos_test
+      - run: uv run pip-audit --strict --progress-spinner off || echo "::warning::pip-audit reported issues"
+
+  frontend:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.22.0"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx tsc -b
+      - run: npm test
+      - run: npm run build
+      - run: npm audit --omit=dev || echo "::warning::npm audit reported issues"
+
+  e2e:
+    runs-on: ubuntu-24.04
+    needs: [backend, frontend]
+    services:
+      postgres:
+        image: postgres:16.15-alpine
+        env:
+          POSTGRES_USER: familyos
+          POSTGRES_PASSWORD: familyos
+          POSTGRES_DB: familyos_e2e
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U familyos" --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.32"
+      - run: uv sync --frozen --python 3.12
+        working-directory: backend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.22.0"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npx playwright test
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: frontend/test-results

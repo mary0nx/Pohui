@@ -51,7 +51,9 @@ class DispatchStats:
     errors: list[str] = field(default_factory=list)
 
 
-def in_quiet_hours(now: datetime, settings: NotificationSettings | None, default_tz: str) -> datetime | None:
+def in_quiet_hours(
+    now: datetime, settings: NotificationSettings | None, default_tz: str
+) -> datetime | None:
     """If `now` is inside the user's quiet hours, return when they end (UTC)."""
     if settings is None or settings.quiet_start is None or settings.quiet_end is None:
         return None
@@ -68,7 +70,9 @@ def in_quiet_hours(now: datetime, settings: NotificationSettings | None, default
     return datetime.combine(end_date, end, tzinfo=zone).astimezone(ZoneInfo("UTC"))
 
 
-async def category_enabled(db: AsyncSession, user_id: object, category: NotificationCategory) -> bool:
+async def category_enabled(
+    db: AsyncSession, user_id: object, category: NotificationCategory
+) -> bool:
     pref = await db.scalar(
         select(NotificationPreference.enabled).where(
             NotificationPreference.user_id == user_id, NotificationPreference.category == category
@@ -82,20 +86,27 @@ async def category_enabled(db: AsyncSession, user_id: object, category: Notifica
 async def _claim(sm: async_sessionmaker[AsyncSession], now: datetime, batch: int) -> list[str]:
     async with sm() as db:
         rows = (
-            await db.execute(
-                select(Notification)
-                .where(
-                    Notification.scheduled_for <= now,
-                    or_(
-                        Notification.status == NotificationStatus.pending,
-                        and_(Notification.status == NotificationStatus.sending, Notification.locked_until < now),
-                    ),
+            (
+                await db.execute(
+                    select(Notification)
+                    .where(
+                        Notification.scheduled_for <= now,
+                        or_(
+                            Notification.status == NotificationStatus.pending,
+                            and_(
+                                Notification.status == NotificationStatus.sending,
+                                Notification.locked_until < now,
+                            ),
+                        ),
+                    )
+                    .order_by(Notification.scheduled_for)
+                    .limit(batch)
+                    .with_for_update(skip_locked=True)
                 )
-                .order_by(Notification.scheduled_for)
-                .limit(batch)
-                .with_for_update(skip_locked=True)
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         for n in rows:
             n.status = NotificationStatus.sending
             n.locked_until = now + LEASE
@@ -104,7 +115,14 @@ async def _claim(sm: async_sessionmaker[AsyncSession], now: datetime, batch: int
         return [str(n.id) for n in rows]
 
 
-async def _process_one(db: AsyncSession, n: Notification, sender: TelegramSender | None, now: datetime, default_tz: str, stats: DispatchStats) -> None:
+async def _process_one(
+    db: AsyncSession,
+    n: Notification,
+    sender: TelegramSender | None,
+    now: datetime,
+    default_tz: str,
+    stats: DispatchStats,
+) -> None:
     def finish(status: NotificationStatus, error: str | None = None) -> None:
         n.status = status
         n.locked_until = None
@@ -117,7 +135,9 @@ async def _process_one(db: AsyncSession, n: Notification, sender: TelegramSender
         return
     if n.family_id is not None:
         member = await db.scalar(
-            select(FamilyMember.id).where(FamilyMember.family_id == n.family_id, FamilyMember.user_id == user.id)
+            select(FamilyMember.id).where(
+                FamilyMember.family_id == n.family_id, FamilyMember.user_id == user.id
+            )
         )
         if member is None:
             finish(NotificationStatus.skipped, "not a family member anymore")
@@ -142,7 +162,9 @@ async def _process_one(db: AsyncSession, n: Notification, sender: TelegramSender
     if user.bot_started_at is None or user.bot_blocked:
         # Telegram only allows messages to users who started the bot; the in-app inbox
         # still shows the notification.
-        finish(NotificationStatus.skipped, "bot not started" if not user.bot_blocked else "bot blocked")
+        finish(
+            NotificationStatus.skipped, "bot not started" if not user.bot_blocked else "bot blocked"
+        )
         stats.skipped += 1
         return
     if sender is None:
@@ -153,7 +175,10 @@ async def _process_one(db: AsyncSession, n: Notification, sender: TelegramSender
         return
     try:
         message_id = await sender.send(
-            user.telegram_id, format_notification(n.title, n.body), "Открыть" if n.link else None, n.link
+            user.telegram_id,
+            format_notification(n.title, n.body),
+            "Открыть" if n.link else None,
+            n.link,
         )
     except TelegramRateLimited as exc:
         n.scheduled_for = now + timedelta(seconds=exc.retry_after + 1)

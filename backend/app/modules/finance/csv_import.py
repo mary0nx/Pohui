@@ -50,7 +50,11 @@ def _parse_date(raw: str) -> date:
 def _parse_amount(raw: str) -> Decimal:
     cleaned = raw.strip().replace(" ", "").replace(" ", "")
     if "," in cleaned and "." in cleaned:
-        cleaned = cleaned.replace(",", "") if cleaned.rfind(".") > cleaned.rfind(",") else cleaned.replace(".", "").replace(",", ".")
+        cleaned = (
+            cleaned.replace(",", "")
+            if cleaned.rfind(".") > cleaned.rfind(",")
+            else cleaned.replace(".", "").replace(",", ".")
+        )
     else:
         cleaned = cleaned.replace(",", ".")
     try:
@@ -117,7 +121,9 @@ async def import_csv(
         kind = TransactionKind.income if amount > 0 else TransactionKind.expense
         description = cell("description")[:500] or None
         cat_kind = CategoryKind.income if kind == TransactionKind.income else CategoryKind.expense
-        category_id = categories.get((cat_kind, cell("category").lower())) if cell("category") else None
+        category_id = (
+            categories.get((cat_kind, cell("category").lower())) if cell("category") else None
+        )
         base_key = f"{account.id}|{day.isoformat()}|{amount}|{description or ''}"
         # Identical rows inside one file are distinct operations (two coffees a day);
         # the per-file ordinal keeps re-imports of the same file idempotent.
@@ -159,5 +165,7 @@ async def import_csv(
         else:
             skipped += 1
     if not dry_run and created:
-        audit(db, ctx, "transaction.import", "account", account.id, f"{created} операций", obj=account)
+        audit(
+            db, ctx, "transaction.import", "account", account.id, f"{created} операций", obj=account
+        )
     return ImportResult(created=created, skipped_duplicates=skipped, errors=errors, dry_run=dry_run)

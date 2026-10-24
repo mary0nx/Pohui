@@ -23,10 +23,14 @@ from app.security.access import FamilyContext, get_visible
 async def list_budgets(db: AsyncSession, ctx: FamilyContext, month: date) -> list[BudgetOut]:
     month = month_start(month)
     budgets = (
-        await db.execute(
-            select(Budget).where(Budget.family_id == ctx.family_id, Budget.month == month)
+        (
+            await db.execute(
+                select(Budget).where(Budget.family_id == ctx.family_id, Budget.month == month)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     spend = await category_spend(db, ctx, month, "family")
     start, end = local_range_bounds(month, add_months(month, 1), ctx.family.timezone)
     overall = (await period_totals(db, scope_condition(ctx, "family"), start, end)).expense
@@ -79,12 +83,16 @@ async def delete_budget(db: AsyncSession, ctx: FamilyContext, budget_id: uuid.UU
 
 async def copy_budgets(db: AsyncSession, ctx: FamilyContext, data: BudgetCopy) -> int:
     src = (
-        await db.execute(
-            select(Budget).where(
-                Budget.family_id == ctx.family_id, Budget.month == month_start(data.from_month)
+        (
+            await db.execute(
+                select(Budget).where(
+                    Budget.family_id == ctx.family_id, Budget.month == month_start(data.from_month)
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     for b in src:
         await db.execute(
             insert(Budget)

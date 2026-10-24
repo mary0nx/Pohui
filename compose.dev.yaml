@@ -1,0 +1,17 @@
+# Local development infrastructure only: PostgreSQL and Redis bound to localhost.
+# Usage: docker compose -f compose.dev.yaml up -d
+name: familyos-dev
+services:
+  postgres:
+    image: postgres:16.15-alpine
+    environment:
+      POSTGRES_USER: familyos
+      POSTGRES_PASSWORD: familyos
+      POSTGRES_DB: familyos
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: [devpg:/var/lib/postgresql/data]
+  redis:
+    image: redis:7.4.11-alpine
+    ports: ["127.0.0.1:6379:6379"]
+volumes:
+  devpg: {}

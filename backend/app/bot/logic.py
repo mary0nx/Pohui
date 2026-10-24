@@ -42,11 +42,23 @@ class BotReply:
     proposals: list[tuple[uuid.UUID, str]] = field(default_factory=list)
 
 
-async def mark_started(db: AsyncSession, tg_user_id: int, first_name: str, username: str | None, language: str | None) -> User:
+async def mark_started(
+    db: AsyncSession, tg_user_id: int, first_name: str, username: str | None, language: str | None
+) -> User:
     from app.modules.auth.service import upsert_user
     from app.security.telegram import TelegramUser
 
-    user = await upsert_user(db, TelegramUser(id=tg_user_id, first_name=first_name[:128] or "Без имени", last_name=None, username=username, language_code=language, photo_url=None))
+    user = await upsert_user(
+        db,
+        TelegramUser(
+            id=tg_user_id,
+            first_name=first_name[:128] or "Без имени",
+            last_name=None,
+            username=username,
+            language_code=language,
+            photo_url=None,
+        ),
+    )
     user.bot_started_at = user.bot_started_at or utcnow()
     user.bot_blocked = False
     await db.commit()
@@ -57,7 +69,11 @@ async def family_context_for(db: AsyncSession, tg_user_id: int) -> FamilyContext
     user = await db.scalar(select(User).where(User.telegram_id == tg_user_id))
     if user is None:
         return None
-    stmt = select(FamilyMember, Family).join(Family, Family.id == FamilyMember.family_id).where(FamilyMember.user_id == user.id)
+    stmt = (
+        select(FamilyMember, Family)
+        .join(Family, Family.id == FamilyMember.family_id)
+        .where(FamilyMember.user_id == user.id)
+    )
     rows = (await db.execute(stmt.order_by(FamilyMember.joined_at))).all()
     if not rows:
         return None
@@ -65,7 +81,14 @@ async def family_context_for(db: AsyncSession, tg_user_id: int) -> FamilyContext
     return FamilyContext(user=user, family=chosen[1], member=chosen[0])
 
 
-async def start(db: AsyncSession, tg_user_id: int, first_name: str, username: str | None, language: str | None, payload: str | None) -> BotReply:
+async def start(
+    db: AsyncSession,
+    tg_user_id: int,
+    first_name: str,
+    username: str | None,
+    language: str | None,
+    payload: str | None,
+) -> BotReply:
     await mark_started(db, tg_user_id, first_name, username, language)
     if payload and payload.startswith("inv_"):
         return BotReply(
@@ -90,13 +113,17 @@ async def cancel(db: AsyncSession, tg_user_id: int) -> BotReply:
     if ctx is None:
         return BotReply(text="Нечего отменять.")
     n = await proposals.cancel_all_pending(db, ctx)
-    return BotReply(text=f"Отменено действий: {n}." if n else "Нет действий, ожидающих подтверждения.")
+    return BotReply(
+        text=f"Отменено действий: {n}." if n else "Нет действий, ожидающих подтверждения."
+    )
 
 
 async def ai_message(db: AsyncSession, tg_user_id: int, text: str) -> BotReply:
     ctx = await family_context_for(db, tg_user_id)
     if ctx is None:
-        return BotReply(text="Сначала создайте семью или присоединитесь к ней в приложении.", open_app_path="/")
+        return BotReply(
+            text="Сначала создайте семью или присоединитесь к ней в приложении.", open_app_path="/"
+        )
     try:
         await get_rate_limiter().hit(f"bot-ai:{ctx.user_id}", 10)
         result = await assistant.chat(db, ToolContext(db=db, ctx=ctx, channel=Channel.bot), text)
@@ -108,11 +135,16 @@ async def ai_message(db: AsyncSession, tg_user_id: int, text: str) -> BotReply:
         return BotReply(text=html.escape(exc.message))
     return BotReply(
         text=html.escape(result.reply)[:3900],
-        proposals=[(p.id, p.summary + ("\n" + "\n".join(p.details) if p.details else "")) for p in result.proposals],
+        proposals=[
+            (p.id, p.summary + ("\n" + "\n".join(p.details) if p.details else ""))
+            for p in result.proposals
+        ],
     )
 
 
-async def resolve_proposal(db: AsyncSession, tg_user_id: int, proposal_id: uuid.UUID, confirm: bool) -> str:
+async def resolve_proposal(
+    db: AsyncSession, tg_user_id: int, proposal_id: uuid.UUID, confirm: bool
+) -> str:
     ctx = await family_context_for(db, tg_user_id)
     if ctx is None:
         return "Нет доступа."

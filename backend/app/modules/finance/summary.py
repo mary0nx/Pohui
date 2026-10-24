@@ -65,9 +65,9 @@ def level_for(percent: float) -> str:
 async def period_totals(db: AsyncSession, cond: ColumnElement[bool], start, end) -> Totals:  # type: ignore[no-untyped-def]
     row = (
         await db.execute(
-            select(func.coalesce(func.sum(INCOME), 0), func.coalesce(func.sum(EXPENSE_SIGNED), 0)).where(
-                cond, Transaction.occurred_at >= start, Transaction.occurred_at < end
-            )
+            select(
+                func.coalesce(func.sum(INCOME), 0), func.coalesce(func.sum(EXPENSE_SIGNED), 0)
+            ).where(cond, Transaction.occurred_at >= start, Transaction.occurred_at < end)
         )
     ).one()
     income, expense = Decimal(row[0]), Decimal(row[1])

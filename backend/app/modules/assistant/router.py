@@ -163,16 +163,26 @@ async def messages(conversation_id: uuid.UUID, ctx: Ctx, db: DB) -> list[Message
     rows = (
         await db.execute(
             select(AiMessage)
-            .where(AiMessage.conversation_id == conv.id, AiMessage.role.in_([AiRole.user, AiRole.assistant]), AiMessage.content.is_not(None))
+            .where(
+                AiMessage.conversation_id == conv.id,
+                AiMessage.role.in_([AiRole.user, AiRole.assistant]),
+                AiMessage.content.is_not(None),
+            )
             .order_by(AiMessage.created_at)
             .limit(200)
         )
     ).scalars()
-    return [MessageOut(id=m.id, role=m.role, content=m.content or "", created_at=m.created_at) for m in rows if m.content]
+    return [
+        MessageOut(id=m.id, role=m.role, content=m.content or "", created_at=m.created_at)
+        for m in rows
+        if m.content
+    ]
 
 
 @router.patch("/conversations/{conversation_id}", response_model=ConversationOut)
-async def edit_conversation(conversation_id: uuid.UUID, body: MemoryPatch, ctx: Ctx, db: DB) -> ConversationOut:
+async def edit_conversation(
+    conversation_id: uuid.UUID, body: MemoryPatch, ctx: Ctx, db: DB
+) -> ConversationOut:
     """Edit the stored summary of a conversation (users can correct what the AI remembers)."""
     conv = await _own_conversation(db, ctx, conversation_id)
     conv.summary = body.content
@@ -188,8 +198,12 @@ async def delete_conversation(conversation_id: uuid.UUID, ctx: Ctx, db: DB) -> N
 
 
 @router.get("/proposals", response_model=list[proposals.ProposalOut])
-async def list_proposals(ctx: Ctx, db: DB, status: ProposalStatus | None = ProposalStatus.pending) -> list[proposals.ProposalOut]:
-    stmt = select(AiActionProposal).where(AiActionProposal.family_id == ctx.family_id, AiActionProposal.user_id == ctx.user_id)
+async def list_proposals(
+    ctx: Ctx, db: DB, status: ProposalStatus | None = ProposalStatus.pending
+) -> list[proposals.ProposalOut]:
+    stmt = select(AiActionProposal).where(
+        AiActionProposal.family_id == ctx.family_id, AiActionProposal.user_id == ctx.user_id
+    )
     if status is not None:
         stmt = stmt.where(AiActionProposal.status == status)
     rows = (await db.execute(stmt.order_by(AiActionProposal.created_at.desc()).limit(50))).scalars()
@@ -208,13 +222,22 @@ async def cancel(proposal_id: uuid.UUID, ctx: Ctx, db: DB) -> proposals.Proposal
 
 @router.get("/memories", response_model=list[MemoryOut])
 async def memories(ctx: Ctx, db: DB) -> list[MemoryOut]:
-    rows = (await db.execute(select(AiMemory).where(visible(AiMemory, ctx)).order_by(AiMemory.created_at))).scalars()
+    rows = (
+        await db.execute(
+            select(AiMemory).where(visible(AiMemory, ctx)).order_by(AiMemory.created_at)
+        )
+    ).scalars()
     return [MemoryOut.model_validate(m) for m in rows]
 
 
 @router.post("/memories", response_model=MemoryOut, status_code=201)
 async def add_memory(body: MemoryIn, ctx: Ctx, db: DB) -> MemoryOut:
-    mem = AiMemory(family_id=ctx.family_id, content=body.content.strip(), visibility=body.visibility, created_by=ctx.user_id)
+    mem = AiMemory(
+        family_id=ctx.family_id,
+        content=body.content.strip(),
+        visibility=body.visibility,
+        created_by=ctx.user_id,
+    )
     db.add(mem)
     await db.commit()
     return MemoryOut.model_validate(mem)
@@ -241,7 +264,11 @@ async def action_log(ctx: Ctx, db: DB) -> list[AiActionLog]:
     rows = (
         await db.execute(
             select(AuditLog)
-            .where(AuditLog.family_id == ctx.family_id, AuditLog.actor_id == ctx.user_id, AuditLog.action.like("ai.%"))
+            .where(
+                AuditLog.family_id == ctx.family_id,
+                AuditLog.actor_id == ctx.user_id,
+                AuditLog.action.like("ai.%"),
+            )
             .order_by(AuditLog.created_at.desc())
             .limit(100)
         )

@@ -27,7 +27,11 @@ router = APIRouter(prefix="/families/{family_id}/calendar", tags=["calendar"])
 
 @router.get("/occurrences", response_model=list[OccurrenceOut])
 async def occurrences(
-    ctx: Ctx, db: DB, date_from: date | None = None, date_to: date | None = None, include_cancelled: bool = False
+    ctx: Ctx,
+    db: DB,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    include_cancelled: bool = False,
 ) -> list[OccurrenceOut]:
     today = local_today(ctx.family.timezone)
     start_day = date_from or today
@@ -83,7 +87,9 @@ async def set_reminders(event_id: uuid.UUID, body: RemindersIn, ctx: Ctx, db: DB
 
 @router.get("/reminders", response_model=list[CustomReminderOut])
 async def list_reminders(ctx: Ctx, db: DB) -> list[CustomReminderOut]:
-    return [CustomReminderOut.model_validate(r) for r in await service.list_custom_reminders(db, ctx)]
+    return [
+        CustomReminderOut.model_validate(r) for r in await service.list_custom_reminders(db, ctx)
+    ]
 
 
 @router.post("/reminders", response_model=CustomReminderOut, status_code=201)

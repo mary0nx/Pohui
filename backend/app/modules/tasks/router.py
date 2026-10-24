@@ -34,7 +34,9 @@ async def list_tasks(
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[TaskOut]:
-    return await service.list_tasks(db, ctx, status=status, assignee=assignee, due=due, q=q, limit=limit, offset=offset)
+    return await service.list_tasks(
+        db, ctx, status=status, assignee=assignee, due=due, q=q, limit=limit, offset=offset
+    )
 
 
 @router.get("/stats", response_model=TaskStats)
@@ -43,7 +45,9 @@ async def task_stats(ctx: Ctx, db: DB) -> TaskStats:
 
 
 @router.post("", response_model=TaskOut, status_code=201)
-async def create_task(body: TaskCreate, ctx: Ctx, db: DB, idempotency_key: IdempotencyKeyHeader = None):  # type: ignore[no-untyped-def]
+async def create_task(
+    body: TaskCreate, ctx: Ctx, db: DB, idempotency_key: IdempotencyKeyHeader = None
+):  # type: ignore[no-untyped-def]
     idem = Idempotency(db, ctx.user_id, idempotency_key, f"task:{ctx.family_id}", body)
     if (replay := await idem.begin()) is not None:
         return replay

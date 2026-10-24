@@ -67,7 +67,9 @@ def test_missing_hash_and_user() -> None:
     with pytest.raises(Unauthorized):
         validate_init_data("auth_date=1&user=%7B%7D", TOKEN, max_age_seconds=3600)
     with pytest.raises(Unauthorized):
-        validate_init_data(sign_init_data({"auth_date": str(int(time.time()))}, TOKEN), TOKEN, max_age_seconds=60)
+        validate_init_data(
+            sign_init_data({"auth_date": str(int(time.time()))}, TOKEN), TOKEN, max_age_seconds=60
+        )
 
 
 async def test_telegram_login_endpoint_and_replay(client) -> None:  # type: ignore[no-untyped-def]
@@ -75,13 +77,19 @@ async def test_telegram_login_endpoint_and_replay(client) -> None:  # type: igno
     r1 = await client.post("/api/v1/auth/telegram", json={"init_data": raw})
     assert r1.status_code == 200, r1.text
     t1 = r1.json()["token"]
-    assert (await client.get("/api/v1/me", headers={"Authorization": f"Bearer {t1}"})).status_code == 200
+    assert (
+        await client.get("/api/v1/me", headers={"Authorization": f"Bearer {t1}"})
+    ).status_code == 200
 
     # Replaying the same initData revokes the earlier session.
     r2 = await client.post("/api/v1/auth/telegram", json={"init_data": raw})
     t2 = r2.json()["token"]
-    assert (await client.get("/api/v1/me", headers={"Authorization": f"Bearer {t1}"})).status_code == 401
-    assert (await client.get("/api/v1/me", headers={"Authorization": f"Bearer {t2}"})).status_code == 200
+    assert (
+        await client.get("/api/v1/me", headers={"Authorization": f"Bearer {t1}"})
+    ).status_code == 401
+    assert (
+        await client.get("/api/v1/me", headers={"Authorization": f"Bearer {t2}"})
+    ).status_code == 200
 
 
 async def test_forged_login_rejected(client) -> None:  # type: ignore[no-untyped-def]

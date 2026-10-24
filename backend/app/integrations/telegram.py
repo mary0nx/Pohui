@@ -31,7 +31,9 @@ class TelegramRateLimited(TelegramError):
 
 
 class TelegramSender(Protocol):
-    async def send(self, chat_id: int, text: str, button_text: str | None, button_path: str | None) -> int: ...
+    async def send(
+        self, chat_id: int, text: str, button_text: str | None, button_path: str | None
+    ) -> int: ...
 
 
 def format_notification(title: str, body: str | None) -> str:
@@ -54,7 +56,9 @@ class AiogramSender:
         self.bot = Bot(token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
         self.frontend_url = settings.frontend_url.rstrip("/")
 
-    async def send(self, chat_id: int, text: str, button_text: str | None, button_path: str | None) -> int:
+    async def send(
+        self, chat_id: int, text: str, button_text: str | None, button_path: str | None
+    ) -> int:
         from aiogram.exceptions import (
             TelegramBadRequest,
             TelegramForbiddenError,
@@ -70,14 +74,20 @@ class AiogramSender:
         if button_text and button_path and self.frontend_url.startswith("https://"):
             url = f"{self.frontend_url}{button_path}"
             markup = InlineKeyboardMarkup(
-                inline_keyboard=[[InlineKeyboardButton(text=button_text, web_app=WebAppInfo(url=url))]]
+                inline_keyboard=[
+                    [InlineKeyboardButton(text=button_text, web_app=WebAppInfo(url=url))]
+                ]
             )
         try:
-            msg = await self.bot.send_message(chat_id, text, reply_markup=markup, request_timeout=20)
+            msg = await self.bot.send_message(
+                chat_id, text, reply_markup=markup, request_timeout=20
+            )
         except TelegramRetryAfter as exc:
             raise TelegramRateLimited(float(exc.retry_after)) from exc
         except TelegramForbiddenError as exc:
-            raise TelegramPermanentError("forbidden: bot blocked or not started", blocked=True) from exc
+            raise TelegramPermanentError(
+                "forbidden: bot blocked or not started", blocked=True
+            ) from exc
         except (TelegramBadRequest, TelegramNotFound) as exc:
             raise TelegramPermanentError(f"bad request: {str(exc)[:120]}") from exc
         except TelegramUnauthorizedError as exc:

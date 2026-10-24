@@ -24,7 +24,12 @@ from app.workers.reminders import schedule_all
 
 log = logging.getLogger(__name__)
 
-LOCKS = {"materialize": 727274101, "auto_pay": 727274102, "reminders": 727274103, "cleanup": 727274104}
+LOCKS = {
+    "materialize": 727274101,
+    "auto_pay": 727274102,
+    "reminders": 727274103,
+    "cleanup": 727274104,
+}
 
 
 async def _locked(db: AsyncSession, name: str) -> bool:
@@ -47,9 +52,13 @@ async def materialize_all(db: AsyncSession) -> int:
 
 async def cleanup(db: AsyncSession, now: datetime) -> dict[str, int]:
     res = {}
-    r = await db.execute(delete(UserSession).where(UserSession.expires_at < now - timedelta(days=7)))
+    r = await db.execute(
+        delete(UserSession).where(UserSession.expires_at < now - timedelta(days=7))
+    )
     res["sessions"] = r.rowcount or 0  # type: ignore[attr-defined]
-    r = await db.execute(delete(IdempotencyKey).where(IdempotencyKey.created_at < now - timedelta(hours=48)))
+    r = await db.execute(
+        delete(IdempotencyKey).where(IdempotencyKey.created_at < now - timedelta(hours=48))
+    )
     res["idempotency"] = r.rowcount or 0  # type: ignore[attr-defined]
     r = await db.execute(
         update(AiActionProposal)
@@ -60,14 +69,18 @@ async def cleanup(db: AsyncSession, now: datetime) -> dict[str, int]:
     r = await db.execute(
         delete(Notification).where(
             Notification.created_at < now - timedelta(days=90),
-            Notification.status.in_([NotificationStatus.sent, NotificationStatus.skipped, NotificationStatus.failed]),
+            Notification.status.in_(
+                [NotificationStatus.sent, NotificationStatus.skipped, NotificationStatus.failed]
+            ),
         )
     )
     res["notifications"] = r.rowcount or 0  # type: ignore[attr-defined]
     return res
 
 
-async def run_job(sm: async_sessionmaker[AsyncSession], name: str, now: datetime | None = None) -> object:
+async def run_job(
+    sm: async_sessionmaker[AsyncSession], name: str, now: datetime | None = None
+) -> object:
     now = now or utcnow()
     async with sm() as db:
         if not await _locked(db, name):

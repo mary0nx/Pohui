@@ -39,7 +39,9 @@ class OpenAIProvider:
         try:
             resp = await self.client.chat.completions.create(**kwargs)
         except openai.RateLimitError as exc:
-            raise AIUnavailable("AI-сервис перегружен или исчерпан лимит, попробуйте позже", "ai_rate_limited") from exc
+            raise AIUnavailable(
+                "AI-сервис перегружен или исчерпан лимит, попробуйте позже", "ai_rate_limited"
+            ) from exc
         except openai.APITimeoutError as exc:
             raise AIUnavailable("AI не ответил вовремя, попробуйте ещё раз", "ai_timeout") from exc
         except openai.AuthenticationError as exc:

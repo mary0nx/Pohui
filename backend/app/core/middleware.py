@@ -26,9 +26,7 @@ class BodyLimitMiddleware:
             return
         path: str = scope.get("path", "")
         limit = (
-            self.upload_limit
-            if any(m in path for m in UPLOAD_PATH_MARKERS)
-            else self.default_limit
+            self.upload_limit if any(m in path for m in UPLOAD_PATH_MARKERS) else self.default_limit
         )
         headers = dict(scope.get("headers") or [])
         declared = headers.get(b"content-length")
@@ -68,7 +66,10 @@ async def _send_413(send: Send) -> None:
         {
             "type": "http.response.start",
             "status": 413,
-            "headers": [(b"content-type", b"application/json"), (b"content-length", str(len(body)).encode())],
+            "headers": [
+                (b"content-type", b"application/json"),
+                (b"content-length", str(len(body)).encode()),
+            ],
         }
     )
     await send({"type": "http.response.body", "body": body})
@@ -93,7 +94,10 @@ class SecurityHeadersMiddleware:
                     (b"x-content-type-options", b"nosniff"),
                     (b"referrer-policy", b"no-referrer"),
                     (b"x-request-id", request_id.encode()),
-                    (b"server-timing", f"app;dur={(time.perf_counter() - started) * 1000:.1f}".encode()),
+                    (
+                        b"server-timing",
+                        f"app;dur={(time.perf_counter() - started) * 1000:.1f}".encode(),
+                    ),
                 ]
                 if b"cache-control" not in existing:
                     extra.append((b"cache-control", b"no-store"))

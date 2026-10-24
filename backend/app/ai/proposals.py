@@ -83,7 +83,9 @@ async def _load(db: AsyncSession, ctx: FamilyContext, proposal_id: uuid.UUID) ->
     return p
 
 
-async def confirm_proposal(db: AsyncSession, ctx: FamilyContext, proposal_id: uuid.UUID, channel: Channel = Channel.app) -> AiActionProposal:
+async def confirm_proposal(
+    db: AsyncSession, ctx: FamilyContext, proposal_id: uuid.UUID, channel: Channel = Channel.app
+) -> AiActionProposal:
     p = await _load(db, ctx, proposal_id)
     if p.status in (ProposalStatus.executed, ProposalStatus.failed):
         return p  # idempotent repeat
@@ -93,7 +95,9 @@ async def confirm_proposal(db: AsyncSession, ctx: FamilyContext, proposal_id: uu
     if p.expires_at <= now:
         p.status, p.resolved_at = ProposalStatus.expired, now
         await db.commit()
-        raise Conflict("Срок подтверждения истёк — попросите ассистента ещё раз", code="proposal_expired")
+        raise Conflict(
+            "Срок подтверждения истёк — попросите ассистента ещё раз", code="proposal_expired"
+        )
     tool = REGISTRY.get(p.tool_name)
     if tool is None:
         raise Conflict("Действие больше не поддерживается", code="proposal_unknown_tool")
@@ -105,7 +109,10 @@ async def confirm_proposal(db: AsyncSession, ctx: FamilyContext, proposal_id: uu
             if tool.current_version is not None and p.target_version is not None:
                 current = await tool.current_version(tc, p.arguments)
                 if current != p.target_version:
-                    raise Conflict("Объект изменился после предложения — запросите действие заново", code="proposal_stale")
+                    raise Conflict(
+                        "Объект изменился после предложения — запросите действие заново",
+                        code="proposal_stale",
+                    )
             result = await tool.handler(tc, p.arguments)
     except AppError as exc:
         p.status, p.resolved_at, p.result = ProposalStatus.failed, utcnow(), {"error": exc.message}
@@ -118,7 +125,9 @@ async def confirm_proposal(db: AsyncSession, ctx: FamilyContext, proposal_id: uu
     return p
 
 
-async def cancel_proposal(db: AsyncSession, ctx: FamilyContext, proposal_id: uuid.UUID) -> AiActionProposal:
+async def cancel_proposal(
+    db: AsyncSession, ctx: FamilyContext, proposal_id: uuid.UUID
+) -> AiActionProposal:
     p = await _load(db, ctx, proposal_id)
     if p.status == ProposalStatus.pending:
         p.status, p.resolved_at = ProposalStatus.cancelled, utcnow()
@@ -128,16 +137,20 @@ async def cancel_proposal(db: AsyncSession, ctx: FamilyContext, proposal_id: uui
 
 async def cancel_all_pending(db: AsyncSession, ctx: FamilyContext) -> int:
     rows = (
-        await db.execute(
-            select(AiActionProposal)
-            .where(
-                AiActionProposal.family_id == ctx.family_id,
-                AiActionProposal.user_id == ctx.user_id,
-                AiActionProposal.status == ProposalStatus.pending,
+        (
+            await db.execute(
+                select(AiActionProposal)
+                .where(
+                    AiActionProposal.family_id == ctx.family_id,
+                    AiActionProposal.user_id == ctx.user_id,
+                    AiActionProposal.status == ProposalStatus.pending,
+                )
+                .with_for_update()
             )
-            .with_for_update()
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     for p in rows:
         p.status, p.resolved_at = ProposalStatus.cancelled, utcnow()
     await db.commit()

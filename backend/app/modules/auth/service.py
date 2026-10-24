@@ -52,4 +52,6 @@ async def build_me(db: AsyncSession, session: UserSession) -> MeOut:
         active = families[0].family_id
     out = UserOut.model_validate(user)
     out.bot_started = user.bot_started_at is not None and not user.bot_blocked
-    return MeOut(user=out, families=families, active_family_id=active, auth_method=session.auth_method)
+    return MeOut(
+        user=out, families=families, active_family_id=active, auth_method=session.auth_method
+    )

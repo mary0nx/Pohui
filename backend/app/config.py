@@ -29,7 +29,9 @@ class Settings(BaseSettings):
 
     frontend_url: str = "http://localhost:5173"
     backend_url: str = "http://localhost:8000"
-    cors_origins: Annotated[list[str], NoDecode] = Field(default_factory=lambda: ["http://localhost:5173"])
+    cors_origins: Annotated[list[str], NoDecode] = Field(
+        default_factory=lambda: ["http://localhost:5173"]
+    )
     default_timezone: str = "Europe/Warsaw"
     default_currency: str = "PLN"
 

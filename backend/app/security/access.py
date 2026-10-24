@@ -48,9 +48,7 @@ class FamilyContext:
             raise Forbidden()
 
 
-async def load_family_context(
-    db: AsyncSession, user: User, family_id: uuid.UUID
-) -> FamilyContext:
+async def load_family_context(db: AsyncSession, user: User, family_id: uuid.UUID) -> FamilyContext:
     row = (
         await db.execute(
             select(FamilyMember, Family)

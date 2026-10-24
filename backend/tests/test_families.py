@@ -26,7 +26,9 @@ async def test_invitation_flow(alice: Actor, bob: Actor) -> None:
     assert r.status_code == 200
     assert {m["first_name"] for m in r.json()["members"]} == {"Алиса", "Борис"}
     # Accepting again is idempotent.
-    assert (await bob.post("/api/v1/invitations/accept", {"token": inv["token"]})).status_code == 200
+    assert (
+        await bob.post("/api/v1/invitations/accept", {"token": inv["token"]})
+    ).status_code == 200
 
     # Single-use invitation cannot be used by a third person.
     carol = await login(alice.client, 1003, "Карина")

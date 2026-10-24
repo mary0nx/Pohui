@@ -84,7 +84,14 @@ async def on_help(message: Message) -> None:
 
 @router.message(Command("settings"))
 async def on_settings(message: Message) -> None:
-    await _send(message, logic.BotReply(text="Настройки уведомлений и семьи — в приложении.", open_app_path="/profile", open_app_text="Открыть настройки"))
+    await _send(
+        message,
+        logic.BotReply(
+            text="Настройки уведомлений и семьи — в приложении.",
+            open_app_path="/profile",
+            open_app_text="Открыть настройки",
+        ),
+    )
 
 
 @router.message(Command("cancel"))
@@ -135,7 +142,9 @@ async def _configure(bot: Bot) -> None:
     )
     url = _app_url("/")
     if url:
-        await bot.set_chat_menu_button(menu_button=MenuButtonWebApp(text="Family OS", web_app=WebAppInfo(url=url)))
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(text="Family OS", web_app=WebAppInfo(url=url))
+        )
 
 
 async def main() -> None:
@@ -156,16 +165,25 @@ async def main() -> None:
 
             secret = settings.telegram_webhook_secret.get_secret_value()
             if not secret or not settings.telegram_webhook_url.startswith("https://"):
-                raise SystemExit("Webhook mode needs TELEGRAM_WEBHOOK_SECRET and an https TELEGRAM_WEBHOOK_URL")
+                raise SystemExit(
+                    "Webhook mode needs TELEGRAM_WEBHOOK_SECRET and an https TELEGRAM_WEBHOOK_URL"
+                )
             app = web.Application()
-            SimpleRequestHandler(dispatcher=dp, bot=bot, secret_token=secret).register(app, path="/tg/webhook")
+            SimpleRequestHandler(dispatcher=dp, bot=bot, secret_token=secret).register(
+                app, path="/tg/webhook"
+            )
             setup_application(app, dp, bot=bot)
 
             async def health(_: web.Request) -> web.Response:
                 return web.json_response({"status": "ok"})
 
             app.router.add_get("/tg/health", health)
-            await bot.set_webhook(settings.telegram_webhook_url, secret_token=secret, allowed_updates=allowed, drop_pending_updates=False)
+            await bot.set_webhook(
+                settings.telegram_webhook_url,
+                secret_token=secret,
+                allowed_updates=allowed,
+                drop_pending_updates=False,
+            )
             runner = web.AppRunner(app)
             await runner.setup()
             await web.TCPSite(runner, settings.bot_webhook_host, settings.bot_webhook_port).start()

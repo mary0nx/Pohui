@@ -37,9 +37,7 @@ from app.security.access import FamilyContext, ensure_can_delete, get_visible, v
 
 async def account_balances(db: AsyncSession, ctx: FamilyContext) -> dict[uuid.UUID, Decimal]:
     rows = (
-        await db.execute(
-            select(Account.id, Account.initial_balance).where(visible(Account, ctx))
-        )
+        await db.execute(select(Account.id, Account.initial_balance).where(visible(Account, ctx)))
     ).all()
     balances = {r.id: Decimal(r.initial_balance) for r in rows}
     if not balances:
@@ -136,7 +134,9 @@ async def delete_account(db: AsyncSession, ctx: FamilyContext, account_id: uuid.
         .where(or_(Transaction.account_id == acc.id, Transaction.to_account_id == acc.id))
     )
     if used:
-        raise Conflict("По счёту есть операции — его можно только архивировать", code="account_in_use")
+        raise Conflict(
+            "По счёту есть операции — его можно только архивировать", code="account_in_use"
+        )
     audit(db, ctx, "account.delete", "account", acc.id, acc.name, obj=acc)
     await db.delete(acc)
 
@@ -172,7 +172,9 @@ async def create_category(db: AsyncSession, ctx: FamilyContext, data: CategoryCr
             Category.family_id == ctx.family_id,
             Category.kind == data.kind,
             Category.name == data.name,
-            Category.parent_id.is_(None) if data.parent_id is None else Category.parent_id == data.parent_id,
+            Category.parent_id.is_(None)
+            if data.parent_id is None
+            else Category.parent_id == data.parent_id,
         )
     )
     if exists:

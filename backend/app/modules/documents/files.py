@@ -37,7 +37,8 @@ def sniff_content_type(data: bytes) -> str:
         else:
             return "text/plain"
     raise ValidationFailed(
-        "Тип файла не поддерживается. Разрешены PDF, JPEG, PNG, WebP, HEIC и текст", code="unsupported_file_type"
+        "Тип файла не поддерживается. Разрешены PDF, JPEG, PNG, WebP, HEIC и текст",
+        code="unsupported_file_type",
     )
 
 

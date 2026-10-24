@@ -15,7 +15,6 @@ from app.models import AuditLog, CalendarEvent, LifeItem, Notification, Task, Tr
 from app.models.enums import (
     LifeItemKind,
     LifeItemStatus,
-    NotificationStatus,
     ScheduledPaymentStatus,
 )
 from app.modules.calendar.schemas import OccurrenceOut
@@ -24,6 +23,7 @@ from app.modules.finance.goals import list_goals
 from app.modules.finance.recurring import list_scheduled
 from app.modules.finance.schemas import BudgetStatus, GoalOut, ScheduledPaymentOut, Totals
 from app.modules.finance.summary import budget_status, period_totals, scope_condition
+from app.modules.notifications.service import inbox_condition
 from app.modules.shopping.service import list_detail, list_lists
 from app.modules.tasks.schemas import TaskOut, TaskStats
 from app.modules.tasks.service import list_tasks, stats
@@ -77,12 +77,23 @@ async def dashboard(ctx: Ctx, db: DB) -> Dashboard:
     m_start, m_end = local_range_bounds(month, next_month, zone)
 
     w_start, w_end = local_range_bounds(today, today + timedelta(days=8), zone)
-    events = (await list_occurrences(db, ctx, max(utcnow() - timedelta(hours=2), w_start), w_end))[:5]
+    events = (await list_occurrences(db, ctx, max(utcnow() - timedelta(hours=2), w_start), w_end))[
+        :5
+    ]
 
-    payments = await list_scheduled(db, ctx, today - timedelta(days=60), today + timedelta(days=7), ScheduledPaymentStatus.pending, limit=8)
+    payments = await list_scheduled(
+        db,
+        ctx,
+        today - timedelta(days=60),
+        today + timedelta(days=7),
+        ScheduledPaymentStatus.pending,
+        limit=8,
+    )
 
     lists = await list_lists(db, ctx)
-    preview = ShoppingPreview(list_id=None, list_name=None, needed_total=sum(x.items_needed for x in lists), items=[])
+    preview = ShoppingPreview(
+        list_id=None, list_name=None, needed_total=sum(x.items_needed for x in lists), items=[]
+    )
     if lists:
         main = max(lists, key=lambda x: (x.items_needed, -x.created_at.timestamp()))
         detail = await list_detail(db, ctx, main.id)
@@ -91,12 +102,20 @@ async def dashboard(ctx: Ctx, db: DB) -> Dashboard:
 
     my_tasks = await list_tasks(db, ctx, status="open", assignee="me", limit=5)
     if len(my_tasks) < 5:
-        shared = await list_tasks(db, ctx, status="open", assignee="unassigned", limit=5 - len(my_tasks))
+        shared = await list_tasks(
+            db, ctx, status="open", assignee="unassigned", limit=5 - len(my_tasks)
+        )
         my_tasks += shared
 
     goals = [g for g in await list_goals(db, ctx) if g.status == "active"][:3]
     life_open = await db.scalar(
-        select(func.count()).select_from(LifeItem).where(visible(LifeItem, ctx), LifeItem.kind == LifeItemKind.goal, LifeItem.status != LifeItemStatus.done)
+        select(func.count())
+        .select_from(LifeItem)
+        .where(
+            visible(LifeItem, ctx),
+            LifeItem.kind == LifeItemKind.goal,
+            LifeItem.status != LifeItemStatus.done,
+        )
     )
 
     rows = (
@@ -113,16 +132,28 @@ async def dashboard(ctx: Ctx, db: DB) -> Dashboard:
         )
     ).all()
     activity = [
-        ActivityOut(action=a.action, entity_type=a.entity_type, entity_id=a.entity_id, summary=a.summary, actor_name=n, is_me=a.actor_id == ctx.user_id, created_at=a.created_at)
+        ActivityOut(
+            action=a.action,
+            entity_type=a.entity_type,
+            entity_id=a.entity_id,
+            summary=a.summary,
+            actor_name=n,
+            is_me=a.actor_id == ctx.user_id,
+            created_at=a.created_at,
+        )
         for a, n in rows
     ]
     unread = await db.scalar(
-        select(func.count()).select_from(Notification).where(
-            Notification.user_id == ctx.user_id, Notification.read_at.is_(None), Notification.status == NotificationStatus.sent
-        )
+        select(func.count())
+        .select_from(Notification)
+        .where(inbox_condition(ctx.user_id), Notification.read_at.is_(None))
     )
-    has_tx = await db.scalar(select(func.count()).select_from(Transaction).where(visible(Transaction, ctx)))
-    has_events = await db.scalar(select(func.count()).select_from(CalendarEvent).where(visible(CalendarEvent, ctx)))
+    has_tx = await db.scalar(
+        select(func.count()).select_from(Transaction).where(visible(Transaction, ctx))
+    )
+    has_events = await db.scalar(
+        select(func.count()).select_from(CalendarEvent).where(visible(CalendarEvent, ctx))
+    )
     has_tasks = await db.scalar(select(func.count()).select_from(Task).where(visible(Task, ctx)))
     return Dashboard(
         user_name=ctx.user.first_name,

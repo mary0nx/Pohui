@@ -12,12 +12,18 @@ from app.ai.providers.base import LLMResponse, ToolCall
 class ScriptedProvider:
     name = "scripted"
 
-    def __init__(self, script: list[LLMResponse] | Callable[[list[dict[str, Any]], list[dict[str, Any]]], LLMResponse]) -> None:
+    def __init__(
+        self,
+        script: list[LLMResponse]
+        | Callable[[list[dict[str, Any]], list[dict[str, Any]]], LLMResponse],
+    ) -> None:
         self.script = script
         self.calls: list[list[dict[str, Any]]] = []
         self.tools_seen: list[list[dict[str, Any]]] = []
 
-    async def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]], *, max_tokens: int = 1200) -> LLMResponse:
+    async def complete(
+        self, messages: list[dict[str, Any]], tools: list[dict[str, Any]], *, max_tokens: int = 1200
+    ) -> LLMResponse:
         self.calls.append(messages)
         self.tools_seen.append(tools)
         if callable(self.script):
@@ -28,7 +34,14 @@ class ScriptedProvider:
 
 
 def call(name: str, args: dict[str, Any], call_id: str = "call_1") -> LLMResponse:
-    return LLMResponse(text=None, tool_calls=[ToolCall(id=call_id, name=name, arguments=json.dumps(args, ensure_ascii=False))], input_tokens=100, output_tokens=20)
+    return LLMResponse(
+        text=None,
+        tool_calls=[
+            ToolCall(id=call_id, name=name, arguments=json.dumps(args, ensure_ascii=False))
+        ],
+        input_tokens=100,
+        output_tokens=20,
+    )
 
 
 def text(content: str) -> LLMResponse:

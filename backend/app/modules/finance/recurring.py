@@ -139,9 +139,7 @@ async def update_rule(
     if rule.end_date and rule.end_date < rule.start_date:
         raise ValidationFailed("Дата окончания раньше даты начала")
     if data.account_id is not None or data.category_id is not None:
-        await _validate_refs(
-            db, ctx, rule.kind, data.account_id, data.category_id, rule.visibility
-        )
+        await _validate_refs(db, ctx, rule.kind, data.account_id, data.category_id, rule.visibility)
         if data.account_id is not None:
             rule.account_id = data.account_id
         if data.category_id is not None:
@@ -186,10 +184,16 @@ async def delete_rule(db: AsyncSession, ctx: FamilyContext, rule_id: uuid.UUID) 
 
 async def list_rules(db: AsyncSession, ctx: FamilyContext) -> list[RecurringOut]:
     rules = (
-        await db.execute(
-            select(RecurringRule).where(visible(RecurringRule, ctx)).order_by(RecurringRule.name)
+        (
+            await db.execute(
+                select(RecurringRule)
+                .where(visible(RecurringRule, ctx))
+                .order_by(RecurringRule.name)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     next_due = dict(
         (
             await db.execute(
@@ -282,7 +286,8 @@ async def pay_scheduled(
             amount=data.amount or sp.amount,
             account_id=account_id,
             category_id=rule.category_id,
-            occurred_at=data.occurred_at or min(utcnow(), _due_instant(sp.due_date, ctx.family.timezone)),
+            occurred_at=data.occurred_at
+            or min(utcnow(), _due_instant(sp.due_date, ctx.family.timezone)),
             description=rule.name,
         ),
         source="scheduled",
@@ -297,7 +302,9 @@ async def pay_scheduled(
     return sp
 
 
-async def skip_scheduled(db: AsyncSession, ctx: FamilyContext, sp_id: uuid.UUID) -> ScheduledPayment:
+async def skip_scheduled(
+    db: AsyncSession, ctx: FamilyContext, sp_id: uuid.UUID
+) -> ScheduledPayment:
     sp, rule = await _load_scheduled(db, ctx, sp_id)
     if sp.status == ScheduledPaymentStatus.paid:
         raise ValidationFailed("Платёж уже оплачен")
@@ -344,7 +351,11 @@ async def auto_create_due(db: AsyncSession) -> int:
             continue
         ctx = Ctx(user=user, family=family, member=member)
         account = await db.get(Account, rule.account_id)
-        if account is None or account.archived_at is not None or account.visibility != rule.visibility:
+        if (
+            account is None
+            or account.archived_at is not None
+            or account.visibility != rule.visibility
+        ):
             continue
         tx = Transaction(
             family_id=family.id,

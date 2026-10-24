@@ -16,14 +16,16 @@ from sqlalchemy.ext.asyncio import create_async_engine
 async def main() -> None:
     url = os.environ["DATABASE_URL"]
     name = urlparse(url.replace("+asyncpg", "")).path.lstrip("/")
-    if os.environ.get("APP_ENV") not in ("development", "test") or not name.endswith(("_e2e", "_test")):
+    if os.environ.get("APP_ENV") not in ("development", "test") or not name.endswith(
+        ("_e2e", "_test")
+    ):
         sys.exit(f"refusing to reset database {name!r}")
     engine = create_async_engine(url)
     async with engine.begin() as conn:
         await conn.execute(text("DROP SCHEMA public CASCADE"))
         await conn.execute(text("CREATE SCHEMA public"))
     await engine.dispose()
-    subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"], check=True)
 
 
 asyncio.run(main())
+subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"], check=True)

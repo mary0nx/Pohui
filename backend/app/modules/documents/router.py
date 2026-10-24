@@ -31,8 +31,13 @@ async def _read_upload(file: UploadFile) -> bytes:
 
 
 @router.get("", response_model=list[DocumentOut])
-async def list_docs(ctx: Ctx, db: DB, q: str | None = None, category: str | None = None, archived: bool = False) -> list[DocumentOut]:
-    return [service.document_out(d) for d in await service.list_documents(db, ctx, q, category, archived)]
+async def list_docs(
+    ctx: Ctx, db: DB, q: str | None = None, category: str | None = None, archived: bool = False
+) -> list[DocumentOut]:
+    return [
+        service.document_out(d)
+        for d in await service.list_documents(db, ctx, q, category, archived)
+    ]
 
 
 @router.post("", response_model=DocumentOut, status_code=201)
@@ -57,8 +62,13 @@ async def upload(
     visibility: Annotated[Visibility, Form()] = Visibility.family,
 ) -> DocumentOut:
     meta = DocumentMeta(
-        title=title, category=category or None, notes=notes or None, document_date=document_date,
-        expires_on=expires_on, remind_days_before=remind_days_before, visibility=visibility,
+        title=title,
+        category=category or None,
+        notes=notes or None,
+        document_date=document_date,
+        expires_on=expires_on,
+        remind_days_before=remind_days_before,
+        visibility=visibility,
     )
     data = await _read_upload(file)
     doc = await service.create_document(db, ctx, meta, data, file.filename)
@@ -85,8 +95,12 @@ async def patch_doc(doc_id: uuid.UUID, body: DocumentPatch, ctx: Ctx, db: DB) ->
 
 
 @router.post("/{doc_id}/file", response_model=DocumentOut)
-async def replace(doc_id: uuid.UUID, ctx: Ctx, db: DB, file: Annotated[UploadFile, File()]) -> DocumentOut:
-    doc, old_key = await service.replace_file(db, ctx, doc_id, await _read_upload(file), file.filename)
+async def replace(
+    doc_id: uuid.UUID, ctx: Ctx, db: DB, file: Annotated[UploadFile, File()]
+) -> DocumentOut:
+    doc, old_key = await service.replace_file(
+        db, ctx, doc_id, await _read_upload(file), file.filename
+    )
     out = service.document_out(doc)
     await db.commit()
     await delete_files_quietly([old_key] if old_key else [])
