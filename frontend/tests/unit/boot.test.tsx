@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "@/app/App";
 
@@ -24,6 +24,39 @@ function insideTelegram(initData: string) {
 
 afterEach(() => {
   delete (window as unknown as { Telegram?: unknown }).Telegram;
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+});
+
+describe("static-host build (Cloudflare Pages) without VITE_API_URL", () => {
+  it("does not call its own origin as the API and explains what to configure", async () => {
+    vi.stubGlobal("__API_URL_REQUIRED__", true);
+    vi.stubEnv("VITE_API_URL", "");
+    const m = mockFetch([{ path: /\/meta$/, raw: SPA_INDEX_HTML }]);
+    render(<App />);
+    expect(await screen.findByText("Сервер Family OS не подключён")).toBeInTheDocument();
+    expect(screen.getByText(/VITE_API_URL/, { selector: "p" })).toBeInTheDocument();
+    expect(m.calls).toHaveLength(0);
+  });
+
+  it("refuses a Cloudflare Pages address as VITE_API_URL", async () => {
+    vi.stubGlobal("__API_URL_REQUIRED__", true);
+    vi.stubEnv("VITE_API_URL", "https://pohui.pages.dev");
+    const m = mockFetch([]);
+    render(<App />);
+    expect(await screen.findByText("Сервер Family OS не подключён")).toBeInTheDocument();
+    expect(screen.getByText(/указывает на сайт Cloudflare Pages/)).toBeInTheDocument();
+    expect(m.calls).toHaveLength(0);
+  });
+
+  it("uses the configured backend origin", async () => {
+    vi.stubGlobal("__API_URL_REQUIRED__", true);
+    vi.stubEnv("VITE_API_URL", "https://api.familyos.test/");
+    const m = mockFetch([{ path: /\/api\/v1\/meta$/, body: meta(false) }]);
+    render(<App />);
+    expect(await screen.findByText("Откройте приложение в Telegram")).toBeInTheDocument();
+    expect(m.calls[0]!.url.origin).toBe("https://api.familyos.test");
+  });
 });
 
 describe("boot without a reachable backend", () => {

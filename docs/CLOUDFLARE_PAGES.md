@@ -17,6 +17,11 @@ Cloudflare Pages хостит **только статический frontend** (
 по схеме, а приложение показывает экран **«Сервер Family OS недоступен»** с адресом API и кнопкой
 «Повторить». Это не исправляет отсутствие backend — его нужно развернуть.
 
+Кроме того, сборка на Cloudflare Pages (там при сборке задана переменная `CF_PAGES=1`) больше
+**не обращается к API на своём же адресе**: без `VITE_API_URL` приложение сразу показывает
+**«Сервер Family OS не подключён»** и что настроить. Адрес `*.pages.dev` в `VITE_API_URL`
+тоже отклоняется — это адрес сайта, а не сервера.
+
 ## Настройки проекта в Cloudflare Pages
 
 Cloudflare Dashboard → **Workers & Pages** → проект **pohui** → **Settings**.
@@ -59,6 +64,7 @@ Cloudflare Dashboard → **Workers & Pages** → проект **pohui** → **Se
 ```
 FRONTEND_URL=https://pohui.pages.dev
 CORS_ORIGINS=https://pohui.pages.dev
+CORS_ORIGIN_REGEX=^https://[a-z0-9-]+\.pohui\.pages\.dev$   # адреса отдельных сборок (по желанию)
 BACKEND_URL=https://<адрес_backend>
 TELEGRAM_WEBHOOK_URL=https://<адрес_backend>/tg/webhook
 SITE_ADDRESS=<адрес_backend_без_https>
@@ -75,13 +81,17 @@ SITE_ADDRESS=<адрес_backend_без_https>
 
 | Вариант | Стоимость | Комментарий |
 |---|---|---|
+| **Render (бесплатный Web Service) + Supabase (бесплатная PostgreSQL)** | 0 | Рекомендуемый бесплатный вариант. API, напоминания и бот в одном процессе, настройки в `render.yaml`. Пошагово: `docs/RENDER_SUPABASE.md`. Ограничения: засыпание без «будильника», файлы документов без S3 не сохраняются |
 | **Недорогой VPS** (Hetzner, OVH, Netcup и т. п., 2 ГБ RAM) | несколько € в месяц | Самый надёжный путь. Инструкция: `docs/SETUP_GUIDE.md`. Frontend можно оставить на Pages или отдавать тем же Caddy |
 | **Oracle Cloud Always Free** | 0 | Регистрация может не пройти (антифрод). Инструкция: `docs/FREE_SETUP_GUIDE.md` |
 | **Домашний компьютер + Cloudflare Tunnel** | 0 за сервер, нужен свой домен в Cloudflare | Компьютер должен работать круглосуточно. Профиль `tunnel` в `compose.yaml`, инструкция в конце `docs/SETUP_GUIDE.md` |
 | Google Cloud e2-micro (Free Tier) | 0 | 1 ГБ памяти — впритык, нужен swap; регионы только в США |
 
-Бесплатные PaaS (Render, Railway, Koyeb и т. п.) в бесплатных тарифах обычно усыпляют сервис
-и не дают фоновых процессов — напоминания и бот работать не будут без изменения архитектуры.
+Бесплатные тарифы PaaS не дают отдельных фоновых процессов, поэтому для Render backend
+запускается в режиме одного процесса (`EMBEDDED_WORKER=true`, `EMBEDDED_BOT=true`,
+`backend/scripts/start-single-service.sh`), а засыпание предотвращает внешний «будильник».
+Бесплатная база Neon не подходит: её 100 часов вычислений в месяц не хватит на круглосуточные
+фоновые задачи.
 
 ## Проверка после развёртывания backend
 

@@ -1,0 +1,51 @@
+# Render Blueprint: the whole Family OS backend as ONE free web service.
+# API + worker loop (reminders, recurring payments, notifications) + Telegram webhook run in one
+# process (scripts/start-single-service.sh). PostgreSQL is external (Supabase free tier, session
+# pooler on port 5432): paste its connection string into DATABASE_URL when Render asks for it.
+# The frontend stays on Cloudflare Pages. Step-by-step guide: docs/RENDER_SUPABASE.md
+services:
+  - type: web
+    name: familyos-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: claude/family-os-telegram-app-hpkcnl
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    dockerCommand: ./scripts/start-single-service.sh
+    healthCheckPath: /health
+    autoDeploy: true
+    buildFilter:
+      paths:
+        - backend/**
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: PORT
+        value: "8000"
+      - key: APP_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false # Supabase "Session pooler" connection string, asked for on Blueprint creation
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false # from @BotFather
+      - key: TELEGRAM_BOT_USERNAME
+        sync: false # bot username without @
+      - key: TELEGRAM_MINI_APP_SHORT_NAME
+        sync: false # short name given to /newapp in BotFather (for invitation links)
+      - key: FRONTEND_URL
+        value: https://pohui.pages.dev
+      - key: CORS_ORIGINS
+        value: https://pohui.pages.dev
+      - key: CORS_ORIGIN_REGEX
+        value: ^https://[a-z0-9-]+\.pohui\.pages\.dev$
+      - key: DB_POOL_SIZE
+        value: "3" # the free Supabase pooler allows only a few connections per database
+      - key: DB_MAX_OVERFLOW
+        value: "3"
+      - key: DEFAULT_TIMEZONE
+        value: Europe/Warsaw
+      - key: DEFAULT_CURRENCY
+        value: PLN
+      # BACKEND_URL and TELEGRAM_WEBHOOK_URL default to RENDER_EXTERNAL_URL (set by Render).
+      # Optional AI assistant: add OPENAI_API_KEY and AI_MODEL in the dashboard later.

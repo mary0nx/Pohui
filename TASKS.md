@@ -72,10 +72,16 @@
 - [x] Frontend на Cloudflare Pages без backend: вместо падения `V.dev_auth` — проверка ответов
       API и экран «Сервер недоступен»; поддержка `VITE_API_URL` и CORS для раздельного размещения
       (проверено локально: статический хостинг с SPA-фолбэком + API на другом адресе)
+- [x] Сборка Pages без `VITE_API_URL` не обращается к API на `pages.dev`, а показывает «Сервер
+      не подключён»; адрес `*.pages.dev` как API отклоняется
+- [x] Режим одного процесса для бесплатного хостинга: `EMBEDDED_WORKER`, `EMBEDDED_BOT`
+      (вебхук Telegram внутри API), `render.yaml`, строки подключения Supabase/Neon как есть,
+      отзыв Data API Supabase, `CORS_ORIGIN_REGEX` (проверено локально в Docker с лимитом 512 МБ:
+      миграции, API, фоновые задачи; вход по подписанному initData и создание семьи из сборки Pages)
 
 ## Требует ваших ключей / окружения (код готов, живьём не проверено)
-- [ ] Backend в интернете: Oracle Free Tier не зарегистрировался; нужен VPS, домашний сервер
-      с Cloudflare Tunnel или другой вариант из `docs/CLOUDFLARE_PAGES.md`
+- [ ] Backend в интернете: создать Render + Supabase по `docs/RENDER_SUPABASE.md` (нужны ваши
+      аккаунты), затем `VITE_API_URL` в Cloudflare Pages
 - [ ] Реальный бот Telegram: `/start`, доставка уведомлений, вебхук — нужен `TELEGRAM_BOT_TOKEN`
 - [ ] Открытие внутри клиентов Telegram (iOS/Android/Desktop/Web) — нужен домен с HTTPS
 - [ ] Реальные ответы OpenAI — нужны `OPENAI_API_KEY` и `AI_MODEL` (логика проверена на сценарном провайдере)

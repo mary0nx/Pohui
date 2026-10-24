@@ -1,19 +1,24 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
-import { api, ApiError, BACKEND_UNAVAILABLE, CONFIG_ERROR_CODE, INVALID_RESPONSE, onUnauthorized } from "@/api/client";
+import { api, API_NOT_CONFIGURED, ApiError, BACKEND_UNAVAILABLE, CONFIG_ERROR_CODE, INVALID_RESPONSE, onUnauthorized } from "@/api/client";
 import { parseMe, parseMeta, parseTokenOut } from "@/api/contracts";
 import { getToken, setToken } from "@/lib/session";
 import { isInsideTelegram, startParam, telegramInitData } from "@/lib/telegram";
 import type { Family, Me, Meta, TokenOut } from "@/types/api";
 
-type Status = "loading" | "ready" | "dev-login" | "outside-telegram" | "backend-unavailable" | "error";
+type Status = "loading" | "ready" | "dev-login" | "outside-telegram" | "api-not-configured" | "backend-unavailable" | "error";
 
-/** Errors meaning the API itself is unreachable or misconfigured, not a problem of this user. */
-const BACKEND_PROBLEM_CODES = new Set([BACKEND_UNAVAILABLE, INVALID_RESPONSE, CONFIG_ERROR_CODE, "network_error"]);
+/** The build itself has no usable API address: retrying cannot help, the site must be rebuilt. */
+const CONFIG_PROBLEM_CODES = new Set([API_NOT_CONFIGURED, CONFIG_ERROR_CODE]);
+/** Errors meaning the API itself is unreachable, not a problem of this user. */
+const BACKEND_PROBLEM_CODES = new Set([BACKEND_UNAVAILABLE, INVALID_RESPONSE, "network_error"]);
 
-function isBackendProblem(e: unknown): boolean {
-  return e instanceof ApiError && (BACKEND_PROBLEM_CODES.has(e.code) || e.status >= 500);
+function failureStatus(e: unknown): Status {
+  if (!(e instanceof ApiError)) return "error";
+  if (CONFIG_PROBLEM_CODES.has(e.code)) return "api-not-configured";
+  if (BACKEND_PROBLEM_CODES.has(e.code) || e.status >= 500) return "backend-unavailable";
+  return "error";
 }
 
 interface SessionValue {
@@ -81,7 +86,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setStatus(m.dev_auth ? "dev-login" : "outside-telegram");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка запуска");
-      setStatus(isBackendProblem(e) ? "backend-unavailable" : "error");
+      setStatus(failureStatus(e));
     }
   }, [telegramLogin]);
 

@@ -2,6 +2,26 @@
 
 Формат: [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/), версии — SemVer.
 
+## [0.1.2] — 2026-10-24
+
+### Исправлено
+- Сборка на Cloudflare Pages без `VITE_API_URL` отправляла запросы API на сам `pages.dev`.
+  Теперь такая сборка (`CF_PAGES=1`) сразу показывает «Сервер Family OS не подключён» с
+  инструкцией, а адрес `*.pages.dev` в `VITE_API_URL` отклоняется.
+
+### Добавлено
+- Режим одного процесса для бесплатного хостинга: `EMBEDDED_WORKER=true` (фоновые задачи в
+  процессе API), `EMBEDDED_BOT=true` (вебхук Telegram `/tg/webhook` в API с проверкой секрета и
+  повтором регистрации), `backend/scripts/start-single-service.sh`.
+- `render.yaml` (Render Blueprint, бесплатный план) и `docs/RENDER_SUPABASE.md` — пошаговое
+  бесплатное размещение backend.
+- Строки подключения хостингов PostgreSQL (`postgresql://...?sslmode=require`, пулеры Neon и
+  Supabase) принимаются без ручной правки; `DB_MAX_OVERFLOW`.
+- `python -m app.db.lockdown`: отзыв доступа Data API Supabase (`anon`, `authenticated`) к
+  таблицам Family OS.
+- `CORS_ORIGIN_REGEX` для адресов отдельных сборок Pages; `RENDER_EXTERNAL_URL` заполняет
+  `BACKEND_URL`/`TELEGRAM_WEBHOOK_URL`; секрет вебхука выводится из `APP_SECRET_KEY`, если не задан.
+
 ## [0.1.1] — 2026-10-24
 
 ### Исправлено

@@ -1,0 +1,190 @@
+"""Single-service deployment (free Render web service + hosted PostgreSQL such as Neon)."""
+
+from __future__ import annotations
+
+import asyncio
+import re
+from collections.abc import Iterator
+from typing import Any
+
+import pytest
+from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
+
+from app.config import Settings, get_settings, normalize_database_url
+
+
+@pytest.fixture
+def settings_env(monkeypatch: pytest.MonkeyPatch) -> Iterator[pytest.MonkeyPatch]:
+    """Change environment variables for one test and rebuild the cached settings."""
+    get_settings.cache_clear()
+    yield monkeypatch
+    monkeypatch.undo()
+    get_settings.cache_clear()
+
+
+def _client(app: FastAPI) -> AsyncClient:
+    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+
+
+@pytest.mark.parametrize(
+    ("given", "expected"),
+    [
+        (
+            "postgresql://u:p@ep-x-1-pooler.eu-central-1.aws.neon.tech/neondb"
+            "?sslmode=require&channel_binding=require",
+            "postgresql+asyncpg://u:p@ep-x-1.eu-central-1.aws.neon.tech/neondb?ssl=require",
+        ),
+        ("postgres://u:p@db.internal:5432/app", "postgresql+asyncpg://u:p@db.internal:5432/app"),
+        (
+            "postgresql+asyncpg://familyos:familyos@localhost:5432/familyos",
+            "postgresql+asyncpg://familyos:familyos@localhost:5432/familyos",
+        ),
+        ("postgresql://u:p@h/db?sslmode=disable", "postgresql+asyncpg://u:p@h/db"),
+        (
+            "postgresql://postgres.abcd:pw@aws-0-eu-central-1.pooler.supabase.com:6543/postgres",
+            "postgresql+asyncpg://postgres.abcd:pw@aws-0-eu-central-1.pooler.supabase.com:5432/postgres",
+        ),
+        (
+            "postgresql://postgres.abcd:pw@aws-0-eu-central-1.pooler.supabase.com:5432/postgres",
+            "postgresql+asyncpg://postgres.abcd:pw@aws-0-eu-central-1.pooler.supabase.com:5432/postgres",
+        ),
+    ],
+)
+def test_database_url_from_hosting_providers(given: str, expected: str) -> None:
+    assert normalize_database_url(given) == expected
+
+
+def test_render_url_fills_backend_and_webhook_urls() -> None:
+    s = Settings(render_external_url="https://familyos-api.onrender.com/")
+    assert s.backend_url == "https://familyos-api.onrender.com"
+    assert s.telegram_webhook_url == "https://familyos-api.onrender.com/tg/webhook"
+    explicit = Settings(
+        render_external_url="https://x.onrender.com",
+        backend_url="https://api.family.test",
+        telegram_webhook_url="https://api.family.test/tg/webhook",
+    )
+    assert explicit.backend_url == "https://api.family.test"
+    assert explicit.telegram_webhook_url == "https://api.family.test/tg/webhook"
+
+
+def test_derived_webhook_secret_is_stable_and_telegram_compatible() -> None:
+    s = Settings(app_secret_key="k" * 40)
+    secret = s.webhook_secret()
+    assert re.fullmatch(r"[A-Za-z0-9_-]{32,256}", secret)
+    assert secret == Settings(app_secret_key="k" * 40).webhook_secret()
+    assert secret != Settings(app_secret_key="j" * 40).webhook_secret()
+    assert Settings(telegram_webhook_secret="explicit_value").webhook_secret() == "explicit_value"
+
+
+async def test_cors_regex_allows_pages_previews_only(settings_env: pytest.MonkeyPatch) -> None:
+    settings_env.setenv("CORS_ORIGINS", "https://pohui.pages.dev")
+    settings_env.setenv("CORS_ORIGIN_REGEX", r"^https://[a-z0-9-]+\.pohui\.pages\.dev$")
+    from app.main import create_app
+
+    preflight = {"Access-Control-Request-Method": "POST"}
+    async with _client(create_app()) as c:
+        for origin in ("https://pohui.pages.dev", "https://06c41622.pohui.pages.dev"):
+            r = await c.options("/api/v1/meta", headers={"Origin": origin, **preflight})
+            assert r.headers.get("access-control-allow-origin") == origin
+        for origin in ("https://evil.pages.dev", "https://pohui.pages.dev.evil.example"):
+            r = await c.options("/api/v1/meta", headers={"Origin": origin, **preflight})
+            assert "access-control-allow-origin" not in r.headers
+
+
+class FakeBot:
+    def __init__(self) -> None:
+        self.updates: list[dict[str, Any]] = []
+
+    def feed(self, update: dict[str, Any]) -> None:
+        self.updates.append(update)
+
+
+async def test_embedded_webhook_checks_the_telegram_secret(
+    settings_env: pytest.MonkeyPatch,
+) -> None:
+    settings_env.setenv("EMBEDDED_BOT", "true")
+    from app.main import create_app
+
+    app = create_app()
+    secret = get_settings().webhook_secret()
+    update = {"update_id": 1, "message": {"message_id": 1, "date": 0, "chat": {"id": 1}}}
+    async with _client(app) as c:
+        app.state.embedded_bot = None
+        r = await c.post("/tg/webhook", json=update)
+        assert r.status_code == 404  # bot failed to start / not configured: nothing accepted
+
+        fake = FakeBot()
+        app.state.embedded_bot = fake
+        r = await c.post("/tg/webhook", json=update)
+        assert r.status_code == 401
+        r = await c.post(
+            "/tg/webhook", json=update, headers={"X-Telegram-Bot-Api-Secret-Token": "wrong"}
+        )
+        assert r.status_code == 401
+        assert fake.updates == []
+
+        ok_headers = {"X-Telegram-Bot-Api-Secret-Token": secret}
+        r = await c.post("/tg/webhook", content=b"[1]", headers=ok_headers)
+        assert r.status_code == 400
+        r = await c.post("/tg/webhook", json=update, headers=ok_headers)
+        assert r.status_code == 200
+        assert fake.updates == [update]
+
+
+async def test_webhook_route_absent_without_embedded_bot(client: AsyncClient) -> None:
+    r = await client.post("/tg/webhook", json={"update_id": 1})
+    assert r.status_code == 404
+
+
+async def test_embedded_worker_runs_with_the_api(settings_env: pytest.MonkeyPatch) -> None:
+    settings_env.setenv("EMBEDDED_WORKER", "true")
+    started = asyncio.Event()
+    stopped = asyncio.Event()
+
+    async def fake_loop(stop: asyncio.Event) -> None:
+        started.set()
+        await stop.wait()
+        stopped.set()
+
+    import app.workers.loop as loop_module
+
+    settings_env.setattr(loop_module, "run_loop", fake_loop)
+    from app.main import create_app
+
+    app = create_app()
+    async with app.router.lifespan_context(app):
+        await asyncio.wait_for(started.wait(), timeout=2)
+        assert not stopped.is_set()
+    assert stopped.is_set()
+
+
+async def test_embedded_bot_start_is_retried_without_blocking_the_api(
+    settings_env: pytest.MonkeyPatch,
+) -> None:
+    settings_env.setenv("EMBEDDED_BOT", "true")
+    attempts: list[int] = []
+
+    class FlakyBot(FakeBot):
+        async def start(self) -> None:
+            attempts.append(1)
+            if len(attempts) == 1:
+                raise ConnectionError("telegram unreachable")
+
+        async def stop(self) -> None:
+            return None
+
+    import app.bot.webhook as webhook_module
+    import app.main as main_module
+
+    settings_env.setattr(webhook_module, "EmbeddedBot", FlakyBot)
+    settings_env.setattr(main_module, "BOT_START_DELAYS", (0.0,))
+    app = main_module.create_app()
+    async with app.router.lifespan_context(app), _client(app) as c:
+        assert (await c.get("/health")).status_code == 200
+        for _ in range(100):
+            if app.state.embedded_bot is not None:
+                break
+            await asyncio.sleep(0.01)
+        assert isinstance(app.state.embedded_bot, FlakyBot)
+        assert len(attempts) == 2

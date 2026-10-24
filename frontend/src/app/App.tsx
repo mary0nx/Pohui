@@ -3,7 +3,7 @@ import { useState } from "react";
 import { RouterProvider } from "react-router";
 
 import { ToastProvider } from "@/components/ui";
-import { BackendUnavailable, BootError, CreateFamily, DevLogin, JoinFamily, OutsideTelegram, Splash } from "@/features/onboarding/Gate";
+import { ApiNotConfigured, BackendUnavailable, BootError, CreateFamily, DevLogin, JoinFamily, OutsideTelegram, Splash } from "@/features/onboarding/Gate";
 import { I18nProvider } from "@/i18n";
 import { ApiError } from "@/api/client";
 
@@ -16,6 +16,7 @@ function Gate() {
   if (session.status === "loading") return <Splash />;
   if (session.status === "dev-login") return <DevLogin />;
   if (session.status === "outside-telegram") return <OutsideTelegram />;
+  if (session.status === "api-not-configured") return <ApiNotConfigured message={session.error} />;
   if (session.status === "backend-unavailable") return <BackendUnavailable message={session.error} onRetry={session.retry} />;
   if (session.status === "error" || !session.me) return <BootError message={session.error} onRetry={() => window.location.reload()} />;
   if (session.pendingInvite) return <JoinFamily token={session.pendingInvite} />;

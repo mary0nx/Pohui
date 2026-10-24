@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -22,8 +24,37 @@ from app.db.session import dispose_engine, get_sessionmaker
 log = logging.getLogger("app")
 
 
+BOT_START_DELAYS = (5.0, 15.0, 60.0)
+
+
+async def _start_embedded_bot(app: FastAPI) -> None:
+    """Register the webhook in the background, retrying: the API must stay up even if Telegram
+    is briefly unreachable or the token is wrong. Until then /tg/webhook answers 404 and
+    Telegram keeps the updates."""
+    from app.bot.webhook import EmbeddedBot
+
+    attempt = 0
+    while True:
+        embedded = EmbeddedBot()
+        try:
+            await embedded.start()
+        except Exception:
+            log.exception("embedded bot failed to start; the Mini App API keeps working")
+            await embedded.stop()
+            await asyncio.sleep(BOT_START_DELAYS[min(attempt, len(BOT_START_DELAYS) - 1)])
+            attempt += 1
+            continue
+        app.state.embedded_bot = embedded
+        return
+
+
+def _log_worker_exit(task: asyncio.Task[None]) -> None:
+    if not task.cancelled() and task.exception() is not None:
+        log.error("embedded worker crashed", exc_info=task.exception())
+
+
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     log.info(
         "api starting",
@@ -33,12 +64,35 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
                 "ai": settings.ai_configured,
                 "telegram": settings.telegram_configured,
                 "dev_auth": settings.dev_auth_active,
+                "embedded_worker": settings.embedded_worker,
+                "embedded_bot": settings.embedded_bot,
             }
         },
     )
     if settings.dev_auth_active:
         log.warning("DEV AUTH IS ENABLED - never use this configuration in production")
+    app.state.embedded_bot = None
+    bot_starter: asyncio.Task[None] | None = None
+    if settings.embedded_bot and settings.telegram_configured:
+        bot_starter = asyncio.create_task(_start_embedded_bot(app), name="embedded-bot-start")
+    stop_worker = asyncio.Event()
+    worker: asyncio.Task[None] | None = None
+    if settings.embedded_worker:
+        from app.workers.loop import run_loop
+
+        worker = asyncio.create_task(run_loop(stop_worker), name="embedded-worker")
+        worker.add_done_callback(_log_worker_exit)
     yield
+    if worker is not None:
+        stop_worker.set()
+        with contextlib.suppress(Exception):  # already logged by _log_worker_exit
+            await worker
+    if bot_starter is not None:
+        bot_starter.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await bot_starter
+    if app.state.embedded_bot is not None:
+        await app.state.embedded_bot.stop()
     await dispose_engine()
 
 
@@ -93,10 +147,15 @@ def create_app() -> FastAPI:
         return JSONResponse({"status": "ok"})
 
     app.include_router(api_router)
+    if settings.embedded_bot:
+        from app.bot.webhook import router as telegram_webhook_router
+
+        app.include_router(telegram_webhook_router)
 
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
+        allow_origin_regex=settings.cors_origin_regex or None,
         allow_credentials=False,
         allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
         allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],

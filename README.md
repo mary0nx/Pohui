@@ -148,6 +148,14 @@ Backend-тесты по умолчанию используют
 снова вверх. Telegram и LLM в тестах заменены тестовыми двойниками; база данных — настоящая.
 Сценарий из 15 обязательных пунктов ТЗ — `backend/tests/test_scenarios.py`.
 
+## Бесплатное размещение (Cloudflare Pages + Render + Supabase)
+
+Frontend — на Cloudflare Pages, backend — одним бесплатным сервисом Render (API, фоновые задачи
+и бот в одном процессе, `render.yaml`), база — бесплатный проект Supabase. Пошагово:
+[`docs/RENDER_SUPABASE.md`](docs/RENDER_SUPABASE.md); настройки Pages:
+[`docs/CLOUDFLARE_PAGES.md`](docs/CLOUDFLARE_PAGES.md). Ограничения: без внешнего «будильника»
+сервис засыпает, загруженные файлы без S3 не сохраняются.
+
 ## Развёртывание на VPS
 
 1. **Сервер.** Ubuntu 24.04, отдельный пользователь с sudo, вход по SSH-ключу. Установите

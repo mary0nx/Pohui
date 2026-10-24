@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Home, RefreshCw, Send, ServerOff, ShieldAlert, Users } from "lucide-react";
+import { Home, RefreshCw, Send, ServerOff, Settings, ShieldAlert, Users } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -53,6 +53,34 @@ export function OutsideTelegram() {
 
 /** Shown when the Family OS API cannot be reached or answers with something that is not the
  * API (for example a static host serving index.html). Nothing private is loaded here. */
+export function ApiNotConfigured({ message }: { message: string | null }) {
+  return (
+    <Centered>
+      <Logo />
+      <Card className="space-y-3">
+        <div className="flex items-start gap-3">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-warning-soft text-warning">
+            <Settings className="size-5" />
+          </span>
+          <div>
+            <p className="font-semibold">Сервер Family OS не подключён</p>
+            <p className="mt-1 text-sm text-muted">Сайт опубликован, но в нём не указан адрес сервера, поэтому приложение не может загрузить данные.</p>
+          </div>
+        </div>
+        {message && <p className="rounded-2xl bg-surface-2 p-3 text-sm break-words">{message}</p>}
+        <div className="text-xs text-muted">
+          <p className="font-medium">Для администратора:</p>
+          <ol className="mt-1 list-decimal space-y-1 pl-4">
+            <li>Запустите backend Family OS и проверьте, что открывается его адрес /health.</li>
+            <li>Cloudflare → Workers &amp; Pages → проект → Settings → Variables and Secrets: добавьте VITE_API_URL с адресом backend.</li>
+            <li>Deployments → ⋯ → Retry deployment, чтобы пересобрать сайт.</li>
+          </ol>
+        </div>
+      </Card>
+    </Centered>
+  );
+}
+
 export function BackendUnavailable({ message, onRetry }: { message: string | null; onRetry: () => void }) {
   const [busy, setBusy] = useState(false);
   return (

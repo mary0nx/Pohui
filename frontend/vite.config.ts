@@ -3,8 +3,13 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
+// Cloudflare Pages sets CF_PAGES=1 during its builds. Pages serves only static files, so such a
+// build must get the backend address from VITE_API_URL instead of calling its own origin.
+const apiUrlRequired = process.env.CF_PAGES === "1" || process.env.REQUIRE_API_URL === "1";
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  define: { __API_URL_REQUIRED__: JSON.stringify(apiUrlRequired) },
   resolve: { alias: { "@": new URL("./src", import.meta.url).pathname } },
   server: {
     port: 5173,

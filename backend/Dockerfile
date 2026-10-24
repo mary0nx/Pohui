@@ -8,6 +8,7 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY app ./app
 COPY migrations ./migrations
 COPY alembic.ini ./
+COPY scripts/start-single-service.sh ./scripts/
 RUN uv sync --frozen --no-dev
 
 FROM python:3.12.15-slim
