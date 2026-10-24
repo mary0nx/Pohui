@@ -19,6 +19,9 @@
   Supabase) принимаются без ручной правки; `DB_MAX_OVERFLOW`.
 - `python -m app.db.lockdown`: отзыв доступа Data API Supabase (`anon`, `authenticated`) к
   таблицам Family OS.
+- `/health/ready` называет проблему базы (`problem`: неверный пароль, пользователь, адрес,
+  имя базы, нет миграций) без раскрытия строки подключения; в режиме одного процесса сервер
+  стартует и при ошибке базы (3 попытки миграций), чтобы причину было видно без логов хостинга.
 - `CORS_ORIGIN_REGEX` для адресов отдельных сборок Pages; `RENDER_EXTERNAL_URL` заполняет
   `BACKEND_URL`/`TELEGRAM_WEBHOOK_URL`; секрет вебхука выводится из `APP_SECRET_KEY`, если не задан.
 

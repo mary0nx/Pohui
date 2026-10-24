@@ -12,14 +12,14 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy import text
 
 from app.api.v1 import api_router
 from app.config import get_settings
 from app.core.errors import AppError, error_body
 from app.core.logging import setup_logging
 from app.core.middleware import BodyLimitMiddleware, SecurityHeadersMiddleware
-from app.db.session import dispose_engine, get_sessionmaker
+from app.db.health import database_problem
+from app.db.session import dispose_engine
 
 log = logging.getLogger("app")
 
@@ -138,12 +138,11 @@ def create_app() -> FastAPI:
 
     @app.get("/health/ready", tags=["meta"])
     async def ready() -> JSONResponse:
-        try:
-            async with get_sessionmaker()() as session:
-                await session.execute(text("SELECT 1"))
-        except Exception:
-            log.exception("readiness check failed")
-            return JSONResponse(status_code=503, content={"status": "unavailable"})
+        problem = await database_problem()
+        if problem is not None:
+            return JSONResponse(
+                status_code=503, content={"status": "unavailable", "problem": problem}
+            )
         return JSONResponse({"status": "ok"})
 
     app.include_router(api_router)

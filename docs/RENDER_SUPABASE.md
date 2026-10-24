@@ -94,7 +94,18 @@ Family OS при каждом запуске отзывает у Data API дос
 Откройте в браузере (подставьте свой адрес):
 
 1. `https://<адрес_backend>/health/ready` → должно быть `{"status":"ok"}`.
-   `{"status":"unavailable"}` значит, что нет связи с базой: проверьте `DATABASE_URL`.
+   Если там `"status":"unavailable"`, поле `problem` называет причину:
+
+   | `problem` | Что исправить в Render → **Environment** → `DATABASE_URL` |
+   |---|---|
+   | `database_password_wrong` | пароль не тот, что в Supabase (или остались `[` `]`) |
+   | `database_user_wrong` | часть `postgres.<код_проекта>` скопирована неверно |
+   | `database_host_not_found` / `database_unreachable` | адрес: нужен Session pooler, `...pooler.supabase.com:5432` |
+   | `database_name_wrong` | в конце строки должно быть `/postgres` |
+   | `database_url_invalid` | строка обрезана или в ней пробелы/переносы |
+   | `database_not_migrated` | база доступна, но таблицы не созданы: **Manual Deploy** → **Deploy latest commit** |
+
+   Сервер запускается даже при ошибке базы, чтобы причину было видно здесь, без логов.
 2. `https://<адрес_backend>/api/v1/meta` → JSON, в котором `"env":"production"`,
    `"dev_auth":false` и `"bot_username"` — ваш бот.
 

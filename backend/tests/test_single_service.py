@@ -1,4 +1,4 @@
-"""Single-service deployment (free Render web service + hosted PostgreSQL such as Neon)."""
+"""Single-service deployment (free Render web service + hosted PostgreSQL such as Supabase)."""
 
 from __future__ import annotations
 
@@ -188,3 +188,60 @@ async def test_embedded_bot_start_is_retried_without_blocking_the_api(
             await asyncio.sleep(0.01)
         assert isinstance(app.state.embedded_bot, FlakyBot)
         assert len(attempts) == 2
+
+
+@pytest.mark.parametrize(
+    ("url", "problem"),
+    [
+        (
+            "postgresql://familyos:wrong-password@localhost:5432/familyos_test",
+            "database_password_wrong",
+        ),
+        ("postgresql://familyos:familyos@localhost:5432/no_such_db", "database_name_wrong"),
+        ("postgresql://familyos:familyos@localhost:1/familyos_test", "database_unreachable"),
+        (
+            "postgresql://familyos:familyos@no-such-host.invalid:5432/familyos_test",
+            "database_host_not_found",
+        ),
+        ("not a database url", "database_url_invalid"),
+    ],
+)
+async def test_readiness_names_the_database_problem(
+    settings_env: pytest.MonkeyPatch, url: str, problem: str
+) -> None:
+    from app.db.session import dispose_engine
+    from app.main import create_app
+
+    await dispose_engine()
+    settings_env.setenv("DATABASE_URL", url)
+    try:
+        async with _client(create_app()) as c:
+            r = await c.get("/health/ready")
+            assert r.status_code == 503
+            assert r.json() == {"status": "unavailable", "problem": problem}
+            assert "familyos" not in r.text  # never echo user names or connection details
+            assert (await c.get("/health")).status_code == 200  # liveness stays up
+    finally:
+        await dispose_engine()
+
+
+async def test_readiness_ok_on_migrated_database(client: AsyncClient) -> None:
+    r = await client.get("/health/ready")
+    assert r.status_code == 200
+    assert r.json() == {"status": "ok"}
+
+
+async def test_readiness_reports_missing_migrations(client: AsyncClient) -> None:
+    from sqlalchemy import text
+
+    from app.db.session import get_engine
+
+    async with get_engine().begin() as conn:
+        await conn.execute(text("ALTER TABLE alembic_version RENAME TO alembic_version_hidden"))
+    try:
+        r = await client.get("/health/ready")
+        assert r.status_code == 503
+        assert r.json() == {"status": "unavailable", "problem": "database_not_migrated"}
+    finally:
+        async with get_engine().begin() as conn:
+            await conn.execute(text("ALTER TABLE alembic_version_hidden RENAME TO alembic_version"))
