@@ -7,10 +7,18 @@ from fastapi import APIRouter
 from app.config import get_settings
 from app.modules.auth.router import router as auth_router
 from app.modules.families.router import router as families_router
+from app.modules.calendar.router import router as calendar_router
+from app.modules.finance.router import router as finance_router
+from app.modules.shopping.router import router as shopping_router
+from app.modules.tasks.router import router as tasks_router
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth_router)
 api_router.include_router(families_router)
+api_router.include_router(finance_router)
+api_router.include_router(calendar_router)
+api_router.include_router(shopping_router)
+api_router.include_router(tasks_router)
 
 
 @api_router.get("/meta", tags=["meta"])

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Annotated
 
@@ -38,4 +38,8 @@ class UUIDPk:
 
 class Timestamps:
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+    # Python-side onupdate: the new value is known without a round trip, so the attribute
+    # never gets expired (lazy loads are impossible under asyncio).
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=lambda: datetime.now(UTC)
+    )

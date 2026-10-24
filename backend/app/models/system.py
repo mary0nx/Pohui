@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime, time
+from datetime import UTC, date, datetime, time
 from typing import Any
 
 import sqlalchemy as sa
@@ -100,7 +100,9 @@ class NotificationSettings(Base):
     quiet_end: Mapped[time | None]
     timezone: Mapped[str | None] = mapped_column(sa.String(64))
     telegram_enabled: Mapped[bool] = mapped_column(server_default=sa.true(), default=True)
-    updated_at: Mapped[datetime] = mapped_column(server_default=sa.func.now(), onupdate=sa.func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=sa.func.now(), onupdate=lambda: datetime.now(UTC)
+    )
 
 
 class AiConversation(UUIDPk, Timestamps, Base):

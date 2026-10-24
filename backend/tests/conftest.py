@@ -23,6 +23,7 @@ os.environ.update(
     }
 )
 
+import asyncio  # noqa: E402
 import tempfile  # noqa: E402
 from collections.abc import AsyncIterator  # noqa: E402
 from dataclasses import dataclass  # noqa: E402
@@ -47,9 +48,21 @@ BACKEND = Path(__file__).resolve().parents[1]
 def migrated_database() -> None:
     cfg = Config(str(BACKEND / "alembic.ini"))
     cfg.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
+    asyncio.run(_reset_schema(os.environ["DATABASE_URL"]))
     # Exercise the full migration chain in both directions on every run.
+    command.upgrade(cfg, "head")
     command.downgrade(cfg, "base")
     command.upgrade(cfg, "head")
+
+
+async def _reset_schema(url: str) -> None:
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    engine = create_async_engine(url)
+    async with engine.begin() as conn:
+        await conn.execute(text("DROP SCHEMA public CASCADE"))
+        await conn.execute(text("CREATE SCHEMA public"))
+    await engine.dispose()
 
 
 @pytest.fixture(autouse=True)

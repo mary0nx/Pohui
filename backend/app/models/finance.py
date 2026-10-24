@@ -67,6 +67,13 @@ class Transaction(UUIDPk, Timestamps, Base):
             "to_account_id IS NULL OR to_account_id <> account_id", name="transfer_distinct"
         ),
         sa.Index("ix_transactions_family_occurred", "family_id", "occurred_at"),
+        sa.Index(
+            "uq_transactions_import_hash",
+            "family_id",
+            "import_hash",
+            unique=True,
+            postgresql_where=sa.text("import_hash IS NOT NULL"),
+        ),
     )
 
     family_id: Mapped[uuid.UUID] = family_fk()
