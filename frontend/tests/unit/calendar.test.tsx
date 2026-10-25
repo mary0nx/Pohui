@@ -125,6 +125,31 @@ describe("calendar month with work shifts", () => {
     expect(put.body).toEqual({ kind: "night" });
   });
 
+  it("shows only the days of the shown month, with no days of the neighbouring months", async () => {
+    await act(() => router.navigate("/calendar"));
+    setToken("tok");
+    const m = mockFetch([...base, { path: /\/calendar\/shifts$/, body: [] }]);
+    render(<App />);
+    const user = userEvent.setup();
+    await screen.findByRole("button", { name: "Следующий месяц" });
+    const today = todayIn("Europe/Warsaw");
+    // Go to the month after next and check its grid.
+    await user.click(screen.getByRole("button", { name: "Следующий месяц" }));
+    await user.click(screen.getByRole("button", { name: "Следующий месяц" }));
+    const [y, mo] = today.split("-").map(Number);
+    const target = new Date(Date.UTC(y!, mo! - 1 + 2, 1));
+    const key = target.toISOString().slice(0, 7);
+    const days = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+    await waitFor(() => expect(m.calls.some((c) => c.url.pathname.endsWith("/calendar/occurrences") && c.url.searchParams.get("date_from") === `${key}-01`)).toBe(true));
+    const cells = screen.getAllByRole("button", { pressed: false }).concat(screen.queryAllByRole("button", { pressed: true })).filter((b) => b.hasAttribute("aria-pressed"));
+    const numbers = cells.map((b) => Number(b.firstChild?.textContent)).sort((a, b) => a - b);
+    expect(numbers).toEqual(Array.from({ length: days }, (_, i) => i + 1));
+    // The day list below follows the month: its 1st is selected.
+    expect(screen.getByRole("button", { pressed: true })).toHaveAccessibleName(new RegExp(`^1 `));
+    const occ = m.calls.filter((c) => c.url.pathname.endsWith("/calendar/occurrences")).at(-1)!;
+    expect(occ.url.searchParams.get("date_to")).toBe(`${key}-${String(days).padStart(2, "0")}`);
+  });
+
   it("asks for the first day of the cycle and previews the result before filling", async () => {
     await act(() => router.navigate("/calendar"));
     setToken("tok");

@@ -40,10 +40,17 @@ function readView(): "agenda" | "month" {
 
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
-function monthGrid(month: string): string[] {
+/** Days of one month only, Monday-first; null cells pad the first and last week. */
+function monthGrid(month: string): (string | null)[] {
   const first = `${month}-01`;
-  const start = addDays(first, -weekdayIndex(first));
-  return Array.from({ length: 42 }, (_, i) => addDays(start, i));
+  const days = Number(monthEnd(month).slice(8));
+  const lead = weekdayIndex(first);
+  const cells = Math.ceil((lead + days) / 7) * 7;
+  return Array.from({ length: cells }, (_, i) => (i >= lead && i < lead + days ? addDays(first, i - lead) : null));
+}
+
+function monthEnd(month: string): string {
+  return addDays(`${addMonths(month, 1)}-01`, -1);
 }
 
 export function CalendarPage() {
@@ -66,12 +73,17 @@ export function CalendarPage() {
   };
   const [month, setMonth] = useState(monthKey(today));
   const [selected, setSelected] = useState(today);
+  // The day list below follows the shown month: today in the current month, else the 1st.
+  const changeMonth = (delta: number) => {
+    const next = addMonths(month, delta);
+    setMonth(next);
+    setSelected(monthKey(today) === next ? today : `${next}-01`);
+  };
   const creating = params.get("new") === "1";
 
   const range = useMemo(() => {
     if (view === "month") {
-      const grid = monthGrid(month);
-      return { from: grid[0]!, to: grid[41]! };
+      return { from: `${month}-01`, to: monthEnd(month) };
     }
     return { from: today, to: addDays(today, 30) };
   }, [view, month, today]);
@@ -165,11 +177,11 @@ export function CalendarPage() {
             )}
             <Card className="p-3">
               <div className="mb-2 flex items-center justify-between">
-                <IconButton label="Предыдущий месяц" onClick={() => setMonth(addMonths(month, -1))}>
+                <IconButton label="Предыдущий месяц" onClick={() => changeMonth(-1)}>
                   <ChevronLeft className="size-5" />
                 </IconButton>
                 <span className="font-semibold">{formatMonth(month)}</span>
-                <IconButton label="Следующий месяц" onClick={() => setMonth(addMonths(month, 1))}>
+                <IconButton label="Следующий месяц" onClick={() => changeMonth(1)}>
                   <ChevronRight className="size-5" />
                 </IconButton>
               </div>
@@ -181,9 +193,9 @@ export function CalendarPage() {
                 ))}
               </div>
               <div className="grid grid-cols-7 gap-y-1">
-                {monthGrid(month).map((day) => {
+                {monthGrid(month).map((day, i) => {
+                  if (!day) return <div key={`pad-${i}`} aria-hidden />;
                   const count = byDay.get(day)?.length ?? 0;
-                  const inMonth = day.startsWith(month);
                   const shift = shifts.get(day);
                   const dayHolidays = holidays.get(day) ?? [];
                   const marks = [...new Set(dayHolidays.map((h) => MARK[h.kind]))];
@@ -198,7 +210,6 @@ export function CalendarPage() {
                       style={shift ? SHIFT_STYLE[shift] : undefined}
                       className={cn(
                         "mx-auto flex h-11 w-10 flex-col items-center justify-center rounded-xl text-sm transition",
-                        !inMonth && (shift ? "opacity-70" : "text-subtle"),
                         !shift && isPublic && "font-semibold text-danger",
                         day === today && "font-bold underline decoration-2 underline-offset-2",
                         selected === day && !editingShifts && "ring-2 ring-accent ring-offset-1 ring-offset-surface",
