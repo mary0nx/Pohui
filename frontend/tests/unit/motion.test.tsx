@@ -106,3 +106,16 @@ describe("cozy surfaces", () => {
     expect(document.documentElement.dataset.palette).toBe("coral");
   });
 });
+
+describe("avatar", () => {
+  it("falls back to initials when the photo cannot be loaded", async () => {
+    const { Avatar } = await import("@/components/ui");
+    const { fireEvent } = await import("@testing-library/react");
+    const { container } = render(<Avatar name="Alex Morgan" src="https://t.me/i/userpic/320/broken.svg" />);
+    const img = container.querySelector("img")!;
+    expect(img).toHaveAttribute("referrerpolicy", "no-referrer");
+    fireEvent.error(img);
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.textContent).toBe("YP");
+  });
+});

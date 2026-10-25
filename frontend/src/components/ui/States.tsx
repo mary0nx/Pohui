@@ -180,14 +180,28 @@ export function Badge({ children, tone = "neutral", className }: { children: Rea
 
 const AVATAR_COLORS = ["bg-peach text-peach-ink", "bg-mint text-mint-ink", "bg-lavender text-lavender-ink", "bg-lemon text-lemon-ink"];
 
+/** Photo when it loads; otherwise (no photo, or Telegram's link fails in the WebView) initials. */
 export function Avatar({ name, src, size = 36 }: { name: string; src?: string | null; size?: number }) {
+  const [failed, setFailed] = useState<string | null>(null);
   const initials = name
     .split(" ")
     .map((p) => p[0])
     .join("")
     .slice(0, 2)
     .toUpperCase();
-  if (src) return <img src={src} alt={name} width={size} height={size} className="shrink-0 rounded-full object-cover ring-2 ring-surface" style={{ width: size, height: size }} />;
+  if (src && failed !== src)
+    return (
+      <img
+        src={src}
+        alt={name}
+        width={size}
+        height={size}
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(src)}
+        className="shrink-0 rounded-full bg-surface-2 object-cover ring-2 ring-surface"
+        style={{ width: size, height: size }}
+      />
+    );
   const color = AVATAR_COLORS[[...name].reduce((s, ch) => s + ch.charCodeAt(0), 0) % AVATAR_COLORS.length];
   return (
     <span className={cn("inline-flex shrink-0 items-center justify-center rounded-full font-bold ring-2 ring-surface", color)} style={{ width: size, height: size, fontSize: size * 0.38 }} aria-hidden>
