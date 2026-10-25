@@ -355,11 +355,13 @@
     font: inherit;
     color: inherit;
   }
-  /* 16px prevents iOS from zooming into focused inputs. */
+  /* 16px prevents iOS from zooming into focused inputs. The text cursor gets an explicit,
+   * clearly visible colour: inside Telegram on iOS the default one is barely visible. */
   input,
   textarea,
   select {
     font-size: 16px;
+    caret-color: var(--coral-ink);
   }
   :focus-visible {
     outline: 2.5px solid var(--focus);
