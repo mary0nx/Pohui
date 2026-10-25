@@ -95,10 +95,15 @@ def main() -> None:
         inner = "".join(ET.tostring(child, encoding="unicode") for child in root)
         inner = re.sub(r'\sxmlns(:\w+)?="[^"]*"', "", inner)
         title = hit["title"].removeprefix("File:").removesuffix(".svg")
+        # The logo's box is fitted into the circle by its diagonal (radius 28): square marks get
+        # ≈40 px, wide wordmarks up to ≈55 px wide.
+        _, _, vw, vh = (float(v) for v in vb.split())
+        width = 56 / (1 + (vh / vw) ** 2) ** 0.5
+        height = width * vh / vw
         svg = (
             f'<svg xmlns="{SVG}" xmlns:xlink="{XLINK}" viewBox="0 0 64 64"><title>{title}</title>'
             '<circle cx="32" cy="32" r="31.25" fill="#FFFFFF" stroke="#E7DED5" stroke-width="1.5"/>'
-            f'<svg x="9" y="9" width="46" height="46" viewBox="{vb}" preserveAspectRatio="xMidYMid meet">{inner}</svg></svg>\n'
+            f'<svg x="{32 - width / 2:.2f}" y="{32 - height / 2:.2f}" width="{width:.2f}" height="{height:.2f}" viewBox="{vb}" preserveAspectRatio="xMidYMid meet">{inner}</svg></svg>\n'
         )
         ET.fromstring(svg)  # must still be well-formed
         if re.search(r"<script|\son\w+=|href=\"(?!#)", svg, re.I):

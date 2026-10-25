@@ -6,8 +6,9 @@
 
 ### Добавлено — логотипы магазинов в истории операций
 - Слева от каждой операции — логотип магазина или иллюстрация: Lidl, Żabka, ALDI, Kaufland,
-  Allegro, IKEA, McDonald's, Uber Eats, Netflix, Zalando и другие (60 настоящих логотипов из
-  Simple Icons, CC0; товарные знаки принадлежат владельцам — `public/assets/brands/ATTRIBUTION.md`).
+  Allegro, IKEA, McDonald's, Uber Eats, Netflix, Zalando, InPost, Amazon, OLX, Pepco, Temu и другие:
+  78 настоящих логотипов — 60 из Simple Icons (CC0) и 18 из Wikimedia Commons (общественное
+  достояние); товарные знаки принадлежат владельцам — `public/assets/brands/ATTRIBUTION*.md`.
 - Каталог из 187 польских магазинов, ресторанов, сервисов и платёжных систем
   (`frontend/src/features/finance/merchants/catalog.ts`) с алиасами из банковских выписок;
   распознаёт «LIDL POLSKA 1234», «ŻABKA N123», «Allegro.pl», «MCDONALDS», «UBER EATS» (не Uber).

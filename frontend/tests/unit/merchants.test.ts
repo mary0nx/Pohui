@@ -31,7 +31,7 @@ describe("merchant catalogue and assets", () => {
       expect(ids.has(f)).toBe(true);
       const svg = readFileSync(join(PUBLIC, "assets/brands", `${f}.svg`), "utf8");
       expect(svg).toMatch(/^<svg [^>]*viewBox="0 0 64 64"/);
-      expect(svg).not.toMatch(/<script|\son\w+=|href=/i);
+      expect(svg).not.toMatch(/<script|<foreignObject|<image|\son\w+=|href="(?!#)/i); // only links inside the file
     }
   });
 
