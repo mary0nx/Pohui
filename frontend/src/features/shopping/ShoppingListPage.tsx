@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Archive, History, ListPlus, MoreHorizontal, Send, Trash2 } from "lucide-react";
+import { Archive, History, LayoutGrid, ListPlus, MoreHorizontal, Send, Trash2 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 
@@ -8,11 +8,14 @@ import { useFamily } from "@/app/session";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button, Card, CheckCircle, ConfirmDialog, EmptyState, ErrorState, IconButton, Input, LoadingBlock, Segmented, Sheet, Textarea, useToast } from "@/components/ui";
 import { shortDayLabel, WeekPlanner } from "@/components/WeekPlanner";
+import { useCatalogSearch, useDebounced } from "@/features/catalog/api";
+import { CatalogSheet } from "@/features/catalog/CatalogSheet";
+import { ProductThumb } from "@/features/catalog/thumb";
 import { cn } from "@/lib/cn";
 import { formatMoney, formatQty, timeAgo } from "@/lib/format";
 import { celebrate } from "@/lib/motion";
 import { haptic } from "@/lib/telegram";
-import type { HistoryEntry, ShoppingItem, ShoppingListDetail } from "@/types/api";
+import type { CatalogItem, HistoryEntry, ShoppingItem, ShoppingListDetail } from "@/types/api";
 
 import { useListDetail, useShoppingInvalidate } from "./api";
 
@@ -33,6 +36,12 @@ export function ShoppingListPage() {
   const [menu, setMenu] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[] | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  // Typing one product shows matching catalogue products with pictures (debounced, cached).
+  const single = /[,;\n]/.test(text) ? "" : text.trim();
+  const typed = useDebounced(single, 350);
+  const suggestions = useCatalogSearch(typed, { limit: 6, enabled: typed.length >= 2 });
+  const suggested = typed.length >= 2 && single ? (suggestions.data?.items ?? []) : [];
   const idem = useRef(newIdempotencyKey());
   const key = ["shopping-list", familyId, listId];
 
@@ -42,6 +51,16 @@ export function ShoppingListPage() {
       idem.current = newIdempotencyKey();
       setText("");
       haptic("light");
+      await invalidate();
+    },
+    onError: (e) => toast.show(errorMessage(e), "error"),
+  });
+  const addProduct = useMutation({
+    mutationFn: (p: CatalogItem) => api<ShoppingItem[]>(f(`/shopping/lists/${listId}/items`), { body: { name: p.name, catalog_id: p.id }, idempotencyKey: newIdempotencyKey() }),
+    onSuccess: async (_items, p) => {
+      haptic("light");
+      toast.show(`Добавлено: ${p.name}`);
+      setText("");
       await invalidate();
     },
     onError: (e) => toast.show(errorMessage(e), "error"),
@@ -136,7 +155,8 @@ export function ShoppingListPage() {
     for (const i of needed) byCat.set(i.category ?? "", [...(byCat.get(i.category ?? "") ?? []), i]);
     const byDay = new Map<string, ShoppingItem[]>();
     for (const i of items) if (i.planned_for) byDay.set(i.planned_for, [...(byDay.get(i.planned_for) ?? []), i]);
-    return { byCat: [...byCat.entries()], bought, byDay };
+    const inList = new Set(needed.map((i) => i.catalog_id).filter((id): id is string => Boolean(id)));
+    return { byCat: [...byCat.entries()], bought, byDay, inList };
   }, [q.data]);
 
   if (q.isPending) return <LoadingBlock rows={5} />;
@@ -190,21 +210,53 @@ export function ShoppingListPage() {
               </Button>
             </Card>
           ) : (
-            <form
-              className="flex gap-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (text.trim()) add.mutate(text.trim());
-              }}
-            >
-              <Input aria-label="Новый товар" placeholder="Молоко 2 л, хлеб…" value={text} onChange={(e) => setText(e.target.value)} className="flex-1" enterKeyHint="send" />
-              <Button type="submit" aria-label="Добавить" className="w-12 px-0" loading={add.isPending} disabled={!text.trim()}>
-                <Send className="size-5" />
-              </Button>
-              <Button type="button" variant="secondary" aria-label="Добавить списком" className="w-12 px-0" onClick={() => setBulk("")}>
-                <ListPlus className="size-5" />
-              </Button>
-            </form>
+            <div className="space-y-2">
+              <form
+                className="flex gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (text.trim()) add.mutate(text.trim());
+                }}
+              >
+                <div className="relative min-w-0 flex-1">
+                  {single && (
+                    <ProductThumb
+                      image={suggested[0]?.image}
+                      category={suggested[0]?.category_label}
+                      size={34}
+                      className="animate-pop pointer-events-none absolute left-1.5 top-[7px] rounded-xl"
+                    />
+                  )}
+                  <Input aria-label="Новый товар" placeholder="Молоко 2 л, хлеб…" value={text} onChange={(e) => setText(e.target.value)} className={cn(single && "pl-12")} enterKeyHint="send" autoComplete="off" />
+                </div>
+                <Button type="submit" aria-label="Добавить" className="w-12 px-0" loading={add.isPending} disabled={!text.trim()}>
+                  <Send className="size-5" />
+                </Button>
+                <Button type="button" variant="secondary" aria-label="Каталог товаров" className="w-12 px-0" onClick={() => setCatalogOpen(true)}>
+                  <LayoutGrid className="size-5" />
+                </Button>
+                <Button type="button" variant="secondary" aria-label="Добавить списком" className="w-12 px-0" onClick={() => setBulk("")}>
+                  <ListPlus className="size-5" />
+                </Button>
+              </form>
+              {suggested.length > 0 && (
+                <ul className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1" aria-label="Подходящие товары из каталога">
+                  {suggested.map((p) => (
+                    <li key={p.id} className="animate-fade-in shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => addProduct.mutate(p)}
+                        disabled={addProduct.isPending}
+                        className="press flex items-center gap-2 rounded-full bg-surface py-1 pl-1 pr-3 text-sm font-semibold text-heading shadow-card"
+                      >
+                        <ProductThumb image={p.image} category={p.category_label} size={30} className="rounded-full" />
+                        {p.name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
 
           {list.items.length === 0 ? (
@@ -242,6 +294,8 @@ export function ShoppingListPage() {
           )}
         </>
       )}
+
+      <CatalogSheet open={catalogOpen} onOpenChange={setCatalogOpen} inList={grouped.inList} onPick={(p) => addProduct.mutate(p)} />
 
       <Sheet
         open={dayAdd !== null}
@@ -294,7 +348,12 @@ export function ShoppingListPage() {
       >
         {edit && (
           <div className="space-y-3">
-            <Input label="Название" value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} />
+            <div className="flex items-end gap-3">
+              <ProductThumb image={edit.image} category={edit.category} size={56} />
+              <div className="min-w-0 flex-1">
+                <Input label="Название" value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} />
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <Input label="Количество" inputMode="decimal" value={edit.quantity ?? ""} onChange={(e) => setEdit({ ...edit, quantity: e.target.value.replace(",", ".") })} />
               <Input label="Единица" placeholder="шт, кг, л" value={edit.unit ?? ""} onChange={(e) => setEdit({ ...edit, unit: e.target.value })} />
@@ -373,6 +432,7 @@ function ItemRow({ item, onToggle, onEdit, meta, showDay = true }: { item: Shopp
       <button type="button" role="checkbox" aria-checked={bought} aria-label={bought ? `Вернуть ${item.name}` : `Купить ${item.name}`} onClick={onToggle} className="press -m-1 rounded-full p-1">
         <CheckCircle checked={bought} />
       </button>
+      <ProductThumb image={item.image} category={item.category} size={42} className={cn("transition-opacity duration-300", bought && "opacity-60")} />
       <button type="button" onClick={onEdit} className="min-w-0 flex-1 py-1 text-left">
         <span className={cn("block truncate text-[15px] font-semibold transition-colors duration-300", bought && "text-muted line-through decoration-2")}>{item.name}</span>
         <span className="block truncate text-xs text-muted">

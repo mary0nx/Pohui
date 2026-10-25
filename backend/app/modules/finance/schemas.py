@@ -229,6 +229,7 @@ class BudgetOut(ORMModel):
     category_id: uuid.UUID | None
     limit_amount: Decimal
     spent: Decimal = Decimal("0")
+    remaining: Decimal = Decimal("0")  # limit − spent; negative when the budget is exceeded
     percent: float = 0.0
     level: str = "ok"
 

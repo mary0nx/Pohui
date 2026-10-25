@@ -192,6 +192,8 @@ export interface Budget {
   category_id: UUID | null;
   limit_amount: Money;
   spent: Money;
+  /** limit − spent, computed by the server; negative when exceeded (older servers omit it). */
+  remaining?: Money;
   percent: number;
   level: "ok" | "warning" | "exceeded";
 }
@@ -337,7 +339,43 @@ export interface ShoppingItem {
   position: number;
   /** YYYY-MM-DD: day to buy it (week planner); a reminder goes out that morning. */
   planned_for: string | null;
+  /** Catalogue product the item comes from, and its thumbnail ("local:<code>" or https URL). */
+  catalog_id?: string | null;
+  image?: string | null;
   updated_at: string;
+}
+
+export interface CatalogItem {
+  id: string;
+  name: string;
+  name_pl: string;
+  category: string;
+  category_label: string;
+  unit: string | null;
+  image: string;
+}
+
+export interface CatalogCategory {
+  key: string;
+  label: string;
+  image: string;
+  count: number;
+}
+
+export interface CatalogSearch {
+  items: CatalogItem[];
+  external: { url: string; title: string }[];
+  external_enabled: boolean;
+}
+
+export interface ShoppingEntry {
+  id: UUID;
+  name: string;
+  quantity: string | null;
+  unit: string | null;
+  image: string | null;
+  category: string | null;
+  status: "needed" | "bought";
 }
 
 export interface ShoppingListDetail extends ShoppingList {
@@ -610,7 +648,7 @@ export interface Dashboard {
   budget: BudgetStatus | null;
   events: Occurrence[];
   payments: ScheduledPayment[];
-  shopping: { list_id: UUID | null; list_name: string | null; needed_total: number; items: string[] };
+  shopping: { list_id: UUID | null; list_name: string | null; needed_total: number; items: string[]; entries?: ShoppingEntry[] };
   my_tasks: Task[];
   task_stats: TaskStats;
   goals: SavingsGoal[];

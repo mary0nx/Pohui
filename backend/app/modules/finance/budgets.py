@@ -41,6 +41,7 @@ async def list_budgets(db: AsyncSession, ctx: FamilyContext, month: date) -> lis
         pct = float(spent / limit * 100) if limit > 0 else (100.0 if spent > 0 else 0.0)
         item = BudgetOut.model_validate(b)
         item.spent = spent
+        item.remaining = limit - spent
         item.percent = round(pct, 1)
         item.level = level_for(pct)
         out.append(item)

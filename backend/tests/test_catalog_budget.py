@@ -321,6 +321,7 @@ async def test_budget_scenarios_a_b_e(alice: Actor) -> None:
     overall = next(x for x in stored if x["category_id"] is None)
     assert money(overall["limit_amount"]) == Decimal("600")
     assert money(overall["spent"]) == Decimal("50.00")
+    assert money(overall["remaining"]) == Decimal("550.00")  # same rule as the home screen
 
 
 async def test_budget_scenario_c_exceeded(alice: Actor) -> None:

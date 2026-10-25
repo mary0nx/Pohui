@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -8,6 +8,7 @@ import {
   ChevronRight,
   CircleDollarSign,
   ListChecks,
+  Pencil,
   Plus,
   ShoppingCart,
   Sparkles,
@@ -16,16 +17,20 @@ import {
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 
-import { api } from "@/api/client";
+import { api, errorMessage } from "@/api/client";
 import { useAiEnabled, useFamily } from "@/app/session";
 import { Art, type ArtName } from "@/components/illustrations/Art";
 import { PrivateMark } from "@/components/Visibility";
-import { Avatar, Badge, Button, Card, CardHeader, Collapse, ErrorState, IconBadge, ProgressBar, ProgressRing, Skeleton } from "@/components/ui";
+import { Avatar, Badge, Button, Card, CardHeader, CheckCircle, Collapse, ErrorState, IconBadge, ProgressBar, ProgressRing, Skeleton, useToast } from "@/components/ui";
+import { ProductThumb } from "@/features/catalog/thumb";
+import { BudgetSheet } from "@/features/finance/BudgetSheet";
 import { TransactionSheet } from "@/features/finance/TransactionSheet";
 import { useTasks } from "@/features/tasks/api";
 import { TaskRow } from "@/features/tasks/TaskRow";
 import { cn } from "@/lib/cn";
-import { formatDate, formatMoney, formatTime, plural, relativeDay, timeAgo } from "@/lib/format";
+import { formatDate, formatMoney, formatQty, formatTime, plural, relativeDay, timeAgo } from "@/lib/format";
+import { prefersReducedMotion } from "@/lib/motion";
+import { haptic } from "@/lib/telegram";
 import { todayIn, zonedDate, zonedTime } from "@/lib/time";
 import type { Dashboard } from "@/types/api";
 
@@ -151,11 +156,253 @@ function TodayTasks({ openTotal }: { openTotal: number }) {
   );
 }
 
+/** Spent money as a change of balance: −2,50 PLN (a net refund shows as +). */
+function spentText(spent: string, currency: string): string {
+  return formatMoney(-Number(spent), currency, { sign: true });
+}
+
+/** A tile of the budget grid. The currency goes on its own small line so the number is
+ *  never cut off on a narrow phone. */
+function Stat({ label, value, currency, tone }: { label: string; value: string; currency: string; tone?: "danger" }) {
+  const amount = value.replace(/[\s\u00a0]*[^\d\s\u00a0,.−+]+$/u, "");
+  return (
+    <div className="min-w-0 rounded-2xl bg-surface-2/70 px-2.5 py-2">
+      <p className="text-xs font-bold text-muted">{label}</p>
+      <p className={cn("tabular text-[15px] font-extrabold leading-tight [overflow-wrap:anywhere]", tone === "danger" ? "text-danger" : "text-heading")}>{amount}</p>
+      <p className="text-[11px] font-semibold text-subtle">{currency}</p>
+    </div>
+  );
+}
+
+/** The month budget. Three separate numbers, all computed by the server:
+ *  budget (the limit), spent (expenses of the month), remaining = budget − spent. */
+function BudgetCard({
+  d,
+  monthName,
+  num,
+  canEdit,
+  onAddExpense,
+  onEditBudget,
+}: {
+  d: Dashboard;
+  monthName: string;
+  num?: string;
+  canEdit: boolean;
+  onAddExpense: () => void;
+  onEditBudget: () => void;
+}) {
+  const b = d.budget;
+  const cur = d.currency;
+  const hasMoves = Number(d.month_family.income) !== 0 || Number(d.month_family.expense) !== 0;
+  const over = b !== null && Number(b.remaining) < 0;
+  const setButton = canEdit ? (
+    <Button size="sm" variant="soft" icon={<Plus className="size-4" />} onClick={onEditBudget}>
+      Задать бюджет
+    </Button>
+  ) : (
+    <p className="text-xs font-semibold text-muted">Бюджет задаёт владелец или администратор семьи.</p>
+  );
+  return (
+    <>
+      <Card className="p-5" style={{ background: "linear-gradient(140deg, var(--surface) 45%, var(--peach-soft) 100%)" }}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="flex items-center gap-1.5 text-sm font-bold text-muted">
+              Бюджет · {monthName}
+              {b && canEdit && (
+                <button type="button" onClick={onEditBudget} aria-label="Изменить бюджет" className="press -m-1 rounded-full p-1 text-subtle hover:text-heading">
+                  <Pencil className="size-3.5" />
+                </button>
+              )}
+            </p>
+            {b ? (
+              <>
+                <p className="mt-1 text-xs font-bold text-muted">{over ? "Перерасход" : "Осталось"}</p>
+                <p className={cn("tabular text-[30px] font-extrabold leading-tight", over ? "text-danger" : "text-heading", num)}>{formatMoney(b.remaining, cur)}</p>
+                <Badge tone={over ? "danger" : b.level === "warning" ? "warning" : "success"} className="mt-1.5">
+                  {over ? `Превышение на ${formatMoney(-Number(b.remaining), cur)}` : b.level === "warning" ? "Близко к лимиту" : "Всё по плану"}
+                </Badge>
+              </>
+            ) : hasMoves ? (
+              <>
+                <p className="mt-1 text-xl font-extrabold leading-snug text-heading">Бюджет не задан</p>
+                <p className="mt-0.5 text-sm text-muted">
+                  Потрачено в этом месяце: <span className={cn("tabular font-bold text-heading", num)}>{spentText(d.month_family.expense, cur)}</span>
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="mt-1 text-xl font-extrabold leading-snug text-heading">Операций за месяц пока нет</p>
+                <p className="mt-1 text-sm text-muted">Задайте бюджет месяца — расходы будут уменьшать остаток.</p>
+              </>
+            )}
+          </div>
+          {b ? (
+            <ProgressRing value={b.percent} level={b.level} size={80} stroke={9} label={`Бюджет использован на ${Math.round(b.percent)}%`}>
+              <span className={cn("text-center leading-tight", num)}>
+                <span className="tabular block text-lg font-extrabold text-heading">{Math.round(b.percent)}%</span>
+                <span className="block text-[11px] font-bold text-muted">потрачено</span>
+              </span>
+            </ProgressRing>
+          ) : (
+            <Art name="jar" alive className="-mr-2 -mt-1 h-[76px] w-[90px]" />
+          )}
+        </div>
+
+        {b ? (
+          <div className="mt-4 grid grid-cols-3 gap-2" aria-label="Бюджет месяца">
+            <Stat label="Бюджет" value={formatMoney(b.limit, cur)} currency={cur} />
+            <Stat label="Потрачено" value={spentText(b.spent, cur)} currency={cur} />
+            <Stat label="Остаток" value={formatMoney(b.remaining, cur)} currency={cur} tone={over ? "danger" : undefined} />
+          </div>
+        ) : (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {setButton}
+            {!hasMoves && (
+              <Button size="sm" variant="secondary" icon={<Plus className="size-4" />} onClick={onAddExpense}>
+                Первая операция
+              </Button>
+            )}
+          </div>
+        )}
+
+        {hasMoves && (
+          <Link to="/finance" className="press mt-3 flex items-center justify-between gap-2 rounded-2xl bg-surface-2/70 px-3 py-2.5 text-sm">
+            <span className="font-semibold text-muted">Общий баланс месяца</span>
+            <span className={cn("tabular flex items-center gap-1 font-extrabold", Number(d.month_family.net) < 0 ? "text-danger" : "text-heading", num)}>
+              {formatMoney(d.month_family.net, cur, { sign: true })}
+              <ChevronRight className="size-4 text-subtle" aria-hidden />
+            </span>
+          </Link>
+        )}
+        {Number(d.month_personal.expense) > 0 && (
+          <p className="mt-2 flex items-center gap-1.5 px-1 text-xs font-semibold text-muted">
+            <PrivateMark /> Мои личные расходы: {spentText(d.month_personal.expense, cur)}
+          </p>
+        )}
+      </Card>
+
+      {hasMoves && (
+        <div className="grid grid-cols-2 gap-3">
+          <Link to="/finance/transactions" className="press rounded-card">
+            <Card tone="mint" className="h-full p-3.5">
+              <p className="flex items-center gap-1.5 text-sm font-bold text-mint-ink">
+                <ArrowDownLeft className="size-4" aria-hidden /> Доходы
+              </p>
+              <p className={cn("tabular mt-1 truncate text-lg font-extrabold text-heading", num)}>{formatMoney(d.month_family.income, cur, { sign: true })}</p>
+            </Card>
+          </Link>
+          <Link to="/finance/transactions" className="press rounded-card">
+            <Card tone="coral" className="h-full p-3.5">
+              <p className="flex items-center gap-1.5 text-sm font-bold text-peach-ink">
+                <ArrowUpRight className="size-4" aria-hidden /> Расходы
+              </p>
+              <p className={cn("tabular mt-1 truncate text-lg font-extrabold text-heading", num)}>{spentText(d.month_family.expense, cur)}</p>
+            </Card>
+          </Link>
+        </div>
+      )}
+    </>
+  );
+}
+
+/** Needed items with thumbnails; ticking one marks it bought on the server for everyone. */
+function ShoppingBlock({ shopping, link }: { shopping: Dashboard["shopping"]; link: string }) {
+  const { f } = useFamily();
+  const qc = useQueryClient();
+  const toast = useToast();
+  const [ticked, setTicked] = useState<Set<string>>(new Set());
+  const entries = shopping.entries ?? [];
+  const buy = useMutation({
+    mutationFn: (id: string) => api(f(`/shopping/lists/${shopping.list_id}/items/${id}`), { method: "PATCH", body: { status: "bought" } }),
+    onMutate: (id) => {
+      haptic("select");
+      setTicked((s) => new Set(s).add(id));
+    },
+    onSuccess: async () => {
+      if (!prefersReducedMotion()) await new Promise((r) => setTimeout(r, 600)); // let the check play
+      await Promise.all(["dashboard", "shopping-list", "shopping-lists"].map((k) => qc.invalidateQueries({ queryKey: [k] })));
+    },
+    onError: (e, id) => {
+      setTicked((s) => {
+        const next = new Set(s);
+        next.delete(id);
+        return next;
+      });
+      toast.show(errorMessage(e), "error");
+    },
+  });
+  return (
+    <section>
+      <SectionTitle title={shopping.list_name ?? "Список покупок"} to={link} linkLabel="Весь список" />
+      <Card tone="mint" className="space-y-3">
+        {shopping.needed_total === 0 ? (
+          <InlineEmpty
+            art="basket"
+            text="Всё куплено. Добавьте, что закончилось."
+            action={
+              <Link to={link} aria-label="Добавить покупку" className="press inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-surface text-mint-ink shadow-card">
+                <Plus className="size-5" />
+              </Link>
+            }
+          />
+        ) : (
+          <>
+            <p className="flex items-baseline gap-1.5 text-sm font-bold text-mint-ink">
+              <span className="tabular text-2xl font-extrabold text-heading">{shopping.needed_total}</span>
+              {plural(shopping.needed_total, "товар", "товара", "товаров")} нужно купить
+            </p>
+            {entries.length > 0 ? (
+              <ul className="space-y-1.5" aria-label="Что купить">
+                {entries.map((e) => {
+                  const done = ticked.has(e.id);
+                  return (
+                    <li key={e.id} className="flex items-center gap-2.5 rounded-2xl bg-surface/85 py-1.5 pl-1.5 pr-2">
+                      <ProductThumb image={e.image} category={e.category} size={40} className="rounded-xl" />
+                      <span className="min-w-0 flex-1">
+                        <span className={cn("block truncate text-[15px] font-semibold text-heading transition-colors", done && "text-muted line-through")}>{e.name}</span>
+                        {e.quantity && <span className="block text-xs text-muted">{formatQty(e.quantity, e.unit)}</span>}
+                      </span>
+                      <button
+                        type="button"
+                        role="checkbox"
+                        aria-checked={done}
+                        aria-label={`Купить ${e.name}`}
+                        disabled={done || !shopping.list_id}
+                        onClick={() => buy.mutate(e.id)}
+                        className="press -m-1 rounded-full p-1"
+                      >
+                        <CheckCircle checked={done} />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <ul className="flex flex-wrap gap-1.5" aria-label="Что купить">
+                {shopping.items.map((item, i) => (
+                  <li key={`${item}-${i}`} className="max-w-full truncate rounded-full bg-surface/85 px-3 py-1 text-sm font-semibold text-heading">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Link to={link} className="press flex h-10 items-center justify-center gap-1 rounded-full bg-surface text-sm font-bold text-mint-ink shadow-card">
+              Открыть список <ChevronRight className="size-4" aria-hidden />
+            </Link>
+          </>
+        )}
+      </Card>
+    </section>
+  );
+}
+
 export function DashboardPage() {
-  const { f, tz, familyId, members } = useFamily();
+  const { f, tz, familyId, members, role } = useFamily();
   const aiEnabled = useAiEnabled();
   const [txOpen, setTxOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
+  const [budgetOpen, setBudgetOpen] = useState(false);
   const [intro] = useState(() => !introPlayed);
   const q = useQuery({ queryKey: ["dashboard", familyId], queryFn: () => api<Dashboard>(f("/dashboard")), refetchInterval: 60_000 });
 
@@ -169,11 +416,8 @@ export function DashboardPage() {
   const today = todayIn(tz);
   const monthName = formatDate(today, tz, { month: "long" });
   const shoppingLink = d.shopping.list_id ? `/home/shopping/${d.shopping.list_id}` : "/home/shopping";
-  const budgetTone = d.budget?.level === "exceeded" ? "danger" : d.budget?.level === "warning" ? "warning" : "success";
-  const budgetText = d.budget?.level === "exceeded" ? "Лимит превышен" : d.budget?.level === "warning" ? "Близко к лимиту" : "Всё по плану";
-  // Nothing recorded this month and no limit set: show a friendly start instead of zeros.
-  const monthEmpty = !d.budget && Number(d.month_family.income) === 0 && Number(d.month_family.expense) === 0;
   const num = intro ? "num-in" : undefined;
+  const canEditBudget = role === "owner" || role === "admin";
 
   const actions: QuickAction[] = [
     { label: "Расход", icon: CircleDollarSign, tone: "peach", onClick: () => setTxOpen(true) },
@@ -221,94 +465,11 @@ export function DashboardPage() {
         </div>
       </header>
 
-      {/* Main block: the month budget */}
-      {monthEmpty ? (
-        <Card className="p-5" style={{ background: "linear-gradient(140deg, var(--surface) 45%, var(--peach-soft) 100%)" }}>
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-muted">Бюджет · {monthName}</p>
-              <p className="mt-1 text-xl font-extrabold leading-snug text-heading">Операций за месяц пока нет</p>
-              <p className="mt-1 text-sm text-muted">Добавьте первый расход или задайте лимит — здесь появится кольцо бюджета.</p>
-            </div>
-            <Art name="jar" alive className="-mr-2 -mt-1 h-[76px] w-[90px]" />
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button size="sm" icon={<Plus className="size-4" />} onClick={() => setTxOpen(true)}>
-              Первая операция
-            </Button>
-            <Link to="/finance/budgets" className="press inline-flex h-9 items-center gap-1.5 rounded-full bg-peach px-3.5 text-sm font-bold text-peach-ink">
-              Задать бюджет
-            </Link>
-          </div>
-        </Card>
-      ) : (
-        <>
-          <Card className="p-5" style={{ background: "linear-gradient(140deg, var(--surface) 45%, var(--peach-soft) 100%)" }}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-muted">Бюджет · {monthName}</p>
-                {d.budget ? (
-                  <>
-                    <p className={cn("tabular mt-1 text-[30px] font-extrabold leading-tight text-heading", num)}>{formatMoney(d.budget.remaining, d.currency)}</p>
-                    <p className="text-sm text-muted">осталось из {formatMoney(d.budget.limit, d.currency, { compact: true })}</p>
-                    <Badge tone={budgetTone} className="mt-2">
-                      {budgetText}
-                    </Badge>
-                  </>
-                ) : (
-                  <>
-                    <p className={cn("tabular mt-1 text-[30px] font-extrabold leading-tight text-heading", num)}>{formatMoney(d.month_family.expense, d.currency)}</p>
-                    <p className="text-sm text-muted">потрачено в этом месяце</p>
-                    <Link to="/finance/budgets" className="press mt-2 inline-flex items-center gap-1 rounded-full bg-peach px-3 py-1 text-sm font-bold text-peach-ink">
-                      <Plus className="size-4" aria-hidden /> Задать бюджет
-                    </Link>
-                  </>
-                )}
-              </div>
-              {d.budget && (
-                <ProgressRing value={d.budget.percent} level={d.budget.level} size={80} stroke={9} label={`Бюджет использован на ${Math.round(d.budget.percent)}%`}>
-                  <span className={cn("text-center leading-tight", num)}>
-                    <span className="tabular block text-lg font-extrabold text-heading">{Math.round(d.budget.percent)}%</span>
-                    <span className="block text-[11px] font-bold text-muted">потрачено</span>
-                  </span>
-                </ProgressRing>
-              )}
-            </div>
-            <Link to="/finance" className="press mt-4 flex items-center justify-between gap-2 rounded-2xl bg-surface-2/70 px-3 py-2.5 text-sm">
-              <span className="font-semibold text-muted">Общий баланс месяца</span>
-              <span className={cn("tabular flex items-center gap-1 font-extrabold text-heading", num)}>
-                {formatMoney(d.month_family.net, d.currency, { sign: true })}
-                <ChevronRight className="size-4 text-subtle" aria-hidden />
-              </span>
-            </Link>
-            {Number(d.month_personal.expense) > 0 && (
-              <p className="mt-2 flex items-center gap-1.5 px-1 text-xs font-semibold text-muted">
-                <PrivateMark /> Мои личные расходы: {formatMoney(d.month_personal.expense, d.currency)}
-              </p>
-            )}
-          </Card>
+      {/* Main block: the month budget — limit, spent, remaining from the server */}
+      <BudgetCard d={d} monthName={monthName} num={num} canEdit={canEditBudget} onAddExpense={() => setTxOpen(true)} onEditBudget={() => setBudgetOpen(true)} />
 
-          {/* Income / expense */}
-          <div className="grid grid-cols-2 gap-3">
-            <Link to="/finance/transactions" className="press rounded-card">
-              <Card tone="mint" className="h-full p-3.5">
-                <p className="flex items-center gap-1.5 text-sm font-bold text-mint-ink">
-                  <ArrowDownLeft className="size-4" aria-hidden /> Доходы
-                </p>
-                <p className={cn("tabular mt-1 truncate text-lg font-extrabold text-heading", num)}>{formatMoney(d.month_family.income, d.currency)}</p>
-              </Card>
-            </Link>
-            <Link to="/finance/transactions" className="press rounded-card">
-              <Card tone="coral" className="h-full p-3.5">
-                <p className="flex items-center gap-1.5 text-sm font-bold text-peach-ink">
-                  <ArrowUpRight className="size-4" aria-hidden /> Расходы
-                </p>
-                <p className={cn("tabular mt-1 truncate text-lg font-extrabold text-heading", num)}>{formatMoney(d.month_family.expense, d.currency)}</p>
-              </Card>
-            </Link>
-          </div>
-        </>
-      )}
+      {/* Products: what the family still needs to buy */}
+      <ShoppingBlock shopping={d.shopping} link={shoppingLink} />
 
       {/* Quick actions */}
       <nav aria-label="Быстрые действия" className="grid grid-cols-4 gap-2">
@@ -404,40 +565,6 @@ export function DashboardPage() {
         <TodayTasks openTotal={d.task_stats.open_total} />
       </section>
 
-      {/* Shopping list */}
-      <section>
-        <SectionTitle title={d.shopping.list_name ?? "Список покупок"} to={shoppingLink} />
-        <Card tone="mint">
-          {d.shopping.needed_total === 0 ? (
-            <InlineEmpty
-              art="basket"
-              text="Всё куплено. Добавьте, что закончилось."
-              action={
-                <Link to={shoppingLink} aria-label="Добавить покупку" className="press inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-surface text-mint-ink shadow-card">
-                  <Plus className="size-5" />
-                </Link>
-              }
-            />
-          ) : (
-            <Link to={shoppingLink} className="block">
-              <p className="flex items-baseline gap-1.5 text-sm font-bold text-mint-ink">
-                <span className="tabular text-2xl font-extrabold text-heading">{d.shopping.needed_total}</span>
-                {plural(d.shopping.needed_total, "товар", "товара", "товаров")} нужно купить
-              </p>
-              {d.shopping.items.length > 0 && (
-                <ul className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Что купить">
-                  {d.shopping.items.map((item, i) => (
-                    <li key={`${item}-${i}`} className="max-w-full truncate rounded-full bg-surface/85 px-3 py-1 text-sm font-semibold text-heading">
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Link>
-          )}
-        </Card>
-      </section>
-
       {d.payments.length > 0 && (
         <Card>
           <CardHeader title="Платежи" to="/finance/recurring" icon={<IconBadge tone="peach" className="size-9 rounded-xl"><CircleDollarSign className="size-[18px]" /></IconBadge>} />
@@ -526,6 +653,7 @@ export function DashboardPage() {
       )}
 
       <TransactionSheet open={txOpen} onOpenChange={setTxOpen} />
+      <BudgetSheet open={budgetOpen} onOpenChange={setBudgetOpen} month={`${today.slice(0, 7)}-01`} current={d.budget?.limit ?? null} />
     </div>
   );
 }

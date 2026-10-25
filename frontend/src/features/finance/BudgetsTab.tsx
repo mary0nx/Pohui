@@ -4,6 +4,7 @@ import { useState } from "react";
 import { api, errorMessage } from "@/api/client";
 import { useFamily } from "@/app/session";
 import { Badge, Button, Card, EmptyState, ErrorState, Input, LoadingBlock, ProgressBar, Select, Sheet, useToast } from "@/components/ui";
+import { cn } from "@/lib/cn";
 import { formatMoney } from "@/lib/format";
 import { addMonths, monthKey, todayIn } from "@/lib/time";
 import type { Budget } from "@/types/api";
@@ -62,9 +63,15 @@ export function BudgetsTab() {
                 <Badge tone={b.level === "ok" ? "accent" : b.level === "warning" ? "warning" : "danger"}>{Math.round(b.percent)}%</Badge>
               </button>
               <ProgressBar value={b.percent} level={b.level} />
-              <div className="tabular flex justify-between text-sm text-muted">
-                <span>{formatMoney(b.spent, currency)}</span>
-                <span>из {formatMoney(b.limit_amount, currency)}</span>
+              <div className="tabular flex justify-between gap-2 text-sm text-muted">
+                <span>
+                  Потрачено {formatMoney(b.spent, currency)} из {formatMoney(b.limit_amount, currency)}
+                </span>
+                {b.remaining !== undefined && (
+                  <span className={cn("shrink-0 font-semibold", Number(b.remaining) < 0 ? "text-danger" : "text-heading")}>
+                    {Number(b.remaining) < 0 ? "Перерасход" : "Остаток"} {formatMoney(b.remaining, currency)}
+                  </span>
+                )}
               </div>
             </Card>
           ))}
