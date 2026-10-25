@@ -36,6 +36,6 @@ describe("Apple Pay settings", () => {
     expect(screen.getByText("Bearer fos_secret-key")).toBeInTheDocument();
     await waitFor(() => expect(m.calls.some((c) => c.method === "POST")).toBe(true));
     expect(m.calls.find((c) => c.method === "POST")!.body).toEqual({ account_id: null, send_to_chat: false });
-    expect(screen.getByText(/Триггер «Транзакция»/)).toBeInTheDocument();
+    expect(screen.getByText(/Триггер «Wallet»/)).toBeInTheDocument();
   });
 });
