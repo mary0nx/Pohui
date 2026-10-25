@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { api, errorMessage } from "@/api/client";
 import { useFamily } from "@/app/session";
 import { Button, Chips, Input, Sheet, Switch, useToast } from "@/components/ui";
-import { addDays, addMonths } from "@/lib/time";
+import { shortDayLabel } from "@/components/WeekPlanner";
+import { addDays, addMonths, todayIn } from "@/lib/time";
 
 import { LAYERS, useCalendarLayers } from "./layers";
 
@@ -26,6 +27,19 @@ export function toPatternCode(text: string): string | null {
   return code;
 }
 
+/** Kind of day `day` gets from a D/N/O pattern whose first letter falls on `anchor`. */
+export function patternKindAt(code: string, anchor: string, day: string): "D" | "N" | "O" {
+  const diff = Math.round((Date.parse(`${day}T00:00:00Z`) - Date.parse(`${anchor}T00:00:00Z`)) / 86_400_000);
+  const size = code.length;
+  return code[((diff % size) + size) % size] as "D" | "N" | "O";
+}
+
+const PREVIEW_STYLE: Record<"D" | "N" | "O", { label: string; style?: { background: string; color: string } }> = {
+  D: { label: "день", style: { background: "var(--shift-day)", color: "var(--shift-day-fg)" } },
+  N: { label: "ночь", style: { background: "var(--shift-night)", color: "var(--shift-night-fg)" } },
+  O: { label: "вых." },
+};
+
 function monthStart(date: string): string {
   return `${date.slice(0, 7)}-01`;
 }
@@ -43,23 +57,26 @@ export function ShiftSheet({
   editing: boolean;
   onEditingChange: (v: boolean) => void;
 }) {
-  const { f } = useFamily();
+  const { f, tz } = useFamily();
   const qc = useQueryClient();
   const toast = useToast();
   const [layers, setLayers] = useCalendarLayers();
   const [pattern, setPattern] = useState(PRESETS[0]!.value);
-  const [anchor, setAnchor] = useState(defaultDay);
+  // No default: a wrong first day shifts the whole schedule, so it must be chosen explicitly.
+  const [anchor, setAnchor] = useState("");
   const [start, setStart] = useState(monthStart(defaultDay));
   const [end, setEnd] = useState(addDays(addMonths(defaultDay.slice(0, 7), 7) + "-01", -1));
 
   useEffect(() => {
     if (!open) return;
-    setAnchor(defaultDay);
+    setAnchor("");
     setStart(monthStart(defaultDay));
     setEnd(addDays(`${addMonths(defaultDay.slice(0, 7), 7)}-01`, -1));
   }, [open, defaultDay]);
 
   const code = toPatternCode(pattern);
+  const previewFrom = start > todayIn(tz) ? start : todayIn(tz);
+  const preview = code && anchor ? Array.from({ length: 8 }, (_, i) => addDays(previewFrom, i)) : [];
   const invalidate = () => qc.invalidateQueries({ queryKey: ["shifts"] });
   const generate = useMutation({
     mutationFn: () => api<{ day_shifts: number; night_shifts: number }>(f("/calendar/shifts/generate"), { body: { pattern: code, anchor, start, end } }),
@@ -101,7 +118,29 @@ export function ShiftSheet({
             error={pattern && !code ? "Только буквы Д, Н, В и хотя бы одна смена" : undefined}
           />
         </div>
-        <Input label="Первый день шаблона" type="date" value={anchor} onChange={(e) => setAnchor(e.target.value)} hint="День, с которого начинается цикл — первая буква шаблона." />
+        <Input
+          label="Первый день шаблона"
+          type="date"
+          value={anchor}
+          onChange={(e) => setAnchor(e.target.value)}
+          hint="Любой день, когда у вас ПЕРВАЯ смена блока (первая буква шаблона), например первая из двух дневных."
+        />
+        {preview.length > 0 && code && (
+          <div className="space-y-1.5 rounded-2xl bg-surface-2 p-3">
+            <p className="text-xs font-medium text-muted">Проверьте по своему графику — ближайшие дни:</p>
+            <div className="grid grid-cols-4 gap-1.5">
+              {preview.map((day) => {
+                const kind = patternKindAt(code, anchor, day);
+                return (
+                  <div key={day} className="rounded-xl border border-border px-1.5 py-1 text-center text-xs" style={PREVIEW_STYLE[kind].style}>
+                    <div className="font-medium">{shortDayLabel(day)}</div>
+                    <div>{PREVIEW_STYLE[kind].label}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <Input label="Заполнить с" type="date" value={start} onChange={(e) => setStart(e.target.value)} />
           <Input label="по" type="date" value={end} onChange={(e) => setEnd(e.target.value)} />

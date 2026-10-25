@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { App } from "@/app/App";
 import { router } from "@/app/routes";
-import { toPatternCode } from "@/features/calendar/ShiftSheet";
+import { patternKindAt, toPatternCode } from "@/features/calendar/ShiftSheet";
 import { catholicEaster, holidaysBetween, orthodoxEaster, polishPublicHolidays, polishTradingSundays } from "@/lib/holidays";
 import { setToken } from "@/lib/session";
 import { todayIn } from "@/lib/time";
@@ -74,6 +74,16 @@ describe("Polish calendar layers", () => {
     expect(map.has("2026-12-06")).toBe(false); // trading layer is off
   });
 
+  it("places the pattern from its first day, also for days before it (user's C-shift rota)", () => {
+    const rota = (anchor: string) => ["2026-10-01", "2026-10-24", "2026-10-25", "2026-10-26", "2026-10-27", "2026-10-28"].map((d) => patternKindAt("DDNNOOOO", anchor, d));
+    // Paper schedule: 1 Oct day; 24–25 Oct days; 26–27 nights; 28 off.
+    expect(rota("2026-10-24")).toEqual(["D", "D", "D", "N", "N", "O"]);
+    expect(rota("2026-10-08")).toEqual(["D", "D", "D", "N", "N", "O"]);
+    // Starting the cycle on the 25th instead moves everything by a day — the reported bug.
+    expect(rota("2026-10-25")[2]).toBe("D");
+    expect(rota("2026-10-25")[1]).toBe("O");
+  });
+
   it("reads shift patterns typed with Д/Н/В", () => {
     expect(toPatternCode("ДДННВВВВ")).toBe("DDNNOOOO");
     expect(toPatternCode("д н в в")).toBe("DNOO");
@@ -113,6 +123,25 @@ describe("calendar month with work shifts", () => {
     const put = m.calls.find((c) => c.method === "PUT")!;
     expect(put.url.pathname.endsWith(`/calendar/shifts/${today}`)).toBe(true);
     expect(put.body).toEqual({ kind: "night" });
+  });
+
+  it("asks for the first day of the cycle and previews the result before filling", async () => {
+    await act(() => router.navigate("/calendar"));
+    setToken("tok");
+    const m = mockFetch([...base, { path: /\/calendar\/shifts$/, body: [] }, { method: "POST", path: /\/calendar\/shifts\/generate$/, body: { day_shifts: 1, night_shifts: 1 } }]);
+    render(<App />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Рабочий график и праздники" }));
+    const fill = await screen.findByRole("button", { name: "Заполнить график" });
+    expect(fill).toBeDisabled();
+    const today = todayIn("Europe/Warsaw");
+    await user.type(screen.getByLabelText("Первый день шаблона"), today);
+    expect(await screen.findByText(/Проверьте по своему графику/)).toBeInTheDocument();
+    expect(screen.getAllByText("день").length).toBeGreaterThan(0);
+    expect(fill).toBeEnabled();
+    await user.click(fill);
+    await waitFor(() => expect(m.calls.some((c) => c.method === "POST")).toBe(true));
+    expect(m.calls.find((c) => c.method === "POST")!.body).toMatchObject({ pattern: "DDNNOOOO", anchor: today });
   });
 
   it("shows holiday names for the selected day", async () => {
