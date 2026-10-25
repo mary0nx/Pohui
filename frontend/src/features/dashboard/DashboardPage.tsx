@@ -67,10 +67,13 @@ function greeting(tz: string): string {
   return "Добрый вечер";
 }
 
-function SectionTitle({ title, to, linkLabel = "Все" }: { title: string; to?: string; linkLabel?: string }) {
+function SectionTitle({ title, to, linkLabel = "Все", count }: { title: string; to?: string; linkLabel?: string; count?: ReactNode }) {
   return (
-    <div className="flex items-center justify-between px-1 pb-2 pt-1">
-      <h2 className="text-[17px] font-extrabold">{title}</h2>
+    <div className="flex items-center justify-between px-1 pb-1.5">
+      <h2 className="flex items-center gap-2 text-[17px] font-extrabold">
+        {title}
+        {count}
+      </h2>
       {to && (
         <Link to={to} className="press inline-flex items-center gap-0.5 rounded-full px-2 py-1 text-sm font-bold text-coral-ink hover:bg-peach-soft">
           {linkLabel} <ChevronRight className="size-4" aria-hidden />
@@ -93,29 +96,26 @@ function InlineEmpty({ art, text, action }: { art: ArtName; text: string; action
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-4 pt-5" role="status" aria-label="Загрузка">
+    <div className="space-y-3.5 pt-3" role="status" aria-label="Загрузка">
       <div className="flex items-center justify-between">
         <Skeleton className="h-10 w-40 rounded-full" />
         <Skeleton className="size-11 rounded-full" />
       </div>
       <div className="flex items-end justify-between">
         <div className="space-y-2">
-          <Skeleton className="h-8 w-52" />
+          <Skeleton className="h-7 w-56" />
           <Skeleton className="h-4 w-36" />
         </div>
-        <Skeleton className="h-20 w-24 rounded-3xl" />
+        <Skeleton className="h-16 w-20 rounded-3xl" />
       </div>
-      <Skeleton className="h-40 w-full rounded-card" />
-      <div className="grid grid-cols-2 gap-3">
-        <Skeleton className="h-20 rounded-card" />
-        <Skeleton className="h-20 rounded-card" />
+      <Skeleton className="h-[100px] w-full rounded-[24px]" />
+      <Skeleton className="h-36 w-full rounded-card" />
+      <div className="grid grid-cols-2 gap-2">
+        <Skeleton className="h-[52px] rounded-[20px]" />
+        <Skeleton className="h-[52px] rounded-[20px]" />
       </div>
-      <div className="grid grid-cols-4 gap-3">
-        {Array.from({ length: 4 }, (_, i) => (
-          <Skeleton key={i} className="h-[76px] rounded-3xl" />
-        ))}
-      </div>
-      <Skeleton className="h-28 w-full rounded-card" />
+      <Skeleton className="h-6 w-28" />
+      <Skeleton className="h-32 w-full rounded-card" />
     </div>
   );
 }
@@ -162,15 +162,26 @@ function spentText(spent: string, currency: string): string {
   return formatMoney(-Number(spent), currency, { sign: true });
 }
 
-/** A tile of the budget grid. The currency goes on its own small line so the number is
- *  never cut off on a narrow phone. */
+/** Amount without the currency sign (shown separately in a smaller font). */
+function bare(value: string): string {
+  return value.replace(/[\s\u00a0]*[^\d\s\u00a0,.−+]+$/u, "");
+}
+
+/** Long sums step the font down a little instead of being cut off. */
+function sumSize(text: string, normal: string, long: string): string {
+  return text.length > 13 ? long : normal;
+}
+
+/** A tile of the budget grid. The currency follows the number in a smaller font and moves to
+ *  the next line as a whole word when the sum is long — the number is never cut off. */
 function Stat({ label, value, currency, tone }: { label: string; value: string; currency: string; tone?: "danger" }) {
-  const amount = value.replace(/[\s\u00a0]*[^\d\s\u00a0,.−+]+$/u, "");
+  const amount = bare(value);
   return (
-    <div className="min-w-0 rounded-2xl bg-surface-2/70 px-2.5 py-2">
-      <p className="text-xs font-bold text-muted">{label}</p>
-      <p className={cn("tabular text-[15px] font-extrabold leading-tight [overflow-wrap:anywhere]", tone === "danger" ? "text-danger" : "text-heading")}>{amount}</p>
-      <p className="text-[11px] font-semibold text-subtle">{currency}</p>
+    <div className="min-w-0 rounded-2xl bg-surface-2/70 px-2 py-1.5">
+      <p className="truncate text-[11px] font-bold text-muted">{label}</p>
+      <p className={cn("tabular font-extrabold leading-tight [overflow-wrap:anywhere]", sumSize(amount, "text-[15px]", "text-[13px]"), tone === "danger" ? "text-danger" : "text-heading")}>
+        {amount} <span className="text-[11px] font-bold text-subtle">{currency}</span>
+      </p>
     </div>
   );
 }
@@ -196,6 +207,9 @@ function BudgetCard({
   const cur = d.currency;
   const hasMoves = Number(d.month_family.income) !== 0 || Number(d.month_family.expense) !== 0;
   const over = b !== null && Number(b.remaining) < 0;
+  const income = formatMoney(d.month_family.income, cur, { sign: true });
+  const expense = spentText(d.month_family.expense, cur);
+  const net = formatMoney(d.month_family.net, cur, { sign: true });
   const setButton = canEdit ? (
     <Button size="sm" variant="soft" icon={<Plus className="size-4" />} onClick={onEditBudget}>
       Задать бюджет
@@ -204,8 +218,8 @@ function BudgetCard({
     <p className="text-xs font-semibold text-muted">Бюджет задаёт владелец или администратор семьи.</p>
   );
   return (
-    <>
-      <Card className="p-5" style={{ background: "linear-gradient(140deg, var(--surface) 45%, var(--peach-soft) 100%)" }}>
+    <div className="space-y-2">
+      <Card className="px-3.5 pb-3 pt-3.5" style={{ background: "linear-gradient(140deg, var(--surface) 45%, var(--peach-soft) 100%)" }}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="flex items-center gap-1.5 text-sm font-bold text-muted">
@@ -218,46 +232,50 @@ function BudgetCard({
             </p>
             {b ? (
               <>
-                <p className="mt-1 text-xs font-bold text-muted">{over ? "Перерасход" : "Осталось"}</p>
-                <p className={cn("tabular text-[30px] font-extrabold leading-tight", over ? "text-danger" : "text-heading", num)}>{formatMoney(b.remaining, cur)}</p>
-                <Badge tone={over ? "danger" : b.level === "warning" ? "warning" : "success"} className="mt-1.5">
-                  {over ? `Превышение на ${formatMoney(-Number(b.remaining), cur)}` : b.level === "warning" ? "Близко к лимиту" : "Всё по плану"}
-                </Badge>
+                <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-bold text-muted">
+                  {over ? "Перерасход" : "Осталось"}
+                  <Badge tone={over ? "danger" : b.level === "warning" ? "warning" : "success"} className="h-5 px-2 text-[11px]">
+                    {over ? `Превышение на ${formatMoney(-Number(b.remaining), cur)}` : b.level === "warning" ? "Близко к лимиту" : "Всё по плану"}
+                  </Badge>
+                </p>
+                <p className={cn("tabular font-extrabold leading-tight [overflow-wrap:anywhere]", sumSize(formatMoney(b.remaining, cur), "text-[27px]", "text-[22px]"), over ? "text-danger" : "text-heading", num)}>
+                  {formatMoney(b.remaining, cur)}
+                </p>
               </>
             ) : hasMoves ? (
               <>
-                <p className="mt-1 text-xl font-extrabold leading-snug text-heading">Бюджет не задан</p>
-                <p className="mt-0.5 text-sm text-muted">
-                  Потрачено в этом месяце: <span className={cn("tabular font-bold text-heading", num)}>{spentText(d.month_family.expense, cur)}</span>
+                <p className="mt-0.5 text-lg font-extrabold leading-snug text-heading">Бюджет не задан</p>
+                <p className="text-sm text-muted">
+                  Потрачено в этом месяце: <span className={cn("tabular font-bold text-heading", num)}>{expense}</span>
                 </p>
               </>
             ) : (
               <>
-                <p className="mt-1 text-xl font-extrabold leading-snug text-heading">Операций за месяц пока нет</p>
-                <p className="mt-1 text-sm text-muted">Задайте бюджет месяца — расходы будут уменьшать остаток.</p>
+                <p className="mt-0.5 text-lg font-extrabold leading-snug text-heading">Операций за месяц пока нет</p>
+                <p className="mt-0.5 text-sm text-muted">Задайте бюджет месяца — расходы будут уменьшать остаток.</p>
               </>
             )}
           </div>
           {b ? (
-            <ProgressRing value={b.percent} level={b.level} size={80} stroke={9} label={`Бюджет использован на ${Math.round(b.percent)}%`}>
-              <span className={cn("text-center leading-tight", num)}>
-                <span className="tabular block text-lg font-extrabold text-heading">{Math.round(b.percent)}%</span>
-                <span className="block text-[11px] font-bold text-muted">потрачено</span>
+            <ProgressRing value={b.percent} level={b.level} size={60} stroke={7} label={`Бюджет использован на ${Math.round(b.percent)}%`}>
+              <span className={cn("text-center leading-none", num)}>
+                <span className="tabular block text-[15px] font-extrabold text-heading">{Math.round(b.percent)}%</span>
+                <span className="mt-0.5 block text-[10px] font-bold text-muted">потрачено</span>
               </span>
             </ProgressRing>
           ) : (
-            <Art name="jar" alive className="-mr-2 -mt-1 h-[76px] w-[90px]" />
+            <Art name="jar" alive className="-mr-1.5 -mt-0.5 h-[54px] w-[64px]" />
           )}
         </div>
 
         {b ? (
-          <div className="mt-4 grid grid-cols-3 gap-2" aria-label="Бюджет месяца">
+          <div className="mt-2.5 grid grid-cols-3 gap-1.5" aria-label="Бюджет месяца">
             <Stat label="Бюджет" value={formatMoney(b.limit, cur)} currency={cur} />
             <Stat label="Потрачено" value={spentText(b.spent, cur)} currency={cur} />
             <Stat label="Остаток" value={formatMoney(b.remaining, cur)} currency={cur} tone={over ? "danger" : undefined} />
           </div>
         ) : (
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="mt-2.5 flex flex-wrap items-center gap-2">
             {setButton}
             {!hasMoves && (
               <Button size="sm" variant="secondary" icon={<Plus className="size-4" />} onClick={onAddExpense}>
@@ -268,42 +286,42 @@ function BudgetCard({
         )}
 
         {hasMoves && (
-          <Link to="/finance" className="press mt-3 flex items-center justify-between gap-2 rounded-2xl bg-surface-2/70 px-3 py-2.5 text-sm">
-            <span className="font-semibold text-muted">Общий баланс месяца</span>
-            <span className={cn("tabular flex items-center gap-1 font-extrabold", Number(d.month_family.net) < 0 ? "text-danger" : "text-heading", num)}>
-              {formatMoney(d.month_family.net, cur, { sign: true })}
-              <ChevronRight className="size-4 text-subtle" aria-hidden />
+          <Link to="/finance" className="press mt-2 flex min-h-9 items-center justify-between gap-2 rounded-xl bg-surface-2/70 px-3 py-1.5 text-sm">
+            <span className="min-w-0 font-semibold leading-tight text-muted">Общий баланс месяца</span>
+            <span className={cn("tabular flex shrink-0 items-center gap-1 whitespace-nowrap font-extrabold", sumSize(net, "text-sm", "text-[13px]"), Number(d.month_family.net) < 0 ? "text-danger" : "text-heading", num)}>
+              {net}
+              <ChevronRight className="size-4 shrink-0 text-subtle" aria-hidden />
             </span>
           </Link>
         )}
         {Number(d.month_personal.expense) > 0 && (
-          <p className="mt-2 flex items-center gap-1.5 px-1 text-xs font-semibold text-muted">
+          <p className="mt-1.5 flex items-center gap-1.5 px-1 text-xs font-semibold text-muted">
             <PrivateMark /> Мои личные расходы: {spentText(d.month_personal.expense, cur)}
           </p>
         )}
       </Card>
 
       {hasMoves && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2 max-[339px]:grid-cols-1" aria-label="Доходы и расходы месяца">
           <Link to="/finance/transactions" className="press rounded-card">
-            <Card tone="mint" className="h-full p-3.5">
-              <p className="flex items-center gap-1.5 text-sm font-bold text-mint-ink">
-                <ArrowDownLeft className="size-4" aria-hidden /> Доходы
+            <Card tone="mint" className="h-full rounded-[20px] px-3 py-2">
+              <p className="flex items-center gap-1 text-xs font-bold text-mint-ink">
+                <ArrowDownLeft className="size-3.5" aria-hidden /> Доходы
               </p>
-              <p className={cn("tabular mt-1 truncate text-lg font-extrabold text-heading", num)}>{formatMoney(d.month_family.income, cur, { sign: true })}</p>
+              <p className={cn("tabular font-extrabold leading-tight text-heading [overflow-wrap:anywhere]", sumSize(income, "text-base", "text-sm"), num)}>{income}</p>
             </Card>
           </Link>
           <Link to="/finance/transactions" className="press rounded-card">
-            <Card tone="coral" className="h-full p-3.5">
-              <p className="flex items-center gap-1.5 text-sm font-bold text-peach-ink">
-                <ArrowUpRight className="size-4" aria-hidden /> Расходы
+            <Card tone="coral" className="h-full rounded-[20px] px-3 py-2">
+              <p className="flex items-center gap-1 text-xs font-bold text-peach-ink">
+                <ArrowUpRight className="size-3.5" aria-hidden /> Расходы
               </p>
-              <p className={cn("tabular mt-1 truncate text-lg font-extrabold text-heading", num)}>{spentText(d.month_family.expense, cur)}</p>
+              <p className={cn("tabular font-extrabold leading-tight text-heading [overflow-wrap:anywhere]", sumSize(expense, "text-base", "text-sm"), num)}>{expense}</p>
             </Card>
           </Link>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -313,7 +331,8 @@ function ShoppingBlock({ shopping, link }: { shopping: Dashboard["shopping"]; li
   const qc = useQueryClient();
   const toast = useToast();
   const [ticked, setTicked] = useState<Set<string>>(new Set());
-  const entries = shopping.entries ?? [];
+  const entries = (shopping.entries ?? []).slice(0, 4);
+  const more = shopping.needed_total - entries.length;
   const buy = useMutation({
     mutationFn: (id: string) => api(f(`/shopping/lists/${shopping.list_id}/items/${id}`), { method: "PATCH", body: { status: "bought" } }),
     onMutate: (id) => {
@@ -335,8 +354,19 @@ function ShoppingBlock({ shopping, link }: { shopping: Dashboard["shopping"]; li
   });
   return (
     <section>
-      <SectionTitle title={shopping.list_name ?? "Список покупок"} to={link} linkLabel="Весь список" />
-      <Card tone="mint" className="space-y-3">
+      <SectionTitle
+        title={shopping.list_name ?? "Список покупок"}
+        to={link}
+        linkLabel="Весь список"
+        count={
+          shopping.needed_total > 0 ? (
+            <span className="tabular rounded-full bg-mint px-2 py-0.5 text-xs font-extrabold text-mint-ink">
+              {shopping.needed_total} {plural(shopping.needed_total, "товар", "товара", "товаров")}
+            </span>
+          ) : undefined
+        }
+      />
+      <Card tone="mint" className="space-y-2 p-3">
         {shopping.needed_total === 0 ? (
           <InlineEmpty
             art="basket"
@@ -349,20 +379,16 @@ function ShoppingBlock({ shopping, link }: { shopping: Dashboard["shopping"]; li
           />
         ) : (
           <>
-            <p className="flex items-baseline gap-1.5 text-sm font-bold text-mint-ink">
-              <span className="tabular text-2xl font-extrabold text-heading">{shopping.needed_total}</span>
-              {plural(shopping.needed_total, "товар", "товара", "товаров")} нужно купить
-            </p>
             {entries.length > 0 ? (
-              <ul className="space-y-1.5" aria-label="Что купить">
+              <ul className="space-y-1" aria-label="Что купить">
                 {entries.map((e) => {
                   const done = ticked.has(e.id);
                   return (
-                    <li key={e.id} className="flex items-center gap-2.5 rounded-2xl bg-surface/85 py-1.5 pl-1.5 pr-2">
-                      <ProductThumb image={e.image} category={e.category} size={40} className="rounded-xl" />
-                      <span className="min-w-0 flex-1">
-                        <span className={cn("block truncate text-[15px] font-semibold text-heading transition-colors", done && "text-muted line-through")}>{e.name}</span>
-                        {e.quantity && <span className="block text-xs text-muted">{formatQty(e.quantity, e.unit)}</span>}
+                    <li key={e.id} className="flex min-h-11 items-center gap-2.5 rounded-2xl bg-surface/85 py-1 pl-1 pr-2">
+                      <ProductThumb image={e.image} category={e.category} size={36} className="rounded-xl" />
+                      <span className="flex min-w-0 flex-1 items-baseline gap-2">
+                        <span className={cn("truncate text-[15px] font-semibold text-heading transition-colors", done && "text-muted line-through")}>{e.name}</span>
+                        {e.quantity && <span className="shrink-0 text-xs font-semibold text-muted">{formatQty(e.quantity, e.unit)}</span>}
                       </span>
                       <button
                         type="button"
@@ -388,8 +414,9 @@ function ShoppingBlock({ shopping, link }: { shopping: Dashboard["shopping"]; li
                 ))}
               </ul>
             )}
-            <Link to={link} className="press flex h-10 items-center justify-center gap-1 rounded-full bg-surface text-sm font-bold text-mint-ink shadow-card">
-              Открыть список <ChevronRight className="size-4" aria-hidden />
+            <Link to={link} className="press flex h-10 items-center justify-center gap-1.5 rounded-full bg-surface text-sm font-bold text-mint-ink shadow-card">
+              <Plus className="size-4" aria-hidden /> Добавить товар
+              {more > 0 && <span className="font-semibold text-muted">· ещё {more} в списке</span>}
             </Link>
           </>
         )}
@@ -428,9 +455,9 @@ export function DashboardPage() {
   ];
 
   return (
-    <div className={cn("space-y-5", intro && "stagger")}>
+    <div className={cn("space-y-3.5", intro && "stagger")}>
       {/* Greeting */}
-      <header className="pt-5">
+      <header className="pt-3">
         <div className="flex items-center justify-between gap-3">
           <Link to="/profile" className="press -ml-1 flex min-w-0 items-center gap-2.5 rounded-full py-1 pl-1 pr-3" aria-label={`Семья «${d.family_name}»: участники и настройки`}>
             <span className="flex -space-x-2.5">
@@ -454,15 +481,14 @@ export function DashboardPage() {
             )}
           </Link>
         </div>
-        <div className="mt-3 flex items-end justify-between gap-2">
-          <div className="min-w-0 pb-1">
-            <h1 className="text-[27px] font-extrabold leading-[1.15] tracking-tight">
-              {greeting(tz)},<br />
-              {d.user_name}
+        <div className="mt-1.5 flex items-end justify-between gap-2">
+          <div className="min-w-0 pb-0.5">
+            <h1 className="text-[26px] font-extrabold leading-[1.15] tracking-tight">
+              {greeting(tz)}, {d.user_name}
             </h1>
-            <p className="mt-1 text-sm font-semibold text-muted first-letter:uppercase">{formatDate(today, tz, { weekday: "long", day: "numeric", month: "long" })}</p>
+            <p className="mt-0.5 text-sm font-semibold text-muted first-letter:uppercase">{formatDate(today, tz, { weekday: "long", day: "numeric", month: "long" })}</p>
           </div>
-          <Art name="house" alive className={cn("-mr-1 h-[96px] w-[116px]", intro && "animate-art-in")} />
+          <Art name="house" alive className={cn("-mr-1 h-[64px] w-[78px]", intro && "animate-art-in")} />
         </div>
       </header>
 

@@ -151,6 +151,42 @@ describe("products on the home screen", () => {
   });
 });
 
+describe("compact home screen", () => {
+  it("shows up to four products with the count in the title and full large sums", async () => {
+    setToken("tok");
+    const names = ["Молоко", "Хлеб", "Яйца", "Сыр", "Бананы", "Кофе"];
+    mockFetch([
+      ...base,
+      {
+        path: /\/dashboard$/,
+        body: dashboard({
+          is_empty: false,
+          month_family: totals("1234567.89", "9876543.21"),
+          shopping: {
+            list_id: "l1",
+            list_name: "Продукты",
+            needed_total: 7,
+            items: names,
+            entries: names.map((n, i) => ({ id: `i${i}`, name: n, quantity: null, unit: null, image: null, category: null, status: "needed" })),
+          },
+        }),
+      },
+    ]);
+    render(<App />);
+    const list = await screen.findByRole("list", { name: "Что купить" });
+    expect(within(list).getAllByRole("listitem")).toHaveLength(4);
+    expect(screen.getByRole("heading", { name: /Продукты\s*7 товаров/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Добавить товар · ещё 3 в списке/ })).toHaveAttribute("href", "/home/shopping/l1");
+    expect(screen.getByRole("link", { name: /Весь список/ })).toHaveAttribute("href", "/home/shopping/l1");
+    // Large sums are shown in full (wrapped if needed, never cut with an ellipsis).
+    const tiles = screen.getByLabelText("Доходы и расходы месяца");
+    const text = tiles.textContent!.replace(/\s/g, " ");
+    expect(text).toContain("+9 876 543,21");
+    expect(text).toContain("−1 234 567,89");
+    expect(tiles.querySelector(".truncate")).toBeNull();
+  });
+});
+
 describe("catalogue in the shopping list", () => {
   it("suggests catalogue products with pictures while typing and adds the chosen one", async () => {
     await act(() => router.navigate("/home/shopping/l1"));

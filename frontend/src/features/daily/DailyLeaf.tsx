@@ -52,7 +52,7 @@ export function DailyCard() {
   }, [page]);
 
   if (failed) return null; // the home screen works without it
-  if (!page) return <div className="h-[118px] rounded-[26px] bg-surface shadow-card" aria-hidden />;
+  if (!page) return <div className="h-[100px] rounded-[24px] bg-surface shadow-card" aria-hidden />;
   const look = LOOK[page.season];
   const day = formatDate(page.date, tz, { day: "numeric" });
   const month = formatDate(page.date, tz, { month: "short" }).replace(".", "");
@@ -65,17 +65,17 @@ export function DailyCard() {
           setOpen(true);
         }}
         aria-label={`Листочек дня, ${formatDate(page.date, tz)}: ${page.text} Открыть страницу`}
-        className="press daily-perf relative block w-full overflow-hidden rounded-[26px] bg-surface text-left shadow-card"
+        className="press daily-perf relative block w-full overflow-hidden rounded-[24px] bg-surface text-left shadow-card"
       >
-        <div key={page.date} className={cn("flex items-center gap-3 p-3.5 pt-4", turned && "animate-leaf-in")}>
+        <div key={page.date} className={cn("flex items-center gap-3 px-3.5 py-3", turned && "animate-leaf-in")}>
           <div className="min-w-0 flex-1">
             <p className={cn("truncate text-[11px] font-extrabold uppercase tracking-[0.1em]", look.ink)}>{THEME_LABELS[page.theme]}</p>
-            <p className="mt-1 line-clamp-3 text-[15px] font-bold leading-snug text-heading">{page.text}</p>
+            <p className="mt-0.5 line-clamp-3 text-[15px] font-bold leading-snug text-heading">{page.text}</p>
           </div>
           <div className="relative">
-            <DailyArt page={page} alive inset="p-0.5" className="size-[88px] rounded-[20px]" />
-            <span className="absolute -left-2 -top-1.5 flex min-w-[38px] flex-col items-center rounded-xl bg-surface px-1.5 pb-1 pt-0.5 leading-none shadow-card">
-              <span className="tabular text-[17px] font-extrabold text-coral-ink">{day}</span>
+            <DailyArt page={page} alive inset="p-0.5" className="size-[74px] rounded-[18px]" />
+            <span className="absolute -left-2 -top-1 flex min-w-[36px] flex-col items-center rounded-xl bg-surface px-1.5 pb-1 pt-0.5 leading-none shadow-card">
+              <span className="tabular text-base font-extrabold text-coral-ink">{day}</span>
               <span className="text-[10px] font-bold text-muted">{month}</span>
             </span>
           </div>
