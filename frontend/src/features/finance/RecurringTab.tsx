@@ -1,4 +1,4 @@
-import { CalendarClock, Plus, Repeat } from "lucide-react";
+import { CalendarClock, Plus } from "lucide-react";
 import { useState } from "react";
 
 import { api, errorMessage } from "@/api/client";
@@ -87,7 +87,7 @@ export function RecurringTab() {
         <ErrorState error={rules.error} onRetry={() => rules.refetch()} />
       ) : rules.data.length === 0 ? (
         <Card>
-          <EmptyState icon={<Repeat className="size-6" />} title="Нет регулярных платежей" text="Аренда, интернет, подписки — добавьте их, и мы напомним о сроке оплаты." />
+          <EmptyState art="calendar" title="Нет регулярных платежей" text="Аренда, интернет, подписки — добавьте их, и мы напомним о сроке оплаты." />
         </Card>
       ) : (
         <Card className="divide-y divide-border p-0">

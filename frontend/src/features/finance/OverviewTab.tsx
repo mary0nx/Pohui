@@ -12,7 +12,7 @@ import { useSummary } from "./api";
 import { MonthSwitcher } from "./MonthSwitcher";
 
 // Brand-led categorical palette: distinct hues, readable on cream and on cocoa.
-export const CHART_COLORS = ["#ff786b", "#5fbf9f", "#9b86e8", "#e8b923", "#315b4c", "#f2a65a", "#5b9bd5", "#d36d9a", "#8c7d70", "#b6d36b"];
+export const CHART_COLORS = ["#f47f70", "#6fae8c", "#9b86e8", "#e5b93a", "#315b4c", "#f2a65a", "#5b9bd5", "#d36d9a", "#8c7d70", "#b6d36b"];
 
 export function OverviewTab() {
   const { tz, currency } = useFamily();
@@ -106,7 +106,7 @@ function SummaryView({ data, scope, currency }: { data: NonNullable<ReturnType<t
 
       {empty ? (
         <Card>
-          <EmptyState title="Нет операций за этот месяц" text="Добавьте расход или доход кнопкой «Операция»." />
+          <EmptyState art="chart" title="Нет операций за этот месяц" text="Добавьте расход или доход кнопкой «Операция»." />
         </Card>
       ) : (
         <Card>
@@ -151,7 +151,7 @@ function SummaryView({ data, scope, currency }: { data: NonNullable<ReturnType<t
                 contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, color: "var(--text)", boxShadow: "var(--shadow)" }}
                 formatter={(v) => formatMoney(Number(v), currency)}
               />
-              <Bar dataKey="income" name="Доходы" fill="var(--mint)" radius={[8, 8, 8, 8]} isAnimationActive={!prefersReducedMotion()} animationDuration={600} />
+              <Bar dataKey="income" name="Доходы" fill="var(--progress-ok)" radius={[8, 8, 8, 8]} isAnimationActive={!prefersReducedMotion()} animationDuration={600} />
               <Bar dataKey="expense" name="Расходы" fill="var(--coral)" radius={[8, 8, 8, 8]} isAnimationActive={!prefersReducedMotion()} animationDuration={600} />
             </BarChart>
           </ResponsiveContainer>

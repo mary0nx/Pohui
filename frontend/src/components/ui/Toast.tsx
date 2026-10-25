@@ -40,7 +40,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             )}
           >
             <span className={cn("flex size-7 shrink-0 items-center justify-center rounded-full text-on-bright", t.tone === "success" ? "bg-mint" : "bg-coral")}>
-              {t.tone === "success" ? <Check className="size-4" strokeWidth={3} /> : <X className="size-4" strokeWidth={3} />}
+              {t.tone === "success" ? <Check className="size-4" /> : <X className="size-4" strokeWidth={3} />}
             </span>
             <span>{t.text}</span>
           </div>

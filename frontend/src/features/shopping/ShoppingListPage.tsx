@@ -209,7 +209,7 @@ export function ShoppingListPage() {
 
           {list.items.length === 0 ? (
             <Card>
-              <EmptyState title="Список пуст" text="Введите товары через запятую: «молоко, хлеб, яйца 10 шт»." />
+              <EmptyState art="basket" title="Список пуст" text="Введите товары через запятую: «молоко, хлеб, яйца 10 шт»." />
             </Card>
           ) : (
             <>

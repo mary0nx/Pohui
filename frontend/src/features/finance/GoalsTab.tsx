@@ -1,4 +1,4 @@
-import { PiggyBank, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 
 import { api, errorMessage } from "@/api/client";
@@ -33,7 +33,7 @@ export function GoalsTab() {
         <ErrorState error={goals.error} onRetry={() => goals.refetch()} />
       ) : goals.data.length === 0 ? (
         <Card>
-          <EmptyState icon={<PiggyBank className="size-6" />} title="Пока нет целей" text="Отпуск, ремонт, подушка безопасности — копите вместе и следите за прогнозом." />
+          <EmptyState art="jar" title="Пока нет целей" text="Отпуск, ремонт, подушка безопасности — копите вместе и следите за прогнозом." />
         </Card>
       ) : (
         goals.data.map((g) => (

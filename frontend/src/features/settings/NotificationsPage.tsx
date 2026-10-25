@@ -35,7 +35,7 @@ export function NotificationsPage() {
   const s = q.data;
   return (
     <div className="space-y-5">
-      <PageHeader title="Уведомления" back="/profile" />
+      <PageHeader title="Уведомления" back="/profile" art="bell" />
       {!s.bot_started && <Card className="border-warning/40 bg-warning-soft text-sm">Бот ещё не может писать вам: откройте чат с ботом и нажмите «Старт». До этого уведомления видны только во входящих приложения.</Card>}
       {s.bot_blocked && <Card className="border-danger/40 bg-danger-soft text-sm">Бот заблокирован в Telegram — разблокируйте его, чтобы снова получать сообщения.</Card>}
       <Card>

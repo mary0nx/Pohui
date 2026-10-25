@@ -3,17 +3,19 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { cloudGet, cloudSet, onTelegramThemeChange, paintChrome, telegramColorScheme } from "@/lib/telegram";
 
 export type ThemeMode = "system" | "light" | "dark";
-const STORAGE = "familyos.theme";
+// v2: the light cozy theme is the default on first launch; the dark one is opt-in, so the
+// earlier "follow Telegram" default (which showed dark to most users) starts again as light.
+const STORAGE = "familyos.theme.v2";
 // v2: the 2026 redesign re-tuned all palettes; earlier choices start again from coral.
 const PALETTE_STORAGE = "familyos.palette.v2";
 
 /** Accent palettes; colors live in styles/index.css under [data-palette]. */
 export const PALETTES = [
-  { id: "coral", label: "Коралл", light: "#ff786b", dark: "#ff8a7e" },
-  { id: "lavender", label: "Лаванда", light: "#c7b8f5", dark: "#c7b8f5" },
-  { id: "mint", label: "Мята", light: "#9ddcc5", dark: "#9ddcc5" },
-  { id: "lemon", label: "Лимон", light: "#f8d96d", dark: "#f8d96d" },
-  { id: "forest", label: "Лес", light: "#315b4c", dark: "#6fb39a" },
+  { id: "coral", label: "Коралл", light: "#f47f70", dark: "#ff8f80" },
+  { id: "lavender", label: "Лаванда", light: "#c9b8f7", dark: "#c9b8f7" },
+  { id: "mint", label: "Шалфей", light: "#9fc7ae", dark: "#9fc7ae" },
+  { id: "lemon", label: "Лимон", light: "#f5d76e", dark: "#f5d76e" },
+  { id: "forest", label: "Лес", light: "#315b4c", dark: "#7fc19f" },
   { id: "ocean", label: "Океан", light: "#2f6fb0", dark: "#7fb2e5" },
   { id: "graphite", label: "Графит", light: "#3f3a36", dark: "#d6ccc2" },
 ] as const;
@@ -61,7 +63,7 @@ function writeLocal(key: string, value: string): void {
 
 function readMode(): ThemeMode {
   const v = readLocal(STORAGE);
-  return isMode(v) ? v : "system";
+  return isMode(v) ? v : "light";
 }
 
 function readPalette(): Palette {
@@ -110,7 +112,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const root = document.documentElement;
     root.dataset.theme = resolved;
     root.dataset.palette = palette;
-    const bg = getComputedStyle(root).getPropertyValue("--bg").trim() || (resolved === "dark" ? "#0f1214" : "#f4f5f6");
+    const bg = getComputedStyle(root).getPropertyValue("--bg").trim() || (resolved === "dark" ? "#16201c" : "#fff7ed");
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", bg);
     paintChrome(bg);
   }, [resolved, palette]);

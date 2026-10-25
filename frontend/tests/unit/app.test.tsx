@@ -11,6 +11,7 @@ const base = [
   { path: /\/meta$/, body: meta() },
   { path: /\/me$/, body: me() },
   { path: new RegExp(`/families/${FAMILY_ID}$`), body: family },
+  { path: /\/tasks$/, body: [] },
 ];
 
 describe("app gate", () => {
@@ -56,7 +57,10 @@ describe("dashboard", () => {
     render(<App />);
     expect(await screen.findByText(/Анна$/)).toBeInTheDocument();
     expect(screen.getByText(/4\s?920,00/)).toBeInTheDocument();
-    expect(screen.getByText("Молоко, Хлеб, Яйца")).toBeInTheDocument();
+    const shopping = screen.getByRole("list", { name: "Что купить" });
+    expect(within(shopping).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["Молоко", "Хлеб", "Яйца"]);
+    // Light is the default theme on first launch, even when the system is dark.
+    expect(document.documentElement.dataset.theme).toBe("light");
     expect(screen.queryByText("Начните с первых данных")).not.toBeInTheDocument();
   });
 

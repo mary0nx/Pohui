@@ -90,7 +90,7 @@ export function ProfilePage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Профиль" />
+      <PageHeader title="Профиль" art="mugs" />
       <Card className="flex items-center gap-3">
         <Avatar name={me.user.first_name} src={me.user.photo_url} size={52} />
         <div className="min-w-0">
@@ -229,7 +229,7 @@ export function ProfilePage() {
                       className="flex size-8 items-center justify-center rounded-full shadow-sm"
                       style={resolved === "dark" ? { background: p.dark, color: "#111418" } : { background: p.light, color: "#ffffff" }}
                     >
-                      {active && <Check className="size-4" strokeWidth={3} aria-hidden />}
+                      {active && <Check className="size-4" aria-hidden />}
                     </span>
                     {p.label}
                   </button>

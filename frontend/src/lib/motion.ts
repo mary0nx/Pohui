@@ -4,7 +4,7 @@ export function prefersReducedMotion(): boolean {
   return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 }
 
-const CONFETTI_COLORS = ["#ff786b", "#9ddcc5", "#c7b8f5", "#f8d96d", "#315b4c"];
+const CONFETTI_COLORS = ["#f47f70", "#9fc7ae", "#c9b8f7", "#f5d76e", "#ffd9c7", "#315b4c"];
 
 /**
  * A small, one-off confetti burst for meaningful achievements (a goal reached, a list
@@ -39,4 +39,25 @@ export function centerOf(el: Element | null | undefined): { x: number; y: number
   if (!el) return undefined;
   const r = el.getBoundingClientRect();
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+}
+
+/* A "streak": several tasks finished within a short while earns a small celebration. */
+const STREAK_WINDOW_MS = 10 * 60_000;
+export const STREAK_SIZE = 3;
+let streak: number[] = [];
+
+/** Records a finished task; returns true when it completes a streak of STREAK_SIZE. */
+export function recordTaskDone(now: number = Date.now()): boolean {
+  streak = streak.filter((t) => now - t < STREAK_WINDOW_MS);
+  streak.push(now);
+  if (streak.length >= STREAK_SIZE) {
+    streak = [];
+    return true;
+  }
+  return false;
+}
+
+/** Undoing a completion takes it back out of the streak. */
+export function forgetTaskDone(): void {
+  streak.pop();
 }

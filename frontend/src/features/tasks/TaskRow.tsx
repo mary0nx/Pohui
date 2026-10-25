@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { MessageSquare, Repeat } from "lucide-react";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 
 import { api, errorMessage } from "@/api/client";
@@ -9,27 +9,43 @@ import { PrivateMark } from "@/components/Visibility";
 import { CheckCircle, useToast } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/format";
-import { celebrate, centerOf } from "@/lib/motion";
+import { celebrate, centerOf, forgetTaskDone, prefersReducedMotion, recordTaskDone, STREAK_SIZE } from "@/lib/motion";
 import { haptic } from "@/lib/telegram";
 import type { Task } from "@/types/api";
 
 import { useTasksInvalidate } from "./api";
 
-/** `isLast`: completing this task empties the list — worth a small celebration. */
+/** `isLast`: completing this task empties the list — worth a small celebration, as is a
+ * streak of several tasks finished in a row. */
 export function TaskRow({ task, isLast = false }: { task: Task; isLast?: boolean }) {
   const box = useRef<HTMLButtonElement>(null);
   const { f, tz, memberName } = useFamily();
   const invalidate = useTasksInvalidate();
   const toast = useToast();
-  const done = task.status === "done";
+  const saved = task.status === "done";
+  // The check shows at once (spring + drawn mark); the list refreshes once it has played,
+  // so a finished task does not vanish from an "open" list before the animation is seen.
+  const [pending, setPending] = useState<boolean | null>(null);
+  useEffect(() => setPending(null), [task.status]);
+  const done = pending ?? saved;
   const toggle = useMutation({
-    mutationFn: () => (done ? api(f(`/tasks/${task.id}`), { method: "PATCH", body: { status: "todo" } }) : api(f(`/tasks/${task.id}/complete`), { method: "POST" })),
+    mutationFn: () => (saved ? api(f(`/tasks/${task.id}`), { method: "PATCH", body: { status: "todo" } }) : api(f(`/tasks/${task.id}/complete`), { method: "POST" })),
+    onMutate: () => setPending(!saved),
     onSuccess: async () => {
-      haptic(done ? "light" : "success");
-      if (!done && isLast) celebrate(centerOf(box.current));
+      haptic(saved ? "light" : "success");
+      if (saved) forgetTaskDone();
+      else {
+        const streak = recordTaskDone();
+        if (isLast || streak) celebrate(centerOf(box.current));
+        if (streak && !isLast) toast.show(`Серия: ${STREAK_SIZE} дела подряд — отлично!`);
+        if (!prefersReducedMotion()) await new Promise((r) => setTimeout(r, 650));
+      }
       await invalidate();
     },
-    onError: (e) => toast.show(errorMessage(e), "error"),
+    onError: (e) => {
+      setPending(null);
+      toast.show(errorMessage(e), "error");
+    },
   });
   return (
     <div className="flex items-center gap-3 px-3 py-2">

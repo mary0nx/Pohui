@@ -83,7 +83,7 @@ export function TransactionsTab() {
         <ErrorState error={tx.error} onRetry={() => tx.refetch()} />
       ) : groups.length === 0 ? (
         <Card>
-          <EmptyState title="Операций не найдено" text="Измените фильтры или добавьте первую операцию." />
+          <EmptyState art="jar" title="Операций не найдено" text="Измените фильтры или добавьте первую операцию." />
         </Card>
       ) : (
         <div className="space-y-4">

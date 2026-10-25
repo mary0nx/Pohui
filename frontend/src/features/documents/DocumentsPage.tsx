@@ -88,6 +88,7 @@ export function DocumentsPage() {
   });
 
   const today = todayIn(tz);
+  const openUpload = () => setUpload({ title: "", category: "", document_date: "", expires_on: "", remind: "30", notes: "", visibility: "family", file: null });
   const tooBig = upload?.file ? upload.file.size > maxMb * 1024 * 1024 : false;
 
   return (
@@ -96,7 +97,7 @@ export function DocumentsPage() {
         title="Документы"
         back="/home"
         action={
-          <Button size="sm" icon={<Plus className="size-4" />} onClick={() => setUpload({ title: "", category: "", document_date: "", expires_on: "", remind: "30", notes: "", visibility: "family", file: null })}>
+          <Button size="sm" icon={<Plus className="size-4" />} onClick={openUpload}>
             Документ
           </Button>
         }
@@ -111,7 +112,18 @@ export function DocumentsPage() {
         <ErrorState error={docs.error} onRetry={() => docs.refetch()} />
       ) : docs.data.length === 0 ? (
         <Card>
-          <EmptyState icon={<FileText className="size-6" />} title={q ? "Ничего не найдено" : "Документов пока нет"} text="Паспорта, страховки, договоры — храните их с напоминанием о сроке действия." />
+          <EmptyState
+            art="docs"
+            title={q ? "Ничего не найдено" : "Документов пока нет"}
+            text="Паспорта, страховки, договоры — храните их с напоминанием о сроке действия."
+            action={
+              !q && (
+                <Button icon={<Plus className="size-4" />} onClick={openUpload}>
+                  Добавить документ
+                </Button>
+              )
+            }
+          />
         </Card>
       ) : (
         <Card className="divide-y divide-border p-0">

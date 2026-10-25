@@ -38,6 +38,7 @@ export function BudgetsTab() {
       ) : budgets.data.length === 0 ? (
         <Card>
           <EmptyState
+            art="jar"
             title="Бюджет не задан"
             text="Задайте общий лимит на месяц или лимиты по категориям — мы предупредим при 80% и 100%."
             action={

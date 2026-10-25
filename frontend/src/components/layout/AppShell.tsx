@@ -46,7 +46,7 @@ export function AppShell() {
   const showFab = useAiEnabled() && !onAssistant && !location.pathname.startsWith("/profile");
   return (
     <div className="mx-auto min-h-dvh w-full max-w-lg">
-      <main className={cn("pt-safe animate-fade-in px-4", onAssistant ? "pb-0" : "pb-nav")} key={location.pathname.split("/")[1]}>
+      <main className={cn("pt-safe animate-page-in px-4", onAssistant ? "pb-0" : showFab ? "pb-nav-fab" : "pb-nav")} key={location.pathname.split("/")[1]}>
         <Outlet />
       </main>
       {showFab && <AiFab />}
@@ -56,7 +56,7 @@ export function AppShell() {
           className="fixed inset-x-0 bottom-0 z-30 px-3"
           style={{ paddingBottom: "calc(var(--safe-bottom) + 8px)" }}
         >
-          <ul className="mx-auto flex h-[var(--nav-height)] max-w-lg items-stretch justify-around rounded-[28px] border border-border/70 bg-surface/92 px-1.5 shadow-sheet backdrop-blur-md">
+          <ul className="mx-auto flex h-[var(--nav-height)] max-w-lg items-stretch justify-around rounded-[26px] bg-surface/95 px-1 shadow-sheet ring-1 ring-border/60 backdrop-blur-md">
             {TABS.map(({ to, key, icon: Icon, ...rest }) => (
               <li key={to} className="flex-1">
                 <NavLink
@@ -64,7 +64,7 @@ export function AppShell() {
                   end={"end" in rest}
                   onClick={() => haptic("select")}
                   className={({ isActive }) =>
-                    cn("press flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-colors", isActive ? "text-text" : "text-subtle hover:text-muted")
+                    cn("press flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-colors duration-200", isActive ? "text-coral-ink" : "text-subtle hover:text-muted")
                   }
                 >
                   {({ isActive }) => (
@@ -72,10 +72,10 @@ export function AppShell() {
                       <span
                         className={cn(
                           "flex h-8 w-12 items-center justify-center rounded-full transition-[background-color,transform] duration-300 ease-[var(--ease-spring)]",
-                          isActive ? "scale-100 bg-accent text-accent-fg" : "scale-90",
+                          isActive ? "scale-100 bg-peach" : "scale-90 bg-transparent",
                         )}
                       >
-                        <Icon className="size-[21px]" strokeWidth={isActive ? 2.3 : 1.9} aria-hidden />
+                        <Icon className="size-[21px]" aria-hidden />
                       </span>
                       <span className="truncate">{t(key)}</span>
                     </>

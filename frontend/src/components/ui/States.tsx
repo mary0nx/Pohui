@@ -2,6 +2,7 @@ import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { errorMessage } from "@/api/client";
+import { Art, type ArtName } from "@/components/illustrations/Art";
 import { cn } from "@/lib/cn";
 
 import { Button } from "./Button";
@@ -24,18 +25,19 @@ export function LoadingBlock({ rows = 3 }: { rows?: number }) {
   );
 }
 
-/** Friendly empty state: the icon sits on soft overlapping blobs in the brand colors. */
-export function EmptyState({ icon, title, text, action }: { icon?: ReactNode; title: string; text?: string; action?: ReactNode }) {
+/**
+ * Cozy empty state: a small illustration, one short sentence and a clear way to add the
+ * first item. `art` picks an illustration; `icon` is the fallback for places without one.
+ */
+export function EmptyState({ art, icon, title, text, action }: { art?: ArtName; icon?: ReactNode; title: string; text?: string; action?: ReactNode }) {
   return (
-    <div className="animate-fade-in flex flex-col items-center px-6 py-9 text-center">
-      {icon && (
-        <div className="relative mb-4 size-20" aria-hidden>
-          <span className="absolute left-0 top-2 size-14 rounded-full bg-mint/60" />
-          <span className="absolute right-0 top-0 size-12 rounded-full bg-lavender/60" />
-          <span className="absolute bottom-0 left-4 flex size-14 items-center justify-center rounded-3xl bg-accent text-accent-fg shadow-card">{icon}</span>
-        </div>
+    <div className="flex flex-col items-center px-6 py-8 text-center">
+      {art ? (
+        <Art name={art} className="animate-art-in mb-3 h-[104px] w-[125px]" />
+      ) : (
+        icon && <div className="animate-art-in mb-4 flex size-16 items-center justify-center rounded-3xl bg-accent-soft text-accent-strong" aria-hidden>{icon}</div>
       )}
-      <p className="text-base font-bold">{title}</p>
+      <p className="text-base font-bold text-heading">{title}</p>
       {text && <p className="mt-1 max-w-xs text-sm text-muted">{text}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
@@ -69,7 +71,7 @@ function useGrow(value: number): number {
   return shown;
 }
 
-const LEVEL_COLOR = { ok: "var(--accent)", warning: "var(--lemon)", exceeded: "var(--danger)", done: "var(--mint)" } as const;
+const LEVEL_COLOR = { ok: "var(--progress-ok)", warning: "var(--progress-warn)", exceeded: "var(--progress-over)", done: "var(--progress-done)" } as const;
 type Level = keyof typeof LEVEL_COLOR;
 
 export function ProgressBar({ value, level = "ok", className, label }: { value: number; level?: Level; className?: string; label?: string }) {
@@ -150,7 +152,7 @@ export function CheckCircle({ checked, tone = "success", className }: { checked:
     <span
       className={cn(
         "flex size-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-200",
-        checked ? (tone === "success" ? "animate-pop border-transparent bg-mint text-on-bright" : "animate-pop border-transparent bg-accent text-accent-fg") : "border-border bg-surface",
+        checked ? (tone === "success" ? "animate-check border-transparent bg-sage text-forest-ink" : "animate-check border-transparent bg-accent text-accent-fg") : "border-[color-mix(in_srgb,var(--sage)_70%,var(--border))] bg-surface",
         className,
       )}
       aria-hidden
@@ -167,16 +169,16 @@ export function CheckCircle({ checked, tone = "success", className }: { checked:
 export function Badge({ children, tone = "neutral", className }: { children: ReactNode; tone?: "neutral" | "accent" | "warning" | "danger" | "success" | "lavender"; className?: string }) {
   const tones = {
     neutral: "bg-surface-2 text-muted",
-    accent: "bg-accent-soft text-accent-strong",
-    warning: "bg-lemon-soft text-warning",
+    accent: "bg-peach text-peach-ink",
+    warning: "bg-lemon text-lemon-ink",
     danger: "bg-danger-soft text-danger",
-    success: "bg-success-soft text-success",
-    lavender: "bg-lavender-soft text-text",
+    success: "bg-mint text-mint-ink",
+    lavender: "bg-lavender text-lavender-ink",
   };
   return <span className={cn("inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-xs font-semibold", tones[tone], className)}>{children}</span>;
 }
 
-const AVATAR_COLORS = ["bg-coral", "bg-mint", "bg-lavender", "bg-lemon"];
+const AVATAR_COLORS = ["bg-peach text-peach-ink", "bg-mint text-mint-ink", "bg-lavender text-lavender-ink", "bg-lemon text-lemon-ink"];
 
 export function Avatar({ name, src, size = 36 }: { name: string; src?: string | null; size?: number }) {
   const initials = name
@@ -188,8 +190,17 @@ export function Avatar({ name, src, size = 36 }: { name: string; src?: string | 
   if (src) return <img src={src} alt={name} width={size} height={size} className="shrink-0 rounded-full object-cover ring-2 ring-surface" style={{ width: size, height: size }} />;
   const color = AVATAR_COLORS[[...name].reduce((s, ch) => s + ch.charCodeAt(0), 0) % AVATAR_COLORS.length];
   return (
-    <span className={cn("inline-flex shrink-0 items-center justify-center rounded-full font-bold text-on-bright ring-2 ring-surface", color)} style={{ width: size, height: size, fontSize: size * 0.38 }} aria-hidden>
+    <span className={cn("inline-flex shrink-0 items-center justify-center rounded-full font-bold ring-2 ring-surface", color)} style={{ width: size, height: size, fontSize: size * 0.38 }} aria-hidden>
       {initials}
     </span>
+  );
+}
+
+/** Smoothly expanding block (height follows the content). Closed content is inert. */
+export function Collapse({ open, id, children }: { open: boolean; id?: string; children: ReactNode }) {
+  return (
+    <div id={id} className="collapse-panel" data-open={open} inert={!open}>
+      <div>{children}</div>
+    </div>
   );
 }

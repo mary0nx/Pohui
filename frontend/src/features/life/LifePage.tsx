@@ -37,9 +37,11 @@ export function LifePage() {
   const [kind, setKind] = useState<LifeKind | "habit">("goal");
   return (
     <div className="space-y-3">
-      <PageHeader title="Вместе" back="/home" />
+      <PageHeader title="Вместе" back="/home" art="mugs" />
       <Chips value={kind} onChange={setKind} options={Object.entries(KINDS).map(([value, v]) => ({ value: value as LifeKind | "habit", label: v.label }))} />
-      {kind === "habit" ? <Habits /> : <Items kind={kind} />}
+      <div className="animate-tab-in" key={kind}>
+        {kind === "habit" ? <Habits /> : <Items kind={kind} />}
+      </div>
     </div>
   );
 }
@@ -90,7 +92,7 @@ function Items({ kind }: { kind: LifeKind }) {
         <ErrorState error={q.error} onRetry={() => q.refetch()} />
       ) : q.data.length === 0 ? (
         <Card>
-          <EmptyState icon={<meta.icon className="size-6" />} title="Пока пусто" text={meta.empty} />
+          <EmptyState art="mugs" title="Пока пусто" text={meta.empty} />
         </Card>
       ) : (
         <>
@@ -198,7 +200,7 @@ function Habits() {
         <ErrorState error={q.error} onRetry={() => q.refetch()} />
       ) : q.data.length === 0 ? (
         <Card>
-          <EmptyState icon={<Check className="size-6" />} title="Привычек нет" text={KINDS.habit.empty} />
+          <EmptyState art="plant" title="Привычек нет" text={KINDS.habit.empty} />
         </Card>
       ) : (
         q.data.map((h) => (

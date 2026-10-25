@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Briefcase, CalendarDays, ChevronLeft, ChevronRight, List, Plus, Repeat } from "lucide-react";
+import { Briefcase, ChevronLeft, ChevronRight, List, Plus, Repeat } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
@@ -148,99 +148,101 @@ export function CalendarPage() {
           { value: "agenda", label: "Список" },
         ]}
       />
-      {q.isPending ? (
-        <LoadingBlock rows={4} />
-      ) : q.isError ? (
-        <ErrorState error={q.error} onRetry={() => q.refetch()} />
-      ) : view === "month" ? (
-        <>
-          {editingShifts && (
-            <Card className="flex items-center gap-3 border-accent bg-accent-soft py-2.5 text-sm">
-              <span className="flex-1">Нажимайте на дни: дневная → ночная → выходной</span>
-              <Button size="sm" onClick={() => setEditingShifts(false)}>
-                Готово
-              </Button>
-            </Card>
-          )}
-          <Card className="p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <IconButton label="Предыдущий месяц" onClick={() => setMonth(addMonths(month, -1))}>
-                <ChevronLeft className="size-5" />
-              </IconButton>
-              <span className="font-semibold">{formatMonth(month)}</span>
-              <IconButton label="Следующий месяц" onClick={() => setMonth(addMonths(month, 1))}>
-                <ChevronRight className="size-5" />
-              </IconButton>
-            </div>
-            <div className="grid grid-cols-7 text-center text-[11px] font-medium text-muted">
-              {WEEKDAYS.map((w) => (
-                <div key={w} className="py-1">
-                  {w}
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-y-1">
-              {monthGrid(month).map((day) => {
-                const count = byDay.get(day)?.length ?? 0;
-                const inMonth = day.startsWith(month);
-                const shift = shifts.get(day);
-                const dayHolidays = holidays.get(day) ?? [];
-                const marks = [...new Set(dayHolidays.map((h) => MARK[h.kind]))];
-                const isPublic = dayHolidays.some((h) => h.kind === "public");
-                return (
-                  <button
-                    key={day}
-                    type="button"
-                    onClick={() => onDayClick(day)}
-                    aria-label={[formatDate(day, tz, { day: "numeric", month: "long" }), shift && SHIFT_LABEL[shift], ...dayHolidays.map((h) => h.name)].filter(Boolean).join(", ")}
-                    aria-pressed={selected === day}
-                    style={shift ? SHIFT_STYLE[shift] : undefined}
-                    className={cn(
-                      "mx-auto flex h-11 w-10 flex-col items-center justify-center rounded-xl text-sm transition",
-                      !inMonth && (shift ? "opacity-70" : "text-subtle"),
-                      !shift && isPublic && "font-semibold text-danger",
-                      day === today && "font-bold underline decoration-2 underline-offset-2",
-                      selected === day && !editingShifts && "ring-2 ring-accent ring-offset-1 ring-offset-surface",
-                    )}
-                  >
-                    {Number(day.slice(8))}
-                    <span className="flex h-3 items-center gap-0.5 text-[9px] leading-none">
-                      {count > 0 && <span className={cn("size-1 rounded-full", shift ? "bg-current" : "bg-accent")} />}
-                      {marks.map((m) => (
-                        <span key={m}>{m}</span>
-                      ))}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-xs text-muted">
-              <span className="flex items-center gap-1">
-                <span className="size-3 rounded" style={SHIFT_STYLE.day} /> день
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="size-3 rounded" style={SHIFT_STYLE.night} /> ночь
-              </span>
-              {LAYERS.filter((l) => layers.includes(l.kind)).map((l) => (
-                <span key={l.kind}>
-                  {l.mark} {LEGEND[l.kind]}
+      <div className="animate-tab-in space-y-4" key={view}>
+        {q.isPending ? (
+          <LoadingBlock rows={4} />
+        ) : q.isError ? (
+          <ErrorState error={q.error} onRetry={() => q.refetch()} />
+        ) : view === "month" ? (
+          <>
+            {editingShifts && (
+              <Card className="flex items-center gap-3 border-accent bg-accent-soft py-2.5 text-sm">
+                <span className="flex-1">Нажимайте на дни: дневная → ночная → выходной</span>
+                <Button size="sm" onClick={() => setEditingShifts(false)}>
+                  Готово
+                </Button>
+              </Card>
+            )}
+            <Card className="p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <IconButton label="Предыдущий месяц" onClick={() => setMonth(addMonths(month, -1))}>
+                  <ChevronLeft className="size-5" />
+                </IconButton>
+                <span className="font-semibold">{formatMonth(month)}</span>
+                <IconButton label="Следующий месяц" onClick={() => setMonth(addMonths(month, 1))}>
+                  <ChevronRight className="size-5" />
+                </IconButton>
+              </div>
+              <div className="grid grid-cols-7 text-center text-[11px] font-medium text-muted">
+                {WEEKDAYS.map((w) => (
+                  <div key={w} className="py-1">
+                    {w}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-y-1">
+                {monthGrid(month).map((day) => {
+                  const count = byDay.get(day)?.length ?? 0;
+                  const inMonth = day.startsWith(month);
+                  const shift = shifts.get(day);
+                  const dayHolidays = holidays.get(day) ?? [];
+                  const marks = [...new Set(dayHolidays.map((h) => MARK[h.kind]))];
+                  const isPublic = dayHolidays.some((h) => h.kind === "public");
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => onDayClick(day)}
+                      aria-label={[formatDate(day, tz, { day: "numeric", month: "long" }), shift && SHIFT_LABEL[shift], ...dayHolidays.map((h) => h.name)].filter(Boolean).join(", ")}
+                      aria-pressed={selected === day}
+                      style={shift ? SHIFT_STYLE[shift] : undefined}
+                      className={cn(
+                        "mx-auto flex h-11 w-10 flex-col items-center justify-center rounded-xl text-sm transition",
+                        !inMonth && (shift ? "opacity-70" : "text-subtle"),
+                        !shift && isPublic && "font-semibold text-danger",
+                        day === today && "font-bold underline decoration-2 underline-offset-2",
+                        selected === day && !editingShifts && "ring-2 ring-accent ring-offset-1 ring-offset-surface",
+                      )}
+                    >
+                      {Number(day.slice(8))}
+                      <span className="flex h-3 items-center gap-0.5 text-[9px] leading-none">
+                        {count > 0 && <span className={cn("size-1 rounded-full", shift ? "bg-current" : "bg-accent")} />}
+                        {marks.map((m) => (
+                          <span key={m}>{m}</span>
+                        ))}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-xs text-muted">
+                <span className="flex items-center gap-1">
+                  <span className="size-3 rounded" style={SHIFT_STYLE.day} /> день
                 </span>
-              ))}
-            </div>
+                <span className="flex items-center gap-1">
+                  <span className="size-3 rounded" style={SHIFT_STYLE.night} /> ночь
+                </span>
+                {LAYERS.filter((l) => layers.includes(l.kind)).map((l) => (
+                  <span key={l.kind}>
+                    {l.mark} {LEGEND[l.kind]}
+                  </span>
+                ))}
+              </div>
+            </Card>
+            <DayList day={selected} items={byDay.get(selected) ?? []} today={today} shift={shifts.get(selected)} holidays={holidays.get(selected) ?? []} onCreate={() => openCreate(true)} />
+          </>
+        ) : agendaDays.length === 0 ? (
+          <Card>
+            <EmptyState art="calendar" title="Свободный месяц" text="Событий на ближайшие 30 дней нет." action={<Button onClick={() => openCreate(true)}>Добавить событие</Button>} />
           </Card>
-          <DayList day={selected} items={byDay.get(selected) ?? []} today={today} shift={shifts.get(selected)} holidays={holidays.get(selected) ?? []} onCreate={() => openCreate(true)} />
-        </>
-      ) : agendaDays.length === 0 ? (
-        <Card>
-          <EmptyState icon={<CalendarDays className="size-6" />} title="Свободный месяц" text="Событий на ближайшие 30 дней нет." action={<Button onClick={() => openCreate(true)}>Добавить событие</Button>} />
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {agendaDays.map((day) => (
-            <DayList key={day} day={day} items={byDay.get(day) ?? []} today={today} shift={shifts.get(day)} holidays={holidays.get(day) ?? []} />
-          ))}
-        </div>
-      )}
+        ) : (
+          <div className="space-y-4">
+            {agendaDays.map((day) => (
+              <DayList key={day} day={day} items={byDay.get(day) ?? []} today={today} shift={shifts.get(day)} holidays={holidays.get(day) ?? []} />
+            ))}
+          </div>
+        )}
+      </div>
       <Link to="/home/life" className="flex items-center gap-2 px-1 text-sm text-muted">
         <List className="size-4" /> Планы на выходные и идеи — в разделе «Вместе»
       </Link>

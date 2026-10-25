@@ -30,6 +30,7 @@ export function FinancePage() {
   return (
     <div>
       <PageHeader
+        art="jar"
         title="Финансы"
         action={
           <Button size="sm" icon={<Plus className="size-4" />} onClick={() => setTxOpen(true)}>
@@ -38,7 +39,7 @@ export function FinancePage() {
         }
       />
       <Chips value={current} onChange={(v) => navigate(v ? `/finance/${v}` : "/finance")} options={TABS} />
-      <div className="mt-4">
+      <div className="animate-tab-in mt-4" key={current}>
         <Routes>
           <Route index element={<OverviewTab />} />
           <Route path="transactions" element={<TransactionsTab />} />

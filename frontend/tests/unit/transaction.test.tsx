@@ -102,6 +102,6 @@ describe("theme", () => {
     expect(document.documentElement.dataset.theme).toBe("light");
     await userEvent.click(screen.getByRole("button", { name: "light" }));
     expect(document.documentElement.dataset.theme).toBe("dark");
-    expect(localStorage.getItem("familyos.theme")).toBe("dark");
+    expect(localStorage.getItem("familyos.theme.v2")).toBe("dark");
   });
 });

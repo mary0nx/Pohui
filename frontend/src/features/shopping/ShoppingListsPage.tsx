@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { Archive, Plus, ShoppingCart } from "lucide-react";
+import { Archive, Plus } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 
@@ -31,6 +31,7 @@ export function ShoppingListsPage() {
   return (
     <div className="space-y-3">
       <PageHeader
+        art="basket"
         title="Покупки"
         back="/home"
         action={
@@ -45,7 +46,7 @@ export function ShoppingListsPage() {
         <ErrorState error={lists.error} onRetry={() => lists.refetch()} />
       ) : lists.data.length === 0 ? (
         <Card>
-          <EmptyState icon={<ShoppingCart className="size-6" />} title="Списков пока нет" action={<Button onClick={() => setName("")}>Создать список</Button>} />
+          <EmptyState art="basket" title="Списков пока нет" text="Создайте общий список — продукты, хозяйство, подарки." action={<Button onClick={() => setName("")}>Создать список</Button>} />
         </Card>
       ) : (
         lists.data.map((l) => (

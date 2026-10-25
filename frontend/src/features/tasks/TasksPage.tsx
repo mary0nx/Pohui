@@ -1,4 +1,4 @@
-import { ListChecks, Plus, Sparkles } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 
@@ -48,6 +48,7 @@ export function TasksPage() {
   return (
     <div className="space-y-3">
       <PageHeader
+        art="checklist"
         title="Задачи"
         back="/home"
         action={
@@ -75,52 +76,63 @@ export function TasksPage() {
           { value: "week", label: "Неделя" },
         ]}
       />
-      {view === "week" ? (
-        week.isPending ? (
-          <LoadingBlock rows={4} />
-        ) : week.isError ? (
-          <ErrorState error={week.error} onRetry={() => week.refetch()} />
-        ) : (
-          <WeekPlanner
-            tz={tz}
-            addLabel="Добавить задачу"
-            onAdd={(day) => {
-              setNewDay(day);
-              setCreating(true);
-            }}
-            renderDay={(day) => {
-              const items = byDay.get(day);
-              if (!items?.length) return null;
-              return (
-                <div className="divide-y divide-border">
-                  {items.map((t) => (
-                    <TaskRow key={t.id} task={t} />
-                  ))}
-                </div>
-              );
-            }}
-          />
-        )
-      ) : (
-        <>
-          <Chips value={filter} onChange={setFilter} options={FILTERS} />
-          {tasks.isPending ? (
+      <div className="animate-tab-in space-y-3" key={view}>
+        {view === "week" ? (
+          week.isPending ? (
             <LoadingBlock rows={4} />
-          ) : tasks.isError ? (
-            <ErrorState error={tasks.error} onRetry={() => tasks.refetch()} />
-          ) : tasks.data.length === 0 ? (
-            <Card>
-              <EmptyState icon={<ListChecks className="size-6" />} title={filter === "done" ? "Пока ничего не выполнено" : "Всё сделано!"} text="Добавьте домашнее дело или назначьте его партнёру." />
-            </Card>
+          ) : week.isError ? (
+            <ErrorState error={week.error} onRetry={() => week.refetch()} />
           ) : (
-            <Card className="divide-y divide-border p-0">
-              {tasks.data.map((t) => (
-                <TaskRow key={t.id} task={t} isLast={filter !== "done" && tasks.data.length === 1} />
-              ))}
-            </Card>
-          )}
-        </>
-      )}
+            <WeekPlanner
+              tz={tz}
+              addLabel="Добавить задачу"
+              onAdd={(day) => {
+                setNewDay(day);
+                setCreating(true);
+              }}
+              renderDay={(day) => {
+                const items = byDay.get(day);
+                if (!items?.length) return null;
+                return (
+                  <div className="divide-y divide-border">
+                    {items.map((t) => (
+                      <TaskRow key={t.id} task={t} />
+                    ))}
+                  </div>
+                );
+              }}
+            />
+          )
+        ) : (
+          <>
+            <Chips value={filter} onChange={setFilter} options={FILTERS} />
+            {tasks.isPending ? (
+              <LoadingBlock rows={4} />
+            ) : tasks.isError ? (
+              <ErrorState error={tasks.error} onRetry={() => tasks.refetch()} />
+            ) : tasks.data.length === 0 ? (
+              <Card>
+                <EmptyState
+                  art="checklist"
+                  title={filter === "done" ? "Пока ничего не выполнено" : "Всё сделано!"}
+                  text="Добавьте домашнее дело или назначьте его партнёру."
+                  action={
+                    <Button icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>
+                      Новая задача
+                    </Button>
+                  }
+                />
+              </Card>
+            ) : (
+              <Card className="divide-y divide-border p-0">
+                {tasks.data.map((t) => (
+                  <TaskRow key={t.id} task={t} isLast={filter !== "done" && tasks.data.length === 1} />
+                ))}
+              </Card>
+            )}
+          </>
+        )}
+      </div>
       <TaskSheet open={creating} onOpenChange={setCreating} defaultDate={newDay} />
     </div>
   );

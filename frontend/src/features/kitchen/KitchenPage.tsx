@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChefHat, Minus, Plus, ShoppingCart, Trash2, UtensilsCrossed } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { api, errorMessage } from "@/api/client";
@@ -22,7 +22,7 @@ export function KitchenPage() {
   const [tab, setTab] = useState<Tab>("menu");
   return (
     <div className="space-y-4">
-      <PageHeader title="Кухня" back="/home" />
+      <PageHeader title="Кухня" back="/home" art="pot" />
       <Segmented
         value={tab}
         onChange={setTab}
@@ -32,9 +32,11 @@ export function KitchenPage() {
           { value: "recipes", label: "Рецепты" },
         ]}
       />
-      {tab === "pantry" && <PantryTab />}
-      {tab === "recipes" && <RecipesTab />}
-      {tab === "menu" && <MenuTab />}
+      <div className="animate-tab-in" key={tab}>
+        {tab === "pantry" && <PantryTab />}
+        {tab === "recipes" && <RecipesTab />}
+        {tab === "menu" && <MenuTab />}
+      </div>
     </div>
   );
 }
@@ -78,7 +80,7 @@ function PantryTab() {
         <ErrorState error={q.error} onRetry={() => q.refetch()} />
       ) : q.data.length === 0 ? (
         <Card>
-          <EmptyState icon={<UtensilsCrossed className="size-6" />} title="Запасы не заполнены" text="Добавьте продукты, которые есть дома, — меню и список покупок учтут их." />
+          <EmptyState art="basket" title="Запасы не заполнены" text="Добавьте продукты, которые есть дома, — меню и список покупок учтут их." />
         </Card>
       ) : (
         <Card className="divide-y divide-border p-0">
@@ -195,7 +197,7 @@ function RecipesTab() {
         <ErrorState error={q.error} onRetry={() => q.refetch()} />
       ) : q.data.length === 0 ? (
         <Card>
-          <EmptyState icon={<ChefHat className="size-6" />} title="Рецептов пока нет" text={aiEnabled ? "Сохраните любимые блюда или попросите ассистента предложить меню." : "Сохраните любимые блюда, чтобы быстро собирать меню и покупки."} />
+          <EmptyState art="pot" title="Рецептов пока нет" text={aiEnabled ? "Сохраните любимые блюда или попросите ассистента предложить меню." : "Сохраните любимые блюда, чтобы быстро собирать меню и покупки."} />
         </Card>
       ) : (
         q.data.map((r) => (

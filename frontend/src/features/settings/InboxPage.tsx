@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell } from "lucide-react";
 import { Link } from "react-router";
 
 import { api } from "@/api/client";
@@ -22,6 +21,7 @@ export function InboxPage() {
   return (
     <div className="space-y-3">
       <PageHeader
+        art="bell"
         title="Уведомления"
         back="/"
         action={
@@ -38,7 +38,7 @@ export function InboxPage() {
         <ErrorState error={q.error} onRetry={() => q.refetch()} />
       ) : q.data.items.length === 0 ? (
         <Card>
-          <EmptyState icon={<Bell className="size-6" />} title="Уведомлений нет" text="Здесь появятся напоминания о событиях, платежах и задачах." />
+          <EmptyState art="bell" title="Уведомлений нет" text="Здесь появятся напоминания о событиях, платежах и задачах." />
         </Card>
       ) : (
         <Card className="divide-y divide-border p-0">
