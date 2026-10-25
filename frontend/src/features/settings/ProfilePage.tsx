@@ -109,7 +109,7 @@ export function ProfilePage() {
     if (!invite) return;
     const text = inviteLink ?? `Код приглашения: ${invite.start_param}`;
     const tg = webApp();
-    if (inviteLink && tg?.initData) tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent("Присоединяйся к нашей семье в Family OS")}`);
+    if (inviteLink && tg?.initData) tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent("Присоединяйся к нашей семье в Family OS: нажми на ссылку, в чате бота — «Старт», затем «Присоединиться».")}`);
     else void navigator.clipboard?.writeText(text).then(() => toast.show("Скопировано"));
   };
 
@@ -316,7 +316,11 @@ export function ProfilePage() {
         {invite && (
           <div className="space-y-3">
             <div className="break-all rounded-2xl bg-surface-2 p-3 font-mono text-sm">{inviteLink ?? invite.start_param}</div>
-            {!inviteLink && <p className="text-xs text-muted">Ссылка недоступна: не указан TELEGRAM_BOT_USERNAME. Передайте код — его можно открыть как ?invite=код.</p>}
+            {inviteLink ? (
+              <p className="text-sm text-muted">Партнёр нажимает на ссылку, в чате бота — «Старт», затем «Присоединиться». Если что-то пошло не так, ссылку можно вставить в приложении: «Профиль» → «Приглашение в другую семью».</p>
+            ) : (
+              <p className="text-xs text-muted">Ссылка недоступна: не указан TELEGRAM_BOT_USERNAME. Передайте код — его можно вставить в приложении в поле «Ссылка или код приглашения».</p>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <Button variant="secondary" icon={<Copy className="size-4" />} onClick={() => navigator.clipboard?.writeText(inviteLink ?? invite.start_param).then(() => toast.show("Скопировано"))}>
                 Копировать

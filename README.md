@@ -75,7 +75,7 @@ dev-входом, а маршрут `/api/v1/auth/dev` отвечает 404.
 | `FRONTEND_URL`, `BACKEND_URL`, `CORS_ORIGINS` | `https://ваш-домен` |
 | `SITE_ADDRESS`, `ACME_EMAIL` | домен для Caddy и e-mail для Let's Encrypt |
 | `TELEGRAM_BOT_TOKEN` | токен от @BotFather (обязателен в production) |
-| `TELEGRAM_BOT_USERNAME`, `TELEGRAM_MINI_APP_SHORT_NAME` | для ссылок-приглашений `t.me/<бот>/<app>?startapp=…` |
+| `TELEGRAM_BOT_USERNAME` | для ссылок-приглашений `t.me/<бот>?start=inv_…` (через бота, BotFather `/newapp` не нужен) |
 | `BOT_MODE`, `TELEGRAM_WEBHOOK_URL`, `TELEGRAM_WEBHOOK_SECRET` | `webhook` + `https://домен/tg/webhook` + случайный секрет |
 | `OPENAI_API_KEY`, `AI_MODEL` | включают AI; без них AI выключен, остальное работает |
 | `STORAGE_BACKEND` | `local` (том Docker) или `s3` + `STORAGE_*` |
@@ -86,8 +86,10 @@ dev-входом, а маршрут `/api/v1/auth/dev` отвечает 404.
 
 1. В [@BotFather](https://t.me/BotFather): `/newbot` → имя и username → получите токен
    (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`).
-2. `/newapp` → выберите бота → укажите URL `https://ваш-домен` и короткое имя
+2. Необязательно: `/newapp` → выберите бота → укажите URL `https://ваш-домен` и короткое имя
    (`TELEGRAM_MINI_APP_SHORT_NAME`). Так появится ссылка `https://t.me/<бот>/<имя>`.
+   Приглашения от этого не зависят: они идут через бота (`?start=inv_…`), бот запоминает
+   приглашение, и приложение предлагает присоединиться, как бы его ни открыли.
 3. Бот при запуске сам устанавливает команды (`/app`, `/help`, `/settings`, `/cancel`) и
    кнопку меню «Family OS», а в режиме `webhook` — вебхук с секретом.
 4. Каждый участник должен один раз открыть чат с ботом и нажать **Старт**: Telegram не

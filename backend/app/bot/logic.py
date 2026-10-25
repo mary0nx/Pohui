@@ -107,12 +107,26 @@ async def start(
 
         # Remembered on the server: the app then offers to join even when it is opened with the
         # bot's menu button instead of the button below.
-        if await remember_invitation(db, user, payload):
-            await db.commit()
+        preview = await remember_invitation(db, user, payload)
+        await db.commit()
+        if preview is None:
+            text = (
+                "Это приглашение уже использовано, отозвано или истекло (оно действует 72 часа). "
+                "Попросите прислать новое: «Профиль» → «Пригласить участника»."
+            )
+        elif preview.already_member:
+            text = f"Вы уже в семье «{html.escape(preview.family_name)}». Откройте приложение."
+        else:
+            who = html.escape(preview.inviter_name) if preview.inviter_name else "Вас"
+            verb = "приглашает вас" if preview.inviter_name else "пригласили"
+            text = (
+                f"{who} {verb} в семью «{html.escape(preview.family_name)}» в Family OS.\n\n"
+                "Нажмите «Присоединиться» — общие расходы, покупки и дела появятся у вас."
+            )
         return BotReply(
-            text=f"Вас пригласили в семейное пространство Family OS, {html.escape(first_name)}! Откройте приложение, чтобы присоединиться.",
-            open_app_path=f"/join?invite={payload}",
-            open_app_text="Присоединиться",
+            text=text,
+            open_app_path=f"/join?invite={payload}" if preview else "/",
+            open_app_text="Присоединиться" if preview and not preview.already_member else "Открыть",
         )
     ctx = await family_context_for(db, tg_user_id)
     if ctx is None:

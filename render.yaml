@@ -32,7 +32,7 @@ services:
       - key: TELEGRAM_BOT_USERNAME
         sync: false # bot username without @
       - key: TELEGRAM_MINI_APP_SHORT_NAME
-        sync: false # short name given to /newapp in BotFather (for invitation links)
+        sync: false # optional: short name given to /newapp in BotFather (invites go through the bot)
       - key: FRONTEND_URL
         value: https://pohui.pages.dev
       - key: CORS_ORIGINS

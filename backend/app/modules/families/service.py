@@ -283,12 +283,16 @@ async def change_role(
 
 
 def invitation_link(token: str) -> str | None:
+    """Deep link into the bot (t.me/<bot>?start=inv_...).
+
+    Not the Mini App direct link (t.me/<bot>/<app>?startapp=...): that one depends on a Mini App
+    registered in BotFather under exactly TELEGRAM_MINI_APP_SHORT_NAME, and when it is not, Telegram
+    opens the app without the code. The bot route needs no BotFather setup: /start remembers the
+    invitation on the server, so the app offers to join however it is opened afterwards.
+    """
     s = get_settings()
-    start = f"{INVITE_PREFIX}{token}"
-    if s.telegram_bot_username and s.telegram_mini_app_short_name:
-        return f"https://t.me/{s.telegram_bot_username}/{s.telegram_mini_app_short_name}?startapp={start}"
     if s.telegram_bot_username:
-        return f"https://t.me/{s.telegram_bot_username}?start={start}"
+        return f"https://t.me/{s.telegram_bot_username}?start={INVITE_PREFIX}{token}"
     return None
 
 
@@ -422,14 +426,14 @@ async def accept_invitation(db: AsyncSession, user: User, token: str) -> Family:
     return await _join(db, user, _by_token(token))
 
 
-async def remember_invitation(db: AsyncSession, user: User, token: str) -> bool:
-    """Bot /start inv_...: keep the invitation on the user until they join or decline it."""
+async def remember_invitation(db: AsyncSession, user: User, token: str) -> InvitationPreview | None:
+    """Bot /start inv_...: keep the invitation on the user until they join or decline it.
+    Returns what it invites to, or None when the invitation cannot be used."""
     inv = await db.scalar(select(FamilyInvitation).where(_by_token(token)))
-    if not _is_usable(inv):
-        return False
-    assert inv is not None
+    if inv is None or not _is_usable(inv):
+        return None
     user.pending_invitation_id = inv.id
-    return True
+    return await _preview(db, user, inv)
 
 
 async def pending_invitation(db: AsyncSession, user: User) -> PendingInvitation | None:

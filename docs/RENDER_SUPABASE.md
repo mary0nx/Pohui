@@ -79,7 +79,7 @@ Family OS при каждом запуске отзывает у Data API дос
    | `DATABASE_URL` | строка из шага 1 (с вашим паролем) |
    | `TELEGRAM_BOT_TOKEN` | токен бота от BotFather |
    | `TELEGRAM_BOT_USERNAME` | username бота без `@` |
-   | `TELEGRAM_MINI_APP_SHORT_NAME` | short name Mini App, например `app` |
+   | `TELEGRAM_MINI_APP_SHORT_NAME` | необязательно: short name Mini App из `/newapp`; приглашения работают через бота и без него |
 
    Остальное (секретный ключ, адреса, CORS) уже задано в `render.yaml` — не меняйте.
 6. Нажмите **Deploy Blueprint** (или **Apply**). Первая сборка идёт 5–10 минут.

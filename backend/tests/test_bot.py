@@ -15,7 +15,7 @@ async def test_start_marks_user_reachable(alice: Actor) -> None:
         user = await db.get(User, uuid.UUID(alice.user_id))
         assert user.bot_started_at is not None
         invite = await logic.start(db, 1001, "Алиса", None, "ru", "inv_abc")
-        assert invite.open_app_path == "/join?invite=inv_abc"
+        assert "истекло" in invite.text and invite.open_app_path == "/"
 
 
 async def test_bot_ai_and_inline_confirmation(couple: tuple[Actor, Actor]) -> None:

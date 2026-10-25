@@ -16,7 +16,7 @@ async def test_invitation_flow(alice: Actor, bob: Actor) -> None:
     await create_family(alice)
     inv = (await alice.post(alice.f("/invitations"), {"max_uses": 1})).json()
     assert inv["token"] and inv["start_param"].startswith("inv_")
-    assert inv["link"].startswith("https://t.me/family_os_test_bot")
+    assert inv["link"] == f"https://t.me/family_os_test_bot?start={inv['start_param']}"
 
     preview = await bob.post("/api/v1/invitations/preview", {"token": inv["start_param"]})
     assert preview.status_code == 200
@@ -118,6 +118,8 @@ async def test_invitation_opened_in_bot_is_offered_in_the_app(alice: Actor, clie
     async with get_sessionmaker()() as db:
         reply = await logic.start(db, 1005, "Mari", None, "ru", inv["start_param"])
     assert reply.open_app_path == f"/join?invite={inv['start_param']}"
+    assert "Алиса приглашает вас в семью «Family»" in reply.text
+    assert reply.open_app_text == "Присоединиться"
     pending = (await mari.get("/api/v1/me")).json()["pending_invitation"]
     assert pending["family_name"] == "Family" and pending["inviter_name"] == "Алиса"
     # Nobody else sees it.
