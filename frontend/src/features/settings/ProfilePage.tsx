@@ -7,6 +7,7 @@ import { api, errorMessage } from "@/api/client";
 import { useAiEnabled, useFamily, useSession } from "@/app/session";
 import { PALETTES, useTheme, type ThemeMode } from "@/app/theme";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { InviteCodeForm } from "@/features/onboarding/InviteCodeForm";
 import { Avatar, Badge, Button, Card, ConfirmDialog, Input, Section, Segmented, Select, Sheet, Switch, useToast } from "@/components/ui";
 import { useI18n, type Locale } from "@/i18n";
 import { cn } from "@/lib/cn";
@@ -282,6 +283,13 @@ export function ProfilePage() {
           )}
         </Card>
         {aiEnabled && family && isAdmin && <Switch label="AI выполняет простые команды сразу" description="Например, «добавь 45 zł за продукты». Удаление и массовые изменения всегда требуют подтверждения." checked={family.ai_auto_execute} onChange={(v) => patch.mutate({ ai_auto_execute: v })} />}
+      </Section>
+
+      <Section title="Приглашение в другую семью">
+        <Card>
+          <p className="mb-3 text-sm text-muted">Если вам прислали ссылку-приглашение, вставьте её сюда — вы присоединитесь к той семье. Текущая семья останется в списке, между ними можно переключаться.</p>
+          <InviteCodeForm />
+        </Card>
       </Section>
 
       <Section title="Опасная зона">

@@ -27,6 +27,8 @@ interface SessionValue {
   meta: Meta | null;
   me: Me | null;
   pendingInvite: string | null;
+  /** Show the join screen for a code the user pasted. */
+  openInvite: (code: string) => void;
   clearInvite: () => void;
   devLogin: (telegramId: number, name: string) => Promise<void>;
   refreshMe: () => Promise<Me | null>;
@@ -37,9 +39,15 @@ interface SessionValue {
 
 const SessionContext = createContext<SessionValue | null>(null);
 
+/** The invitation code inside a pasted link or text ("…?startapp=inv_…", "inv_…"), or null. */
+export function inviteCode(text: string): string | null {
+  return text.match(/inv_[A-Za-z0-9_-]{10,100}/)?.[0] ?? null;
+}
+
 function inviteFromUrl(): string | null {
   const params = new URLSearchParams(window.location.search);
-  const v = params.get("invite") ?? params.get("startapp");
+  // Telegram passes a direct link's startapp value as tgWebAppStartParam.
+  const v = params.get("invite") ?? params.get("startapp") ?? params.get("tgWebAppStartParam");
   return v && v.startsWith("inv_") ? v : null;
 }
 
@@ -144,7 +152,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [qc, meta]);
 
   const value = useMemo<SessionValue>(
-    () => ({ status, error, meta, me, pendingInvite, clearInvite: () => setPendingInvite(null), devLogin, refreshMe, setActiveFamily, logout, retry: boot }),
+    () => ({ status, error, meta, me, pendingInvite, clearInvite: () => setPendingInvite(null), openInvite: setPendingInvite, devLogin, refreshMe, setActiveFamily, logout, retry: boot }),
     [status, error, meta, me, pendingInvite, devLogin, refreshMe, setActiveFamily, logout, boot],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

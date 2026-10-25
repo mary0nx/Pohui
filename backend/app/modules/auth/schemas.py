@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from app.core.schemas import ORMModel
 from app.models.enums import Role
+from app.modules.families.schemas import PendingInvitation
 
 
 class TelegramAuthIn(BaseModel):
@@ -43,6 +44,8 @@ class MeOut(BaseModel):
     families: list[MembershipOut]
     active_family_id: uuid.UUID | None
     auth_method: str
+    # Set when the user opened an invitation in the bot and has not joined or declined it.
+    pending_invitation: PendingInvitation | None = None
 
 
 class MePatch(BaseModel):

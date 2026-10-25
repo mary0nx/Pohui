@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import timedelta
 
+import sqlalchemy as sa
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -40,6 +41,7 @@ from app.modules.families.schemas import (
     InvitationCreated,
     InvitationPreview,
     MemberOut,
+    PendingInvitation,
 )
 from app.security.access import FamilyContext
 from app.security.tokens import hash_token, new_token
@@ -341,27 +343,32 @@ def _normalize_token(token: str) -> str:
     return token[len(INVITE_PREFIX) :] if token.startswith(INVITE_PREFIX) else token
 
 
-async def _usable_invitation(
-    db: AsyncSession, token: str, *, lock: bool = False
-) -> FamilyInvitation:
-    stmt = select(FamilyInvitation).where(
-        FamilyInvitation.token_hash == hash_token(_normalize_token(token))
+def _by_token(token: str) -> sa.ColumnElement[bool]:
+    return FamilyInvitation.token_hash == hash_token(_normalize_token(token))
+
+
+def _is_usable(inv: FamilyInvitation | None) -> bool:
+    return (
+        inv is not None
+        and inv.revoked_at is None
+        and inv.expires_at > utcnow()
+        and inv.use_count < inv.max_uses
     )
+
+
+async def _usable_invitation(
+    db: AsyncSession, where: sa.ColumnElement[bool], *, lock: bool = False
+) -> FamilyInvitation:
+    stmt = select(FamilyInvitation).where(where)
     if lock:
         stmt = stmt.with_for_update()
     inv = (await db.execute(stmt)).scalar_one_or_none()
-    if (
-        inv is None
-        or inv.revoked_at is not None
-        or inv.expires_at <= utcnow()
-        or inv.use_count >= inv.max_uses
-    ):
+    if inv is None or not _is_usable(inv):
         raise NotFound("Приглашение недействительно или истекло", code="invitation_invalid")
     return inv
 
 
-async def preview_invitation(db: AsyncSession, user: User, token: str) -> InvitationPreview:
-    inv = await _usable_invitation(db, token)
+async def _preview(db: AsyncSession, user: User, inv: FamilyInvitation) -> InvitationPreview:
     family = await db.get(Family, inv.family_id)
     assert family is not None
     inviter = await db.get(User, inv.created_by) if inv.created_by else None
@@ -378,12 +385,12 @@ async def preview_invitation(db: AsyncSession, user: User, token: str) -> Invita
     )
 
 
-async def accept_invitation(db: AsyncSession, user: User, token: str) -> Family:
-    any_inv = await db.scalar(
-        select(FamilyInvitation).where(
-            FamilyInvitation.token_hash == hash_token(_normalize_token(token))
-        )
-    )
+async def preview_invitation(db: AsyncSession, user: User, token: str) -> InvitationPreview:
+    return await _preview(db, user, await _usable_invitation(db, _by_token(token)))
+
+
+async def _join(db: AsyncSession, user: User, where: sa.ColumnElement[bool]) -> Family:
+    any_inv = await db.scalar(select(FamilyInvitation).where(where))
     if any_inv is not None:
         existing = await db.scalar(
             select(FamilyMember).where(
@@ -395,18 +402,53 @@ async def accept_invitation(db: AsyncSession, user: User, token: str) -> Family:
             family = await db.get(Family, any_inv.family_id)
             assert family is not None
             user.active_family_id = family.id
+            user.pending_invitation_id = None
             return family
-    inv = await _usable_invitation(db, token, lock=True)
+    inv = await _usable_invitation(db, where, lock=True)
     family = await db.get(Family, inv.family_id)
     assert family is not None
     inv.use_count += 1
     member = FamilyMember(family_id=family.id, user_id=user.id, role=inv.role)
     db.add(member)
     user.active_family_id = family.id
+    user.pending_invitation_id = None
     await db.flush()
     ctx = FamilyContext(user=user, family=family, member=member)
     audit(db, ctx, "member.join", "family_member", member.id, user.first_name)
     return family
+
+
+async def accept_invitation(db: AsyncSession, user: User, token: str) -> Family:
+    return await _join(db, user, _by_token(token))
+
+
+async def remember_invitation(db: AsyncSession, user: User, token: str) -> bool:
+    """Bot /start inv_...: keep the invitation on the user until they join or decline it."""
+    inv = await db.scalar(select(FamilyInvitation).where(_by_token(token)))
+    if not _is_usable(inv):
+        return False
+    assert inv is not None
+    user.pending_invitation_id = inv.id
+    return True
+
+
+async def pending_invitation(db: AsyncSession, user: User) -> PendingInvitation | None:
+    """The invitation remembered from the bot, while it can still be used."""
+    if user.pending_invitation_id is None:
+        return None
+    inv = await db.get(FamilyInvitation, user.pending_invitation_id)
+    if inv is None or not _is_usable(inv):
+        return None
+    preview = await _preview(db, user, inv)
+    if preview.already_member:
+        return None
+    return PendingInvitation(id=inv.id, **preview.model_dump())
+
+
+async def accept_pending_invitation(db: AsyncSession, user: User) -> Family:
+    if user.pending_invitation_id is None:
+        raise NotFound("Приглашение недействительно или истекло", code="invitation_invalid")
+    return await _join(db, user, FamilyInvitation.id == user.pending_invitation_id)
 
 
 async def list_invitations(db: AsyncSession, ctx: FamilyContext) -> list[FamilyInvitation]:

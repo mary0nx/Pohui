@@ -109,3 +109,18 @@ async def accept(body: InvitationTokenIn, user: CurrentUser, db: DB) -> FamilyOu
     await db.commit()
     ctx = await load_family_context(db, user, family.id)
     return await service.family_out(db, ctx)
+
+
+@router.post("/invitations/pending/accept", response_model=FamilyOut)
+async def accept_pending(user: CurrentUser, db: DB) -> FamilyOut:
+    """Join by the invitation the user opened in the bot (see MeOut.pending_invitation)."""
+    family = await service.accept_pending_invitation(db, user)
+    await db.commit()
+    ctx = await load_family_context(db, user, family.id)
+    return await service.family_out(db, ctx)
+
+
+@router.post("/invitations/pending/dismiss", status_code=204)
+async def dismiss_pending(user: CurrentUser, db: DB) -> None:
+    user.pending_invitation_id = None
+    await db.commit()

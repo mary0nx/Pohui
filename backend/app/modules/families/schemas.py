@@ -85,3 +85,9 @@ class InvitationPreview(BaseModel):
     inviter_name: str | None
     expires_at: datetime
     already_member: bool
+
+
+class PendingInvitation(InvitationPreview):
+    """An invitation the user opened through the bot and has not answered yet."""
+
+    id: uuid.UUID

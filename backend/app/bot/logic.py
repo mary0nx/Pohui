@@ -101,8 +101,14 @@ async def start(
     language: str | None,
     payload: str | None,
 ) -> BotReply:
-    await mark_started(db, tg_user_id, first_name, username, language)
+    user = await mark_started(db, tg_user_id, first_name, username, language)
     if payload and payload.startswith("inv_"):
+        from app.modules.families.service import remember_invitation
+
+        # Remembered on the server: the app then offers to join even when it is opened with the
+        # bot's menu button instead of the button below.
+        if await remember_invitation(db, user, payload):
+            await db.commit()
         return BotReply(
             text=f"Вас пригласили в семейное пространство Family OS, {html.escape(first_name)}! Откройте приложение, чтобы присоединиться.",
             open_app_path=f"/join?invite={payload}",

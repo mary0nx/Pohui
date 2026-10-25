@@ -97,3 +97,62 @@ async def test_dev_auth_meta(client) -> None:  # type: ignore[no-untyped-def]
     meta = (await client.get("/api/v1/meta")).json()
     assert meta["dev_auth"] is True
     assert meta["ai_available"] is False
+
+
+async def test_invitation_opened_in_bot_is_offered_in_the_app(alice: Actor, client) -> None:  # type: ignore[no-untyped-def]
+    """The partner opens the link, presses Start in the bot, then opens the app with the menu
+    button (no start parameter): the app must still offer to join, even though she already
+    created a family of her own."""
+    from app.bot import logic
+    from app.db.session import get_sessionmaker
+
+    await create_family(alice, "Family")
+    inv = (await alice.post(alice.f("/invitations"), {})).json()
+    mari = await login(client, 1005, "Mari")
+    await create_family(mari, "Наша семья транжиры")
+
+    async with get_sessionmaker()() as db:
+        await logic.start(db, 1005, "Mari", None, "ru", "inv_wrong-token-123456")
+    assert (await mari.get("/api/v1/me")).json()["pending_invitation"] is None
+
+    async with get_sessionmaker()() as db:
+        reply = await logic.start(db, 1005, "Mari", None, "ru", inv["start_param"])
+    assert reply.open_app_path == f"/join?invite={inv['start_param']}"
+    pending = (await mari.get("/api/v1/me")).json()["pending_invitation"]
+    assert pending["family_name"] == "Family" and pending["inviter_name"] == "Алиса"
+    # Nobody else sees it.
+    assert (await alice.get("/api/v1/me")).json()["pending_invitation"] is None
+
+    r = await mari.post("/api/v1/invitations/pending/accept")
+    assert r.status_code == 200, r.text
+    assert r.json()["name"] == "Family"
+    me = (await mari.get("/api/v1/me")).json()
+    assert me["active_family_id"] == alice.family_id and me["pending_invitation"] is None
+    assert len(me["families"]) == 2
+    members = (await alice.get(alice.f())).json()["members"]
+    assert sorted(m["first_name"] for m in members) == ["Mari", "Алиса"]
+    # The invitation was used once; accepting again does nothing.
+    r = await mari.post("/api/v1/invitations/pending/accept")
+    assert r.status_code == 404
+
+
+async def test_pending_invitation_can_be_declined_and_expires_with_revocation(
+    alice: Actor, bob: Actor
+) -> None:
+    from app.bot import logic
+    from app.db.session import get_sessionmaker
+
+    await create_family(alice)
+    inv = (await alice.post(alice.f("/invitations"), {})).json()
+    async with get_sessionmaker()() as db:
+        await logic.start(db, 1002, "Борис", None, "ru", inv["start_param"])
+    assert (await bob.get("/api/v1/me")).json()["pending_invitation"] is not None
+    assert (await bob.post("/api/v1/invitations/pending/dismiss")).status_code == 204
+    assert (await bob.get("/api/v1/me")).json()["pending_invitation"] is None
+
+    async with get_sessionmaker()() as db:
+        await logic.start(db, 1002, "Борис", None, "ru", inv["start_param"])
+    assert (await alice.delete(alice.f(f"/invitations/{inv['id']}"))).status_code == 204
+    assert (await bob.get("/api/v1/me")).json()["pending_invitation"] is None
+    assert (await bob.post("/api/v1/invitations/pending/accept")).status_code == 404
+    assert (await bob.get("/api/v1/me")).json()["families"] == []

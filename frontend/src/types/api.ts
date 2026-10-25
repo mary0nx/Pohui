@@ -29,6 +29,8 @@ export interface Me {
   families: Membership[];
   active_family_id: UUID | null;
   auth_method: "telegram" | "dev";
+  /** An invitation opened in the bot that the user has not answered yet (newer servers). */
+  pending_invitation?: PendingInvitation | null;
 }
 
 export interface TokenOut {
@@ -93,6 +95,10 @@ export interface InvitationPreview {
   inviter_name: string | null;
   expires_at: string;
   already_member: boolean;
+}
+
+export interface PendingInvitation extends InvitationPreview {
+  id: UUID;
 }
 
 export interface Page<T> {

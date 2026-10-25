@@ -6,9 +6,12 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { api, errorMessage } from "@/api/client";
+import { router } from "@/app/routes";
 import { useSession } from "@/app/session";
 import { Button, Card, ErrorState, Input, Select, Spinner } from "@/components/ui";
-import type { Family, InvitationPreview } from "@/types/api";
+
+import { InviteCodeForm } from "./InviteCodeForm";
+import type { Family, InvitationPreview, PendingInvitation } from "@/types/api";
 
 function Centered({ children }: { children: ReactNode }) {
   return <div className="pt-safe mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-10">{children}</div>;
@@ -229,10 +232,55 @@ export function CreateFamily() {
           Создать
         </Button>
       </form>
-      <p className="mt-6 flex items-center gap-2 text-sm text-muted">
-        <Users className="size-4" /> Получили приглашение? Откройте ссылку от партнёра.
-      </p>
+      <div className="mt-8 border-t border-border pt-6">
+        <p className="flex items-center gap-2 font-semibold text-heading">
+          <Users className="size-4" /> Партнёр уже создал семью?
+        </p>
+        <p className="mb-3 mt-1 text-sm text-muted">Не создавайте новую — вставьте ссылку-приглашение, которую вам прислали.</p>
+        <InviteCodeForm />
+      </div>
     </Centered>
+  );
+}
+
+function JoinCard({
+  preview,
+  onAccept,
+  accepting,
+  error,
+  onLater,
+}: {
+  preview: InvitationPreview;
+  onAccept: () => void;
+  accepting: boolean;
+  error: unknown;
+  onLater: () => void;
+}) {
+  return (
+    <Card className="space-y-4">
+      <div className="flex items-center gap-3">
+        <span className="flex size-11 items-center justify-center rounded-2xl bg-accent-soft text-accent">
+          <Send className="size-5" />
+        </span>
+        <div>
+          <p className="text-sm text-muted">{preview.inviter_name ? `${preview.inviter_name} приглашает вас` : "Приглашение"}</p>
+          <p className="text-lg font-semibold">«{preview.family_name}»</p>
+        </div>
+      </div>
+      {preview.already_member ? (
+        <Button block onClick={onAccept} loading={accepting}>
+          Вы уже в этой семье — открыть
+        </Button>
+      ) : (
+        <Button block size="lg" onClick={onAccept} loading={accepting}>
+          Присоединиться
+        </Button>
+      )}
+      {error ? <p className="text-sm text-danger">{errorMessage(error)}</p> : null}
+      <Button variant="ghost" block onClick={onLater}>
+        Не сейчас
+      </Button>
+    </Card>
   );
 }
 
@@ -251,7 +299,7 @@ export function JoinFamily({ token }: { token: string }) {
       await refreshMe();
       qc.clear();
       clearInvite();
-      window.history.replaceState(null, "", "/");
+      await router.navigate("/", { replace: true });
     },
   });
   return (
@@ -268,31 +316,33 @@ export function JoinFamily({ token }: { token: string }) {
           </Button>
         </Card>
       ) : (
-        <Card className="space-y-4">
-          <div className="flex items-center gap-3">
-            <span className="flex size-11 items-center justify-center rounded-2xl bg-accent-soft text-accent">
-              <Send className="size-5" />
-            </span>
-            <div>
-              <p className="text-sm text-muted">{preview.data.inviter_name ? `${preview.data.inviter_name} приглашает вас` : "Приглашение"}</p>
-              <p className="text-lg font-semibold">«{preview.data.family_name}»</p>
-            </div>
-          </div>
-          {preview.data.already_member ? (
-            <Button block onClick={() => accept.mutate()} loading={accept.isPending}>
-              Вы уже в этой семье — открыть
-            </Button>
-          ) : (
-            <Button block size="lg" onClick={() => accept.mutate()} loading={accept.isPending}>
-              Присоединиться
-            </Button>
-          )}
-          {accept.isError && <p className="text-sm text-danger">{errorMessage(accept.error)}</p>}
-          <Button variant="ghost" block onClick={clearInvite}>
-            Не сейчас
-          </Button>
-        </Card>
+        <JoinCard preview={preview.data} onAccept={() => accept.mutate()} accepting={accept.isPending} error={accept.error} onLater={clearInvite} />
       )}
+    </Centered>
+  );
+}
+
+/** The invitation was opened in the bot, but the app was started without it (menu button,
+ *  bot profile): the server remembered it, so offer to join anyway. */
+export function JoinPending({ invitation }: { invitation: PendingInvitation }) {
+  const { refreshMe } = useSession();
+  const qc = useQueryClient();
+  const accept = useMutation({
+    mutationFn: () => api<Family>("/invitations/pending/accept", { method: "POST" }),
+    onSuccess: async () => {
+      await refreshMe();
+      qc.clear();
+      await router.navigate("/", { replace: true });
+    },
+  });
+  const later = useMutation({
+    mutationFn: () => api("/invitations/pending/dismiss", { method: "POST" }),
+    onSettled: () => refreshMe(),
+  });
+  return (
+    <Centered>
+      <Logo />
+      <JoinCard preview={invitation} onAccept={() => accept.mutate()} accepting={accept.isPending} error={accept.error} onLater={() => later.mutate()} />
     </Centered>
   );
 }

@@ -28,6 +28,11 @@ class User(UUIDPk, Timestamps, Base):
         sa.ForeignKey("families.id", ondelete="SET NULL", use_alter=True)
     )
     last_seen_at: Mapped[datetime | None]
+    # Invitation the user opened through the bot (/start inv_...). Remembered on the server so
+    # the app offers to join however it is opened next (menu button, bot profile, search).
+    pending_invitation_id: Mapped[uuid.UUID | None] = mapped_column(
+        sa.ForeignKey("family_invitations.id", ondelete="SET NULL", use_alter=True)
+    )
 
     @property
     def display_name(self) -> str:
