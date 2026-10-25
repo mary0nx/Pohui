@@ -119,6 +119,8 @@ class Settings(BaseSettings):
     # Local storage on a disk wiped by every deploy/restart (Render). None = detect Render.
     storage_ephemeral: bool | None = None
     max_upload_mb: int = 15
+    # Hosts an external image source may serve shopping thumbnails from (https only).
+    image_allowed_hosts: Annotated[list[str], NoDecode] = Field(default_factory=list)
 
     # Limits
     max_request_body_kb: int = 1024
@@ -158,7 +160,7 @@ class Settings(BaseSettings):
     def _strip_storage(cls, value: object) -> object:
         return value.strip() if isinstance(value, str) else value
 
-    @field_validator("cors_origins", mode="before")
+    @field_validator("cors_origins", "image_allowed_hosts", mode="before")
     @classmethod
     def _split_origins(cls, value: object) -> object:
         if isinstance(value, str):

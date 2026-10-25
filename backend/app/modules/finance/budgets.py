@@ -11,10 +11,10 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import audit
-from app.core.errors import NotFound, ValidationFailed
+from app.core.errors import Forbidden, NotFound, ValidationFailed
 from app.core.time import add_months, local_range_bounds, month_start
 from app.models import Budget, Category
-from app.models.enums import CategoryKind
+from app.models.enums import CategoryKind, Role
 from app.modules.finance.schemas import BudgetCopy, BudgetOut, BudgetUpsert
 from app.modules.finance.summary import category_spend, level_for, period_totals, scope_condition
 from app.security.access import FamilyContext, get_visible
@@ -48,7 +48,14 @@ async def list_budgets(db: AsyncSession, ctx: FamilyContext, month: date) -> lis
     return out
 
 
+def _require_budget_rights(ctx: FamilyContext) -> None:
+    """Budgets are shared limits for the whole family: owner and admins set them."""
+    if not ctx.has_role(Role.admin):
+        raise Forbidden("Бюджет семьи меняют владелец и администраторы")
+
+
 async def upsert_budget(db: AsyncSession, ctx: FamilyContext, data: BudgetUpsert) -> None:
+    _require_budget_rights(ctx)
     if data.category_id is not None:
         cat = await get_visible(db, Category, data.category_id, ctx)
         if cat.kind != CategoryKind.expense or cat.parent_id is not None:
@@ -73,6 +80,7 @@ async def upsert_budget(db: AsyncSession, ctx: FamilyContext, data: BudgetUpsert
 
 
 async def delete_budget(db: AsyncSession, ctx: FamilyContext, budget_id: uuid.UUID) -> None:
+    _require_budget_rights(ctx)
     budget = await db.scalar(
         select(Budget).where(Budget.id == budget_id, Budget.family_id == ctx.family_id)
     )
@@ -82,6 +90,7 @@ async def delete_budget(db: AsyncSession, ctx: FamilyContext, budget_id: uuid.UU
 
 
 async def copy_budgets(db: AsyncSession, ctx: FamilyContext, data: BudgetCopy) -> int:
+    _require_budget_rights(ctx)
     src = (
         (
             await db.execute(

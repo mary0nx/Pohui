@@ -32,6 +32,10 @@ class ListOut(ORMModel):
 
 class ItemCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
+    # From the catalogue (thumbnail, category and unit come with it); without it the name is
+    # matched to the catalogue on the server. `image`: "local:<code>" or an allow-listed URL.
+    catalog_id: str | None = Field(None, max_length=64)
+    image: str | None = Field(None, max_length=300)
     quantity: QuantityValue | None = None
     unit: str | None = Field(None, max_length=16)
     category: str | None = Field(None, max_length=32)
@@ -43,6 +47,8 @@ class ItemCreate(BaseModel):
 
 class ItemPatch(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=200)
+    catalog_id: str | None = Field(None, max_length=64)
+    image: str | None = Field(None, max_length=300)
     quantity: QuantityValue | None = None
     unit: str | None = Field(None, max_length=16)
     category: str | None = Field(None, max_length=32)
@@ -69,6 +75,8 @@ class ItemOut(ORMModel):
     bought_at: datetime | None
     position: int
     planned_for: date | None
+    catalog_id: str | None = None
+    image: str | None = None
     updated_at: datetime
 
 

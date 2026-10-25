@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timedelta
+from decimal import Decimal
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -32,11 +33,22 @@ from app.security.access import visible
 router = APIRouter(prefix="/families/{family_id}", tags=["dashboard"])
 
 
+class ShoppingEntry(BaseModel):
+    id: uuid.UUID
+    name: str
+    quantity: Decimal | None
+    unit: str | None
+    image: str | None
+    category: str | None
+    status: str
+
+
 class ShoppingPreview(BaseModel):
     list_id: uuid.UUID | None
     list_name: str | None
     needed_total: int
-    items: list[str]
+    items: list[str]  # names, kept for older clients
+    entries: list[ShoppingEntry] = []
 
 
 class ActivityOut(BaseModel):
@@ -98,7 +110,20 @@ async def dashboard(ctx: Ctx, db: DB) -> Dashboard:
         main = max(lists, key=lambda x: (x.items_needed, -x.created_at.timestamp()))
         detail = await list_detail(db, ctx, main.id)
         preview.list_id, preview.list_name = main.id, main.name
-        preview.items = [i.name for i in detail.items if i.status == "needed"][:6]
+        needed = [i for i in detail.items if i.status == "needed"][:6]
+        preview.items = [i.name for i in needed]
+        preview.entries = [
+            ShoppingEntry(
+                id=i.id,
+                name=i.name,
+                quantity=i.quantity,
+                unit=i.unit,
+                image=i.image,
+                category=i.category,
+                status=i.status,
+            )
+            for i in needed
+        ]
 
     my_tasks = await list_tasks(db, ctx, status="open", assignee="me", limit=5)
     if len(my_tasks) < 5:

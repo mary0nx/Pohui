@@ -49,6 +49,21 @@ async def _start_embedded_bot(app: FastAPI) -> None:
         return
 
 
+async def _seed_catalog() -> None:
+    """Upsert the product catalogue (idempotent). A database that is not ready yet must not
+    stop the API: readiness reports it, and the next start seeds again."""
+    from app.db.session import get_sessionmaker
+    from app.modules.catalog.service import sync_catalog
+
+    try:
+        async with get_sessionmaker()() as db:
+            count = await sync_catalog(db)
+            await db.commit()
+        log.info("product catalogue synced", extra={"ctx": {"products": count}})
+    except Exception:
+        log.warning("product catalogue not synced", exc_info=True)
+
+
 def _log_worker_exit(task: asyncio.Task[None]) -> None:
     if not task.cancelled() and task.exception() is not None:
         log.error("embedded worker crashed", exc_info=task.exception())
@@ -72,6 +87,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     if settings.dev_auth_active:
         log.warning("DEV AUTH IS ENABLED - never use this configuration in production")
+    await _seed_catalog()
     app.state.embedded_bot = None
     bot_starter: asyncio.Task[None] | None = None
     if settings.embedded_bot and settings.telegram_configured:

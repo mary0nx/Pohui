@@ -11,6 +11,8 @@ from app.core.errors import Conflict, NotFound, ValidationFailed
 from app.core.time import utcnow
 from app.models import AuditLog, ShoppingItem, ShoppingList, User
 from app.models.enums import ItemStatus, NotificationCategory
+from app.modules.catalog import service as catalog
+from app.modules.catalog.images import validate_image_ref
 from app.modules.notifications.service import notify_family
 from app.modules.shopping.schemas import (
     HistoryOut,
@@ -25,6 +27,25 @@ from app.modules.shopping.schemas import (
 from app.security.access import FamilyContext, ensure_can_delete, get_visible
 
 MAX_ITEMS_PER_LIST = 500
+
+
+async def _catalog_product(
+    db: AsyncSession, catalog_id: str | None, name: str
+) -> catalog.Product | None:
+    """The product an item belongs to: the one chosen in the catalogue, or a clear match of
+    the typed name ("яйца 10 шт" → eggs); None for anything new."""
+    if catalog_id:
+        product = await catalog.get_product(db, catalog_id)
+        if product is None:
+            raise ValidationFailed("Такого товара нет в каталоге", code="catalog_not_found")
+        return product
+    return await catalog.match(db, name)
+
+
+def _image_for(product: catalog.Product | None, image: str | None) -> str | None:
+    if image:
+        return validate_image_ref(image)
+    return catalog.local_image_ref(product.image) if product else None
 
 
 async def list_lists(
@@ -186,6 +207,8 @@ async def add_items(
     )
     result: list[ShoppingItem] = []
     for data in items:
+        product = await _catalog_product(db, data.catalog_id, data.name)
+        image = _image_for(product, data.image)
         # Same item for the same day merges; a different day is a separate line.
         same = existing.get((data.name.lower(), data.planned_for)) if merge else None
         if same is not None and (same.unit or None) == (data.unit or None):
@@ -196,6 +219,8 @@ async def add_items(
                     if same.quantity
                     else data.quantity
                 )
+            if same.image is None and image is not None:
+                same.catalog_id, same.image = product.id if product else None, image
             result.append(same)
             continue
         max_pos += 1
@@ -204,8 +229,11 @@ async def add_items(
             list_id=lst.id,
             name=data.name.strip(),
             quantity=data.quantity,
-            unit=data.unit,
-            category=data.category,
+            # The catalogue's usual unit only together with a quantity ("2 л", never a bare "л").
+            unit=data.unit or (product.unit if product and data.quantity is not None else None),
+            category=data.category or (product.category_label if product else None),
+            catalog_id=product.id if product else None,
+            image=image,
             note=data.note,
             estimated_price=data.estimated_price,
             store=data.store,
@@ -266,6 +294,16 @@ async def update_item(
     ):
         if field in data.model_fields_set:
             setattr(item, field, getattr(data, field))
+    fields = data.model_fields_set
+    if "catalog_id" in fields or ("name" in fields and data.name):
+        # A different product chosen, or the name changed: link to the matching product (if any).
+        product = await _catalog_product(db, data.catalog_id, item.name)
+        item.catalog_id = product.id if product else None
+        if "image" not in fields:
+            external = item.image is not None and not item.image.startswith("local:")
+            item.image = item.image if external and product is None else _image_for(product, None)
+    if "image" in fields:
+        item.image = validate_image_ref(data.image)
     if data.status is not None and data.status != item.status:
         item.status = data.status
         if data.status == ItemStatus.bought:

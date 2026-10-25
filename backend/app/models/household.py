@@ -25,6 +25,22 @@ from app.models.enums import (
 )
 
 
+class ProductCatalog(Base):
+    """Shared catalogue of everyday products (not family data): seeded from
+    app/modules/catalog/data.py on startup, upserted by id, never edited by users."""
+
+    __tablename__ = "product_catalog"
+
+    id: Mapped[str] = mapped_column(sa.String(64), primary_key=True)
+    name: Mapped[str] = mapped_column(sa.String(120))
+    name_pl: Mapped[str] = mapped_column(sa.String(120))
+    category: Mapped[str] = mapped_column(sa.String(32), index=True)
+    unit: Mapped[str | None] = mapped_column(sa.String(16))
+    image: Mapped[str] = mapped_column(sa.String(32))
+    synonyms: Mapped[list[str]] = mapped_column(ARRAY(sa.String(120)), server_default="{}")
+    position: Mapped[int] = mapped_column(server_default="0")
+
+
 class ShoppingList(UUIDPk, Timestamps, Base):
     __tablename__ = "shopping_lists"
 
@@ -66,6 +82,12 @@ class ShoppingItem(UUIDPk, Timestamps, Base):
     position: Mapped[int] = mapped_column(server_default="0")
     # Day the item should be bought (week planner); the family gets a reminder that morning.
     planned_for: Mapped[date | None] = mapped_column(sa.Date)
+    # Catalogue product the item was added from (or matched to), and its thumbnail:
+    # "local:<code>" for a bundled image, or an https URL from an allow-listed image source.
+    catalog_id: Mapped[str | None] = mapped_column(
+        sa.ForeignKey("product_catalog.id", ondelete="SET NULL")
+    )
+    image: Mapped[str | None] = mapped_column(sa.String(300))
 
 
 class Task(UUIDPk, Timestamps, Base):
