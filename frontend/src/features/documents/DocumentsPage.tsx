@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Archive, Download, FileText, Plus, Search, Trash2, Upload } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router";
 
 import { api, errorMessage } from "@/api/client";
 import { useFamily, useSession } from "@/app/session";
@@ -35,6 +36,20 @@ export function DocumentsPage() {
   const [upload, setUpload] = useState<UploadForm | null>(null);
   const [selected, setSelected] = useState<DocumentItem | null>(null);
   const [confirm, setConfirm] = useState(false);
+  // /home/documents/:docId (links in expiry reminders) opens that document's card.
+  const { docId } = useParams();
+  const navigate = useNavigate();
+  const linked = useQuery({ queryKey: ["document", familyId, docId], queryFn: () => api<DocumentItem>(f(`/documents/${docId}`)), enabled: Boolean(docId), retry: false });
+  useEffect(() => {
+    if (linked.data) setSelected(linked.data);
+  }, [linked.data]);
+  useEffect(() => {
+    if (linked.isError) toast.show("Документ не найден или к нему нет доступа", "error");
+  }, [linked.isError, toast]);
+  const close = () => {
+    setSelected(null);
+    if (docId) navigate("/home/documents", { replace: true });
+  };
   const docs = useQuery({ queryKey: ["documents", familyId, q, archived], queryFn: () => api<DocumentItem[]>(f("/documents"), { query: { q: q.trim() || undefined, archived } }), placeholderData: (p) => p });
   const invalidate = () => qc.invalidateQueries({ queryKey: ["documents"] });
   const maxMb = meta?.max_upload_mb ?? 15;
@@ -73,7 +88,7 @@ export function DocumentsPage() {
   const archive = useMutation({
     mutationFn: (d: DocumentItem) => api(f(`/documents/${d.id}`), { method: "PATCH", body: { archived: !d.archived_at } }),
     onSuccess: async () => {
-      setSelected(null);
+      close();
       await invalidate();
     },
   });
@@ -81,7 +96,7 @@ export function DocumentsPage() {
     mutationFn: (d: DocumentItem) => api(f(`/documents/${d.id}`), { method: "DELETE" }),
     onSuccess: async () => {
       setConfirm(false);
-      setSelected(null);
+      close();
       toast.show("Документ удалён");
       await invalidate();
     },
@@ -203,7 +218,7 @@ export function DocumentsPage() {
         )}
       </Sheet>
 
-      <Sheet open={selected !== null} onOpenChange={(v) => !v && setSelected(null)} title={selected?.title ?? ""}>
+      <Sheet open={selected !== null} onOpenChange={(v) => !v && close()} title={selected?.title ?? ""}>
         {selected && (
           <div className="space-y-3">
             <div className="space-y-1 text-sm text-muted">

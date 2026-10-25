@@ -42,3 +42,44 @@ describe("documents storage", () => {
     expect(screen.queryByText(/Прикреплять файлы пока нельзя/)).toBeNull();
   });
 });
+
+describe("link to a document", () => {
+  const doc = {
+    id: "d1", title: "Страховка авто", category: "insurance", document_date: null, expires_on: "2026-11-01", remind_days_before: 7, notes: null,
+    visibility: "family", created_by: "u1", archived_at: null, has_file: true, original_filename: "polisa.pdf", size_bytes: 13, mime_type: "application/pdf",
+    created_at: "2026-10-25T10:00:00Z", updated_at: "2026-10-25T10:00:00Z",
+  };
+
+  it("an expiry reminder's link opens the document's card; closing returns to the list", async () => {
+    await act(() => router.navigate("/home/documents/d1"));
+    setToken("tok");
+    mockFetch([
+      { path: /\/meta$/, body: meta() },
+      { path: /\/me$/, body: me() },
+      { path: new RegExp(`/families/${FAMILY_ID}$`), body: family },
+      { path: /\/documents$/, body: [doc] },
+      { path: /\/documents\/d1$/, body: doc },
+    ]);
+    render(<App />);
+    const card = await screen.findByRole("dialog");
+    expect(card).toHaveTextContent("Страховка авто");
+    expect(card).toHaveTextContent("polisa.pdf");
+    await userEvent.click(screen.getByRole("button", { name: "Закрыть" }));
+    expect(router.state.location.pathname).toBe("/home/documents");
+  });
+
+  it("a link to a missing document says so and shows the list", async () => {
+    await act(() => router.navigate("/home/documents/gone"));
+    setToken("tok");
+    mockFetch([
+      { path: /\/meta$/, body: meta() },
+      { path: /\/me$/, body: me() },
+      { path: new RegExp(`/families/${FAMILY_ID}$`), body: family },
+      { path: /\/documents$/, body: [] },
+      { path: /\/documents\/gone$/, status: 404, body: { error: { code: "not_found", message: "Не найдено" } } },
+    ]);
+    render(<App />);
+    expect(await screen.findByText("Документ не найден или к нему нет доступа")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});

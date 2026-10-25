@@ -50,7 +50,12 @@ function SummaryView({ data, scope, currency }: { data: NonNullable<ReturnType<t
     expense: String(Number(data.family.expense) + Number(data.personal.expense)),
     net: String(Number(data.family.net) + Number(data.personal.net)),
   };
-  const pie = data.by_category.map((c, i) => ({ name: c.name, value: Number(c.amount), color: c.color ?? CHART_COLORS[i % CHART_COLORS.length] }));
+  // Category amounts are expenses minus refunds. A category where this month's refunds outweigh
+  // its expenses (a purchase returned from an earlier month) cannot be a slice of the chart: it is
+  // listed separately instead of showing a "negative expense".
+  const spentCats = data.by_category.filter((c) => Number(c.amount) > 0);
+  const refundedCats = data.by_category.filter((c) => Number(c.amount) < 0);
+  const pie = spentCats.map((c, i) => ({ name: c.name, value: Number(c.amount), color: c.color ?? CHART_COLORS[i % CHART_COLORS.length] }));
   const history = data.history.map((h) => ({ month: formatMonth(h.month).slice(0, 3), expense: Number(h.expense), income: Number(h.income) }));
   const empty = Number(totals.income) === 0 && Number(totals.expense) === 0;
 
@@ -125,7 +130,7 @@ function SummaryView({ data, scope, currency }: { data: NonNullable<ReturnType<t
                 </ResponsiveContainer>
               </div>
               <ul className="min-w-0 flex-1 space-y-1.5">
-                {data.by_category.slice(0, 6).map((c, i) => (
+                {spentCats.slice(0, 6).map((c, i) => (
                   <li key={c.category_id ?? "none"} className="flex items-center gap-2 text-sm">
                     <span className="size-2.5 shrink-0 rounded-full" style={{ background: pie[i]?.color }} />
                     <span className="min-w-0 flex-1 truncate">{c.name}</span>
@@ -136,6 +141,11 @@ function SummaryView({ data, scope, currency }: { data: NonNullable<ReturnType<t
             </div>
           ) : (
             <p className="text-sm text-muted">Расходов нет.</p>
+          )}
+          {refundedCats.length > 0 && (
+            <p className="mt-3 text-xs text-muted">
+              Возвратов больше, чем расходов: {refundedCats.map((c) => `${c.name} ${formatMoney(-Number(c.amount), currency, { sign: true })}`).join(", ")}
+            </p>
           )}
         </Card>
       )}
