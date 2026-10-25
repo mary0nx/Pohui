@@ -225,3 +225,53 @@ def test_storage_settings_typed_on_a_phone_are_normalised(settings_env: pytest.M
     assert s.storage_backend == "s3" and s.uploads_enabled
     assert (s.storage_bucket, s.storage_region) == ("documents", "eu-west-1")
     assert s.storage_access_key.get_secret_value() == "key"
+
+
+# --- keep-awake ------------------------------------------------------------------------------
+
+
+def test_keep_awake_is_on_by_default_only_on_render_with_the_embedded_worker(
+    settings_env: pytest.MonkeyPatch,
+) -> None:
+    settings_env.delenv("RENDER", raising=False)
+    settings_env.delenv("RENDER_EXTERNAL_URL", raising=False)
+    get_settings.cache_clear()
+    assert get_settings().keep_awake_url is None  # local / VPS: nothing sleeps
+
+    settings_env.setenv("RENDER", "true")
+    settings_env.setenv("RENDER_EXTERNAL_URL", "https://familyos-api.onrender.com")
+    get_settings.cache_clear()
+    assert get_settings().keep_awake_url is None  # no embedded worker: nothing to keep awake
+
+    settings_env.setenv("EMBEDDED_WORKER", "true")
+    get_settings.cache_clear()
+    assert get_settings().keep_awake_url == "https://familyos-api.onrender.com/health"
+
+    settings_env.setenv("KEEP_AWAKE_MINUTES", "0")
+    get_settings.cache_clear()
+    assert get_settings().keep_awake_url is None  # explicit opt-out
+
+
+async def test_keep_awake_pings_until_stopped() -> None:
+    import asyncio
+
+    import httpx
+
+    from app.workers.keep_awake import keep_awake
+
+    hits: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        hits.append(str(request.url))
+        return httpx.Response(503 if len(hits) == 2 else 200)  # one failure is only logged
+
+    stop = asyncio.Event()
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        task = asyncio.create_task(keep_awake("https://x.test/health", 0.02, stop, http))
+        for _ in range(100):
+            await asyncio.sleep(0.02)
+            if len(hits) >= 3:
+                break
+        stop.set()
+        await asyncio.wait_for(task, 1)
+    assert len(hits) >= 3 and set(hits) == {"https://x.test/health"}

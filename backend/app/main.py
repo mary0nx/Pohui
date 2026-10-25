@@ -83,9 +83,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
         worker = asyncio.create_task(run_loop(stop_worker), name="embedded-worker")
         worker.add_done_callback(_log_worker_exit)
+    awake: asyncio.Task[None] | None = None
+    if settings.keep_awake_url:
+        from app.workers.keep_awake import keep_awake
+
+        minutes = settings.keep_awake_minutes or 10.0
+        awake = asyncio.create_task(
+            keep_awake(settings.keep_awake_url, minutes * 60, stop_worker), name="keep-awake"
+        )
     yield
+    stop_worker.set()
+    if awake is not None:
+        with contextlib.suppress(Exception):
+            await awake
     if worker is not None:
-        stop_worker.set()
         with contextlib.suppress(Exception):  # already logged by _log_worker_exit
             await worker
     if bot_starter is not None:

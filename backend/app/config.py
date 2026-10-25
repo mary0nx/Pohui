@@ -136,6 +136,9 @@ class Settings(BaseSettings):
     render_external_url: str = ""
     # Render sets RENDER=true in every service.
     render: bool = False
+    # Self-ping interval that keeps a free Render instance (and its embedded worker) awake.
+    # None = automatic: every 10 minutes on Render with EMBEDDED_WORKER, otherwise off; 0 = off.
+    keep_awake_minutes: float | None = None
 
     @field_validator("storage_backend", mode="before")
     @classmethod
@@ -229,6 +232,18 @@ class Settings(BaseSettings):
             and bool(self.openai_api_key.get_secret_value())
             and bool(self.ai_model)
         )
+
+    @property
+    def keep_awake_url(self) -> str | None:
+        """Own public /health URL to ping, or None when self-ping is off."""
+        minutes = self.keep_awake_minutes
+        if minutes is None:
+            on_render = self.render or bool(self.render_external_url)
+            minutes = 10.0 if on_render and self.embedded_worker else 0.0
+        base = self.render_external_url or self.backend_url
+        if minutes <= 0 or not base:
+            return None
+        return f"{base.rstrip('/')}/health"
 
     @property
     def uploads_enabled(self) -> bool:
