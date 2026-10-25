@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Check, Smartphone, Copy, LogOut, Moon, Palette as PaletteIcon, Share2, Sparkles, Trash2, UserMinus, UserPlus } from "lucide-react";
-import { useState } from "react";
+import { Bell, Check, Smartphone, Copy, LogOut, Moon, Palette as PaletteIcon, Share2, Sparkles, SquarePlus, Trash2, UserMinus, UserPlus } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 
 import { api, errorMessage } from "@/api/client";
@@ -11,11 +11,35 @@ import { Avatar, Badge, Button, Card, ConfirmDialog, Input, Section, Segmented, 
 import { useI18n, type Locale } from "@/i18n";
 import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/format";
-import { webApp } from "@/lib/telegram";
+import { addToHomeScreen, homeScreenStatus, webApp, type HomeScreenStatus } from "@/lib/telegram";
 import type { Family, Invitation, InvitationCreated, Member, Role } from "@/types/api";
 
 const ROLE: Record<Role, string> = { owner: "владелец", admin: "администратор", member: "участник" };
 const TIMEZONES = ["Europe/Warsaw", "Europe/Berlin", "Europe/London", "Europe/Kyiv", "Europe/Vilnius", "Europe/Minsk", "Europe/Moscow", "Asia/Tbilisi", "Asia/Almaty", "America/New_York"];
+
+/** "Add to Home Screen" via Telegram (8.0+); hidden where Telegram cannot do it. */
+function HomeScreenRow() {
+  const [status, setStatus] = useState<HomeScreenStatus>("unsupported");
+  useEffect(() => {
+    let alive = true;
+    void homeScreenStatus().then((s) => alive && setStatus(s));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  if (status === "unsupported") return null;
+  if (status === "added")
+    return (
+      <p className="flex items-center gap-3 px-4 py-3.5 text-muted">
+        <Check className="size-5 text-success" /> Иконка уже на экране «Домой»
+      </p>
+    );
+  return (
+    <button type="button" className="flex w-full items-center gap-3 px-4 py-3.5 text-left" onClick={() => addToHomeScreen(() => setStatus("added"))}>
+      <SquarePlus className="size-5 text-accent" /> Добавить на экран «Домой»
+    </button>
+  );
+}
 
 export function ProfilePage() {
   const { f, familyId, family, me, userId, role, tz } = useFamily();
@@ -244,6 +268,7 @@ export function ProfilePage() {
           </Select>
         </Card>
         <Card className="divide-y divide-border p-0">
+          <HomeScreenRow />
           <Link to="/profile/notifications" className="flex items-center gap-3 px-4 py-3.5">
             <Bell className="size-5 text-accent" /> Уведомления
           </Link>

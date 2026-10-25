@@ -5,7 +5,10 @@
  * always proven by sending the raw initData string to the backend for signature checks.
  */
 
-type EventName = "themeChanged" | "viewportChanged" | "backButtonClicked";
+type EventName = "themeChanged" | "viewportChanged" | "backButtonClicked" | "homeScreenAdded";
+
+/** Bot API 8.0: whether the Mini App already has a shortcut on the device home screen. */
+export type HomeScreenStatus = "unsupported" | "unknown" | "added" | "missed";
 
 interface TgBackButton {
   show(): void;
@@ -37,6 +40,8 @@ interface TgWebApp {
   disableVerticalSwipes?(): void;
   openLink(url: string, options?: { try_instant_view?: boolean }): void;
   openTelegramLink(url: string): void;
+  addToHomeScreen?(): void;
+  checkHomeScreenStatus?(cb: (status: HomeScreenStatus) => void): void;
   onEvent(event: EventName, cb: () => void): void;
   offEvent(event: EventName, cb: () => void): void;
   CloudStorage?: {
@@ -158,4 +163,31 @@ export function cloudSet(key: string, value: string): void {
   } catch {
     /* best effort: the local copy still applies */
   }
+}
+
+/** Home-screen shortcut (Telegram 8.0+). Resolves "unsupported" outside Telegram or on old clients. */
+export function homeScreenStatus(): Promise<HomeScreenStatus> {
+  const tg = webApp();
+  if (!tg?.initData || !tg.isVersionAtLeast("8.0") || !tg.checkHomeScreenStatus) return Promise.resolve("unsupported");
+  return new Promise((resolve) => {
+    try {
+      tg.checkHomeScreenStatus!((status) => resolve(status));
+    } catch {
+      resolve("unsupported");
+    }
+  });
+}
+
+/** Asks Telegram to add the Mini App to the home screen; `onAdded` fires once it is there. */
+export function addToHomeScreen(onAdded?: () => void): void {
+  const tg = webApp();
+  if (!tg?.addToHomeScreen) return;
+  if (onAdded) {
+    const handler = () => {
+      tg.offEvent("homeScreenAdded", handler);
+      onAdded();
+    };
+    tg.onEvent("homeScreenAdded", handler);
+  }
+  tg.addToHomeScreen();
 }
