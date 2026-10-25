@@ -4,8 +4,9 @@ import { useState } from "react";
 import { api, errorMessage } from "@/api/client";
 import { useFamily } from "@/app/session";
 import { PrivateMark, VisibilityPicker } from "@/components/Visibility";
-import { Badge, Button, Card, EmptyState, ErrorState, Input, LoadingBlock, ProgressBar, Sheet, useToast } from "@/components/ui";
+import { Badge, Button, Card, EmptyState, ErrorState, Input, LoadingBlock, ProgressBar, ProgressRing, Sheet, useToast } from "@/components/ui";
 import { formatDate, formatMoney } from "@/lib/format";
+import { celebrate } from "@/lib/motion";
 import type { SavingsGoal, Visibility } from "@/types/api";
 
 import { useFinanceMutation, useGoals } from "./api";
@@ -36,11 +37,16 @@ export function GoalsTab() {
         </Card>
       ) : (
         goals.data.map((g) => (
-          <Card key={g.id} className="space-y-2">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="flex items-center gap-1.5 truncate font-semibold">
-                  <span className="text-lg">{g.emoji ?? "🎯"}</span> {g.name} {g.visibility === "private" && <PrivateMark />}
+          <Card key={g.id} tone={g.status === "achieved" ? "mint" : "plain"} className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <ProgressRing value={g.percent} level={g.status === "achieved" ? "done" : "ok"} size={56} stroke={7} label={`${g.name}: ${Math.round(g.percent)}%`}>
+                <span className="text-xl" aria-hidden>
+                  {g.emoji ?? "🎯"}
+                </span>
+              </ProgressRing>
+              <div className="min-w-0 flex-1">
+                <p className="flex items-center gap-1.5 truncate font-bold">
+                  {g.name} {g.visibility === "private" && <PrivateMark />}
                 </p>
                 <p className="tabular text-sm text-muted">
                   {formatMoney(g.saved, g.currency)} из {formatMoney(g.target_amount, g.currency)}
@@ -48,7 +54,7 @@ export function GoalsTab() {
               </div>
               {g.status === "achieved" ? <Badge tone="success">Достигнута</Badge> : <Badge tone="accent">{Math.round(g.percent)}%</Badge>}
             </div>
-            <ProgressBar value={g.percent} />
+            <ProgressBar value={g.percent} level={g.status === "achieved" ? "done" : "ok"} label={`${g.name}: накоплено ${Math.round(g.percent)}%`} />
             <p className="text-xs text-muted">
               {g.forecast_date && g.status === "active" ? `Прогноз: ${formatDate(g.forecast_date, tz, { month: "long", year: "numeric" })}` : g.status === "active" ? "Сделайте первое пополнение, чтобы увидеть прогноз" : ""}
               {g.target_date && ` · срок ${formatDate(g.target_date, tz)}`}
@@ -121,6 +127,7 @@ export function GoalsTab() {
               try {
                 const g = await contribMut.mutateAsync(contrib!);
                 toast.show(g.status === "achieved" ? "Цель достигнута! 🎉" : "Готово");
+                if (g.status === "achieved" && contrib!.goal.status !== "achieved") celebrate();
                 setContrib(null);
               } catch (e) {
                 toast.show(errorMessage(e), "error");

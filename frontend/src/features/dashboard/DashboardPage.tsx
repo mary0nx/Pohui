@@ -18,13 +18,21 @@ import { Link } from "react-router";
 import { api } from "@/api/client";
 import { useAiEnabled, useFamily } from "@/app/session";
 import { PrivateMark } from "@/components/Visibility";
-import { Badge, Card, CardHeader, EmptyState, ErrorState, ProgressBar, Skeleton } from "@/components/ui";
+import { Badge, Card, CardHeader, EmptyState, ErrorState, IconBadge, ProgressBar, ProgressRing, Skeleton } from "@/components/ui";
 import { TransactionSheet } from "@/features/finance/TransactionSheet";
 import { formatDate, formatMoney, formatTime, plural, relativeDay, timeAgo } from "@/lib/format";
 import { todayIn, zonedDate } from "@/lib/time";
 import type { Dashboard } from "@/types/api";
 
 import { activityLabel } from "./activity";
+
+interface QuickAction {
+  label: string;
+  icon: typeof Plus;
+  tone: "coral" | "mint" | "lemon" | "lavender";
+  to?: string;
+  onClick?: () => void;
+}
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -42,11 +50,15 @@ export function DashboardPage() {
 
   if (q.isPending) {
     return (
-      <div className="space-y-4 pt-6">
+      <div className="space-y-4 pt-6" role="status" aria-label="Загрузка">
         <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-36 w-full" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-44 w-full rounded-card" />
+        <div className="grid grid-cols-4 gap-2">
+          {Array.from({ length: 4 }, (_, i) => (
+            <Skeleton key={i} className="h-20 rounded-card" />
+          ))}
+        </div>
+        <Skeleton className="h-28 w-full rounded-card" />
       </div>
     );
   }
@@ -55,78 +67,88 @@ export function DashboardPage() {
   const today = todayIn(tz);
 
   return (
-    <div className="space-y-4">
-      <header className="flex items-start justify-between pt-5">
+    <div className="stagger space-y-4">
+      <header className="flex items-start justify-between pt-6">
         <div>
-          <p className="text-sm text-muted">{d.family_name}</p>
-          <h1 className="text-[26px] font-bold leading-tight tracking-tight">
+          <p className="text-sm font-semibold text-muted">{d.family_name}</p>
+          <h1 className="text-[28px] font-extrabold leading-tight tracking-tight">
             {greeting()}, {d.user_name}
           </h1>
         </div>
-        <Link to="/inbox" aria-label="Уведомления" className="relative mt-1 inline-flex size-11 items-center justify-center rounded-full bg-surface text-muted shadow-card">
+        <Link to="/inbox" aria-label={d.unread_notifications > 0 ? `Уведомления: ${d.unread_notifications} новых` : "Уведомления"} className="press relative mt-1 inline-flex size-11 items-center justify-center rounded-full bg-surface text-muted shadow-card">
           <Bell className="size-5" />
           {d.unread_notifications > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[11px] font-semibold text-white">{d.unread_notifications}</span>
+            <span className="animate-pop absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-coral px-1 text-[11px] font-bold text-on-bright">{d.unread_notifications}</span>
           )}
         </Link>
       </header>
 
-      <Card className="overflow-hidden bg-gradient-to-br from-accent to-accent-strong text-accent-fg">
-        <div className="flex items-center justify-between">
-          <p className="text-sm opacity-85">Общий баланс месяца</p>
-          <Link to="/finance" className="text-sm font-medium opacity-90">
-            Подробнее
-          </Link>
+      <Card tone="coral" className="relative overflow-hidden p-5">
+        <span aria-hidden className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-coral/30" />
+        <span aria-hidden className="pointer-events-none absolute -bottom-16 right-16 size-32 rounded-full bg-lemon/40" />
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-muted">Общий баланс месяца</p>
+            <p className="tabular mt-1 text-[32px] font-extrabold leading-tight">{formatMoney(d.month_family.net, d.currency, { sign: true })}</p>
+            <Link to="/finance" className="press mt-2 inline-flex rounded-full bg-surface/80 px-3 py-1 text-sm font-bold text-accent-strong">
+              Подробнее
+            </Link>
+          </div>
+          {d.budget && (
+            <ProgressRing
+              value={d.budget.percent}
+              level={d.budget.level === "ok" ? "ok" : d.budget.level === "warning" ? "warning" : "exceeded"}
+              size={84}
+              stroke={10}
+              label={`Бюджет использован на ${Math.round(d.budget.percent)}%`}
+            >
+              <span className="text-center leading-tight">
+                <span className="tabular block text-lg font-extrabold">{Math.round(d.budget.percent)}%</span>
+                <span className="block text-[10px] font-bold uppercase text-muted">бюджет</span>
+              </span>
+            </ProgressRing>
+          )}
         </div>
-        <p className="tabular mt-1 text-[32px] font-bold leading-tight">{formatMoney(d.month_family.net, d.currency, { sign: true })}</p>
-        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-          <div className="rounded-2xl bg-white/12 p-2.5">
-            <p className="flex items-center gap-1 opacity-85">
+        <div className="relative mt-4 grid grid-cols-2 gap-2 text-sm">
+          <div className="rounded-2xl bg-mint/75 p-3 text-on-bright">
+            <p className="flex items-center gap-1 font-semibold">
               <ArrowDownLeft className="size-4" /> Доходы
             </p>
-            <p className="tabular font-semibold">{formatMoney(d.month_family.income, d.currency)}</p>
+            <p className="tabular text-base font-extrabold">{formatMoney(d.month_family.income, d.currency)}</p>
           </div>
-          <div className="rounded-2xl bg-white/12 p-2.5">
-            <p className="flex items-center gap-1 opacity-85">
+          <div className="rounded-2xl bg-surface/85 p-3">
+            <p className="flex items-center gap-1 font-semibold text-muted">
               <ArrowUpRight className="size-4" /> Расходы
             </p>
-            <p className="tabular font-semibold">{formatMoney(d.month_family.expense, d.currency)}</p>
+            <p className="tabular text-base font-extrabold">{formatMoney(d.month_family.expense, d.currency)}</p>
           </div>
         </div>
-        {d.budget && (
-          <div className="mt-3">
-            <div className="mb-1 flex justify-between text-xs opacity-90">
-              <span>Бюджет: {Math.round(d.budget.percent)}%</span>
-              <span>Осталось {formatMoney(d.budget.remaining, d.currency, { compact: true })}</span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-white/20">
-              <div className={`h-full rounded-full ${d.budget.level === "ok" ? "bg-white" : "bg-warning"}`} style={{ width: `${Math.min(d.budget.percent, 100)}%` }} />
-            </div>
-          </div>
-        )}
+        {d.budget && <p className="relative mt-3 text-xs font-semibold text-muted">Осталось по бюджету: {formatMoney(d.budget.remaining, d.currency, { compact: true })}</p>}
         {Number(d.month_personal.expense) > 0 && (
-          <p className="mt-3 flex items-center gap-1.5 text-xs opacity-85">
+          <p className="relative mt-2 flex items-center gap-1.5 text-xs font-semibold text-muted">
             <PrivateMark /> Мои личные расходы: {formatMoney(d.month_personal.expense, d.currency)}
           </p>
         )}
       </Card>
 
       <div className="grid grid-cols-4 gap-2">
-        {[
-          { label: "Расход", icon: CircleDollarSign, onClick: () => setTxOpen(true) },
-          { label: "Покупки", icon: ShoppingCart, to: d.shopping.list_id ? `/home/shopping/${d.shopping.list_id}` : "/home/shopping" },
-          { label: "Задача", icon: ListChecks, to: "/home/tasks?new=1" },
-          { label: "Событие", icon: CalendarDays, to: "/calendar?new=1" },
-        ].map((a) => {
+        {(
+          [
+            { label: "Расход", icon: CircleDollarSign, tone: "coral", onClick: () => setTxOpen(true) },
+            { label: "Покупки", icon: ShoppingCart, tone: "mint", to: d.shopping.list_id ? `/home/shopping/${d.shopping.list_id}` : "/home/shopping" },
+            { label: "Задача", icon: ListChecks, tone: "lemon", to: "/home/tasks?new=1" },
+            { label: "Событие", icon: CalendarDays, tone: "lavender", to: "/calendar?new=1" },
+          ] satisfies QuickAction[] as QuickAction[]
+        ).map((a) => {
           const inner = (
             <>
-              <span className="flex size-11 items-center justify-center rounded-2xl bg-accent-soft text-accent">
+              <IconBadge tone={a.tone}>
                 <a.icon className="size-5" />
-              </span>
-              <span className="text-xs font-medium">{a.label}</span>
+              </IconBadge>
+              <span className="text-xs font-bold">{a.label}</span>
             </>
           );
-          const cls = "flex flex-col items-center gap-1.5 rounded-2xl bg-surface py-3 shadow-card active:scale-[0.97] transition";
+          const cls = "press flex flex-col items-center gap-1.5 rounded-card border border-border/70 bg-surface py-3 shadow-card";
           return a.to ? (
             <Link key={a.label} to={a.to} className={cls}>
               {inner}
@@ -160,7 +182,7 @@ export function DashboardPage() {
 
       {d.payments.length > 0 && (
         <Card>
-          <CardHeader title="Платежи" to="/finance/recurring" icon={<CircleDollarSign className="size-4 text-accent" />} />
+          <CardHeader title="Платежи" to="/finance/recurring" icon={<CircleDollarSign className="size-5 text-accent-strong" />} />
           <ul className="divide-y divide-border">
             {d.payments.slice(0, 4).map((p) => (
               <li key={p.id} className="flex items-center justify-between gap-2 py-2.5">
@@ -179,7 +201,7 @@ export function DashboardPage() {
       )}
 
       <Card>
-        <CardHeader title="Ближайшие события" to="/calendar" icon={<CalendarDays className="size-4 text-accent" />} />
+        <CardHeader title="Ближайшие события" to="/calendar" icon={<CalendarDays className="size-5 text-accent-strong" />} />
         {d.events.length === 0 ? (
           <p className="py-2 text-sm text-muted">На неделю ничего не запланировано.</p>
         ) : (
@@ -188,9 +210,9 @@ export function DashboardPage() {
               const day = zonedDate(e.start, tz);
               return (
                 <li key={`${e.event_id}-${e.start}`}>
-                  <Link to={`/calendar/${e.event_id}`} className="flex items-center gap-3 rounded-2xl p-1.5 transition hover:bg-surface-2">
-                    <div className="w-14 shrink-0 rounded-xl bg-surface-2 py-1.5 text-center">
-                      <p className="text-[11px] uppercase text-muted">{relativeDay(day, today) ?? formatDate(e.start, tz, { weekday: "short" })}</p>
+                  <Link to={`/calendar/${e.event_id}`} className="press flex items-center gap-3 rounded-2xl p-1.5 hover:bg-surface-2">
+                    <div className="w-16 shrink-0 rounded-2xl bg-lavender-soft py-1.5 text-center">
+                      <p className="text-[11px] font-bold uppercase text-muted">{relativeDay(day, today) ?? formatDate(e.start, tz, { weekday: "short" })}</p>
                       <p className="tabular text-sm font-semibold">{e.all_day ? "весь день" : formatTime(e.start, tz)}</p>
                     </div>
                     <div className="min-w-0">
@@ -209,25 +231,25 @@ export function DashboardPage() {
 
       <div className="grid grid-cols-2 gap-3">
         <Link to={d.shopping.list_id ? `/home/shopping/${d.shopping.list_id}` : "/home/shopping"}>
-          <Card className="h-full">
-            <p className="flex items-center gap-1.5 text-sm font-semibold">
-              <ShoppingCart className="size-4 text-accent" /> Покупки
+          <Card tone="mint" interactive className="h-full">
+            <p className="flex items-center gap-1.5 text-sm font-bold">
+              <ShoppingCart className="size-4" /> Покупки
             </p>
-            <p className="tabular mt-2 text-2xl font-bold">{d.shopping.needed_total}</p>
+            <p className="tabular mt-2 text-3xl font-extrabold">{d.shopping.needed_total}</p>
             <p className="text-xs text-muted">{plural(d.shopping.needed_total, "товар", "товара", "товаров")} нужно купить</p>
             {d.shopping.items.length > 0 && <p className="mt-2 line-clamp-2 text-xs text-muted">{d.shopping.items.join(", ")}</p>}
           </Card>
         </Link>
         <Link to="/home/tasks">
-          <Card className="h-full">
-            <p className="flex items-center gap-1.5 text-sm font-semibold">
-              <ListChecks className="size-4 text-accent" /> Задачи
+          <Card tone="lemon" interactive className="h-full">
+            <p className="flex items-center gap-1.5 text-sm font-bold">
+              <ListChecks className="size-4" /> Задачи
             </p>
-            <p className="tabular mt-2 text-2xl font-bold">{d.task_stats.open_total}</p>
+            <p className="tabular mt-2 text-3xl font-extrabold">{d.task_stats.open_total}</p>
             <p className="text-xs text-muted">
               открыто{d.task_stats.overdue_total > 0 && <span className="text-danger"> · {d.task_stats.overdue_total} просрочено</span>}
             </p>
-            <p className="mt-2 flex items-center gap-1 text-xs text-success">
+            <p className="mt-2 flex items-center gap-1 text-xs font-semibold text-success">
               <CheckCircle2 className="size-3.5" /> Вместе за неделю: {d.task_stats.done_this_week}
             </p>
           </Card>
@@ -252,7 +274,7 @@ export function DashboardPage() {
 
       {d.goals.length > 0 && (
         <Card>
-          <CardHeader title="Цели и накопления" to="/finance/goals" icon={<PiggyBank className="size-4 text-accent" />} />
+          <CardHeader title="Цели и накопления" to="/finance/goals" icon={<PiggyBank className="size-5 text-success" />} />
           <div className="space-y-3">
             {d.goals.map((g) => (
               <div key={g.id}>
@@ -262,7 +284,7 @@ export function DashboardPage() {
                   </span>
                   <span className="tabular text-muted">{Math.round(g.percent)}%</span>
                 </div>
-                <ProgressBar value={g.percent} />
+                <ProgressBar value={g.percent} level={g.percent >= 100 ? "done" : "ok"} label={`${g.name}: ${Math.round(g.percent)}%`} />
               </div>
             ))}
           </div>

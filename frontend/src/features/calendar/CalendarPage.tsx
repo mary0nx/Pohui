@@ -197,7 +197,7 @@ export function CalendarPage() {
                     style={shift ? SHIFT_STYLE[shift] : undefined}
                     className={cn(
                       "mx-auto flex h-11 w-10 flex-col items-center justify-center rounded-xl text-sm transition",
-                      !inMonth && "opacity-40",
+                      !inMonth && (shift ? "opacity-70" : "text-subtle"),
                       !shift && isPublic && "font-semibold text-danger",
                       day === today && "font-bold underline decoration-2 underline-offset-2",
                       selected === day && !editingShifts && "ring-2 ring-accent ring-offset-1 ring-offset-surface",

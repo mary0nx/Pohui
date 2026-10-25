@@ -57,8 +57,10 @@ export function TasksPage() {
         }
       />
       {stats.data && (
-        <Card className="flex items-center gap-3 bg-success-soft">
-          <Sparkles className="size-5 text-success" />
+        <Card tone="mint" className="flex items-center gap-3">
+          <span className="flex size-10 items-center justify-center rounded-2xl bg-mint text-on-bright">
+            <Sparkles className="size-5" />
+          </span>
           <p className="text-sm">
             Вместе за неделю: <b>{stats.data.done_this_week}</b> дел{stats.data.points_this_week > 0 && <> · {stats.data.points_this_week} очков</>}
             <span className="block text-xs text-muted">За месяц: {stats.data.done_this_month}</span>
@@ -113,7 +115,7 @@ export function TasksPage() {
           ) : (
             <Card className="divide-y divide-border p-0">
               {tasks.data.map((t) => (
-                <TaskRow key={t.id} task={t} />
+                <TaskRow key={t.id} task={t} isLast={filter !== "done" && tasks.data.length === 1} />
               ))}
             </Card>
           )}

@@ -3,14 +3,16 @@ import { useState } from "react";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 
 import { useFamily } from "@/app/session";
-import { Badge, Card, CardHeader, EmptyState, ErrorState, LoadingBlock, ProgressBar, Segmented } from "@/components/ui";
+import { Card, CardHeader, EmptyState, ErrorState, LoadingBlock, ProgressRing, Segmented } from "@/components/ui";
 import { formatMoney, formatMonth } from "@/lib/format";
+import { prefersReducedMotion } from "@/lib/motion";
 import { monthKey, todayIn } from "@/lib/time";
 
 import { useSummary } from "./api";
 import { MonthSwitcher } from "./MonthSwitcher";
 
-export const CHART_COLORS = ["#0f9488", "#3b82f6", "#f59e0b", "#8b5cf6", "#ef4444", "#10b981", "#ec4899", "#64748b", "#14b8a6", "#a855f7"];
+// Brand-led categorical palette: distinct hues, readable on cream and on cocoa.
+export const CHART_COLORS = ["#ff786b", "#5fbf9f", "#9b86e8", "#e8b923", "#315b4c", "#f2a65a", "#5b9bd5", "#d36d9a", "#8c7d70", "#b6d36b"];
 
 export function OverviewTab() {
   const { tz, currency } = useFamily();
@@ -59,26 +61,33 @@ function SummaryView({ data, scope, currency }: { data: NonNullable<ReturnType<t
           { label: "Доходы", value: totals.income, cls: "text-income" },
           { label: "Расходы", value: totals.expense, cls: "text-expense" },
           { label: "Итог", value: totals.net, cls: Number(totals.net) >= 0 ? "text-income" : "text-danger" },
-        ].map((t) => (
-          <Card key={t.label} className="p-3">
-            <p className="text-xs text-muted">{t.label}</p>
-            <p className={`tabular mt-0.5 text-[15px] font-bold ${t.cls}`}>{formatMoney(t.value, currency, { compact: true })}</p>
+        ].map((t, i) => (
+          <Card key={t.label} tone={i === 0 ? "mint" : i === 1 ? "coral" : "lavender"} className="p-3">
+            <p className="text-xs font-semibold text-muted">{t.label}</p>
+            <p className={`tabular mt-0.5 text-[15px] font-extrabold ${t.cls}`}>{formatMoney(t.value, currency, { compact: true })}</p>
           </Card>
         ))}
       </div>
 
       {data.budget && scope === "family" && (
-        <Card>
-          <CardHeader title="Бюджет месяца" action={<Badge tone={data.budget.level === "ok" ? "accent" : data.budget.level === "warning" ? "warning" : "danger"}>{Math.round(data.budget.percent)}%</Badge>} />
-          <ProgressBar value={data.budget.percent} level={data.budget.level} />
-          <p className="tabular mt-2 text-sm text-muted">
-            Потрачено {formatMoney(data.budget.spent, currency)} из {formatMoney(data.budget.limit, currency)}
-          </p>
+        <Card className="flex items-center gap-4">
+          <ProgressRing value={data.budget.percent} level={data.budget.level} size={88} stroke={11} label={`Бюджет месяца: ${Math.round(data.budget.percent)}%`}>
+            <span className="tabular text-lg font-extrabold">{Math.round(data.budget.percent)}%</span>
+          </ProgressRing>
+          <div className="min-w-0">
+            <p className="text-base font-bold">Бюджет месяца</p>
+            <p className="tabular mt-1 text-sm text-muted">
+              Потрачено {formatMoney(data.budget.spent, currency)} из {formatMoney(data.budget.limit, currency)}
+            </p>
+            <p className={`mt-1 text-sm font-semibold ${data.budget.level === "ok" ? "text-success" : data.budget.level === "warning" ? "text-warning" : "text-danger"}`}>
+              {data.budget.level === "ok" ? "Всё по плану" : data.budget.level === "warning" ? "Почти исчерпан" : "Бюджет превышен"}
+            </p>
+          </div>
         </Card>
       )}
 
       {data.category_alerts.length > 0 && scope === "family" && (
-        <Card className="border-warning/40 bg-warning-soft">
+        <Card tone="lemon">
           <p className="flex items-center gap-2 text-sm font-semibold text-warning">
             <AlertTriangle className="size-4" /> Лимиты почти исчерпаны
           </p>
@@ -107,7 +116,7 @@ function SummaryView({ data, scope, currency }: { data: NonNullable<ReturnType<t
               <div className="h-36 w-36 shrink-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={pie} dataKey="value" innerRadius="62%" outerRadius="100%" paddingAngle={2} stroke="none" isAnimationActive={false}>
+                    <Pie data={pie} dataKey="value" innerRadius="62%" outerRadius="100%" paddingAngle={3} cornerRadius={6} stroke="none" isAnimationActive={!prefersReducedMotion()} animationDuration={700}>
                       {pie.map((p) => (
                         <Cell key={p.name} fill={p.color} />
                       ))}
@@ -139,11 +148,11 @@ function SummaryView({ data, scope, currency }: { data: NonNullable<ReturnType<t
               <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: "var(--muted)", fontSize: 12 }} />
               <Tooltip
                 cursor={{ fill: "var(--surface-2)" }}
-                contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, color: "var(--text)" }}
+                contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, color: "var(--text)", boxShadow: "var(--shadow)" }}
                 formatter={(v) => formatMoney(Number(v), currency)}
               />
-              <Bar dataKey="income" name="Доходы" fill="var(--success)" radius={[6, 6, 0, 0]} isAnimationActive={false} />
-              <Bar dataKey="expense" name="Расходы" fill="var(--accent)" radius={[6, 6, 0, 0]} isAnimationActive={false} />
+              <Bar dataKey="income" name="Доходы" fill="var(--mint)" radius={[8, 8, 8, 8]} isAnimationActive={!prefersReducedMotion()} animationDuration={600} />
+              <Bar dataKey="expense" name="Расходы" fill="var(--coral)" radius={[8, 8, 8, 8]} isAnimationActive={!prefersReducedMotion()} animationDuration={600} />
             </BarChart>
           </ResponsiveContainer>
         </div>

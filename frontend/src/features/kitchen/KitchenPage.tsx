@@ -334,7 +334,7 @@ function MenuTab() {
                     onClick={() => setSlot({ day, meal_type: m.value, title: entry?.title ?? "", recipe_id: entry?.recipe_id ?? "", servings: String(entry?.servings ?? 2), id: entry?.id })}
                     className={`min-h-16 rounded-2xl p-2 text-left text-xs transition ${entry ? "bg-accent-soft text-accent-strong" : "border border-dashed border-border text-subtle"}`}
                   >
-                    <span className="block text-[11px] uppercase opacity-70">{m.label}</span>
+                    <span className="block text-[11px] font-semibold uppercase text-muted">{m.label}</span>
                     <span className="line-clamp-2 text-[13px] font-medium">{entry?.title ?? "+"}</span>
                   </button>
                 );

@@ -86,11 +86,11 @@ describe("color palettes", () => {
     mockFetch([...base(), { path: /\/invitations$/, body: [] }]);
     render(<App />);
     const ocean = await screen.findByRole("radio", { name: "Океан" });
-    expect(screen.getByRole("radio", { name: "Мята" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("radio", { name: "Коралл" })).toHaveAttribute("aria-checked", "true");
     await userEvent.setup().click(ocean);
     expect(ocean).toHaveAttribute("aria-checked", "true");
     expect(document.documentElement.dataset.palette).toBe("ocean");
-    expect(localStorage.getItem("familyos.palette")).toBe("ocean");
+    expect(localStorage.getItem("familyos.palette.v2")).toBe("ocean");
   });
 });
 

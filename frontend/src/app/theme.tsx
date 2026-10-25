@@ -4,17 +4,18 @@ import { cloudGet, cloudSet, onTelegramThemeChange, paintChrome, telegramColorSc
 
 export type ThemeMode = "system" | "light" | "dark";
 const STORAGE = "familyos.theme";
-const PALETTE_STORAGE = "familyos.palette";
+// v2: the 2026 redesign re-tuned all palettes; earlier choices start again from coral.
+const PALETTE_STORAGE = "familyos.palette.v2";
 
 /** Accent palettes; colors live in styles/index.css under [data-palette]. */
 export const PALETTES = [
-  { id: "mint", label: "Мята", light: "#0f9488", dark: "#2bb3a3" },
-  { id: "ocean", label: "Океан", light: "#2563eb", dark: "#5b8def" },
-  { id: "lavender", label: "Лаванда", light: "#7c3aed", dark: "#a07cf0" },
-  { id: "rose", label: "Роза", light: "#be185d", dark: "#ec6aa0" },
-  { id: "sunset", label: "Закат", light: "#c2410c", dark: "#f28c4b" },
-  { id: "forest", label: "Лес", light: "#16803c", dark: "#45b86e" },
-  { id: "graphite", label: "Графит", light: "#374151", dark: "#c4cad2" },
+  { id: "coral", label: "Коралл", light: "#ff786b", dark: "#ff8a7e" },
+  { id: "lavender", label: "Лаванда", light: "#c7b8f5", dark: "#c7b8f5" },
+  { id: "mint", label: "Мята", light: "#9ddcc5", dark: "#9ddcc5" },
+  { id: "lemon", label: "Лимон", light: "#f8d96d", dark: "#f8d96d" },
+  { id: "forest", label: "Лес", light: "#315b4c", dark: "#6fb39a" },
+  { id: "ocean", label: "Океан", light: "#2f6fb0", dark: "#7fb2e5" },
+  { id: "graphite", label: "Графит", light: "#3f3a36", dark: "#d6ccc2" },
 ] as const;
 export type Palette = (typeof PALETTES)[number]["id"];
 
@@ -65,7 +66,7 @@ function readMode(): ThemeMode {
 
 function readPalette(): Palette {
   const v = readLocal(PALETTE_STORAGE);
-  return isPalette(v) ? v : "mint";
+  return isPalette(v) ? v : "coral";
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

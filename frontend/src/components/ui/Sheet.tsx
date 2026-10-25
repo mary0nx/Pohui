@@ -20,18 +20,18 @@ export function Sheet({ open, onOpenChange, title, description, children, footer
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="animate-overlay-in fixed inset-0 z-40 bg-black/40" />
+        <Dialog.Overlay className="animate-overlay-in fixed inset-0 z-40 bg-[#2b2420]/45 backdrop-blur-[2px]" />
         <Dialog.Content
-          className="animate-sheet-in fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-[28px] bg-surface shadow-2xl outline-none"
+          className="animate-sheet-in fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-[32px] bg-surface shadow-sheet outline-none"
         >
-          <div className="mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-border" aria-hidden />
+          <div className="mx-auto mt-3 h-1.5 w-11 rounded-full bg-border" aria-hidden />
           <div className="flex items-start justify-between gap-3 px-5 pb-2 pt-3">
             <div>
-              <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
+              <Dialog.Title className="text-xl font-extrabold">{title}</Dialog.Title>
               {description ? <Dialog.Description className="text-sm text-muted">{description}</Dialog.Description> : <Dialog.Description className="sr-only">{title}</Dialog.Description>}
             </div>
             <Dialog.Close asChild>
-              <button type="button" aria-label="Закрыть" className="-mr-2 inline-flex size-10 items-center justify-center rounded-full text-muted hover:bg-surface-2">
+              <button type="button" aria-label="Закрыть" className="press -mr-2 inline-flex size-10 items-center justify-center rounded-full bg-surface-2 text-muted hover:text-text">
                 <X className="size-5" />
               </button>
             </Dialog.Close>
@@ -62,9 +62,12 @@ export function ConfirmDialog({ open, onOpenChange, title, description, confirmL
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="animate-overlay-in fixed inset-0 z-40 bg-black/40" />
-        <Dialog.Content className="animate-fade-in fixed left-1/2 top-1/2 z-50 w-[calc(100%-32px)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-3xl bg-surface p-5 shadow-2xl outline-none">
-          <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
+        <Dialog.Overlay className="animate-overlay-in fixed inset-0 z-40 bg-[#2b2420]/45 backdrop-blur-[2px]" />
+        <Dialog.Content
+          className="animate-dialog-in fixed left-1/2 top-1/2 z-50 w-[calc(100%-32px)] max-w-sm rounded-[28px] bg-surface p-6 shadow-sheet outline-none"
+          style={{ transform: "translate(-50%, -50%)" }}
+        >
+          <Dialog.Title className="text-xl font-extrabold">{title}</Dialog.Title>
           <Dialog.Description asChild>
             <div className={cn("mt-2 text-[15px] text-muted", !description && "sr-only")}>{description ?? title}</div>
           </Dialog.Description>

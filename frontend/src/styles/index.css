@@ -2,141 +2,191 @@
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-/* Design tokens. Calm neutral graphite palette with restrained teal accents. */
+/*
+ * Design tokens — "Playful Life × Cozy Home".
+ * Calm cream surfaces carry the content; the bright brand colors (coral, mint, lavender,
+ * lemon, forest) are reserved for actions, progress, statuses and highlighted cards.
+ * Text pairs are checked for WCAG AA (≥ 4.5:1) in both themes.
+ */
 :root {
-  --bg: #f4f5f6;
-  --surface: #ffffff;
-  --surface-2: #eef0f2;
-  --text: #1c2024;
-  --muted: #69727c;
-  --subtle: #9aa2ab;
-  --border: #e3e6ea;
-  --accent: #0f9488;
-  --accent-strong: #0b7a70;
-  --accent-soft: #e3f4f1;
-  --accent-fg: #ffffff;
-  --danger: #d64545;
-  --danger-soft: #fdecec;
-  --warning: #c98a12;
-  --warning-soft: #fdf3e0;
-  --success: #2f9e5b;
-  --success-soft: #e7f6ec;
-  --income: #2f9e5b;
-  --expense: #1c2024;
-  --shadow: 0 1px 2px rgb(16 24 32 / 0.04), 0 4px 16px rgb(16 24 32 / 0.04);
-  --radius: 18px;
+  /* Brand */
+  --cream: #fff7ed;
+  --coral: #ff786b;
+  --mint: #9ddcc5;
+  --lavender: #c7b8f5;
+  --lemon: #f8d96d;
+  --forest: #315b4c;
+  --ink: #2b2420;
+  --coral-soft: #ffe7e2;
+  --mint-soft: #e4f5ee;
+  --lavender-soft: #efeafd;
+  --lemon-soft: #fdf4d3;
+  --forest-soft: #e2ede8;
+  --on-bright: #2b2420; /* text on coral / mint / lavender / lemon */
+
+  /* Surfaces & text */
+  --bg: #fff7ed;
+  --surface: #fffdf9;
+  --surface-2: #fbeee0;
+  --text: #2b2420;
+  --muted: #6b5e55;
+  --subtle: #776960;
+  --border: #f0e1d1;
+
+  /* Action color (palette-dependent; coral by default) */
+  --accent: #ff786b;
+  --accent-strong: #b83a2c;
+  --accent-soft: #ffe7e2;
+  --accent-fg: #2b1210;
+
+  /* Status */
+  --danger: #b4322a;
+  --danger-soft: #fde4df;
+  --warning: #8a5a00;
+  --warning-soft: #fdf4d3;
+  --success: #315b4c;
+  --success-soft: #e4f5ee;
+  --income: #2e6b55;
+  --expense: #2b2420;
+  --focus: #315b4c;
+
+  /* Shape, depth, motion */
+  --radius: 22px;
+  --shadow: 0 1px 2px rgb(98 64 40 / 0.05), 0 10px 28px -12px rgb(98 64 40 / 0.18);
+  --shadow-lg: 0 24px 60px -18px rgb(70 44 26 / 0.35);
+  --shadow-press: 0 1px 2px rgb(98 64 40 / 0.08);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --dur-fast: 140ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;
+
   /* Work schedule colors in the calendar (day shift / night shift). */
-  --shift-day: #facc15;
-  --shift-day-fg: #1c1917;
-  --shift-night: #ef4444;
+  --shift-day: #f8d96d;
+  --shift-day-fg: #2b2420;
+  --shift-night: #d93a3f;
   --shift-night-fg: #ffffff;
 
   --safe-top: max(env(safe-area-inset-top, 0px), calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)));
   --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px));
-  --nav-height: 64px;
+  --nav-height: 68px;
   color-scheme: light;
 }
 
+/* Cozy evening: warm cocoa surfaces instead of cold grey. */
 [data-theme="dark"] {
-  --bg: #0f1214;
-  --surface: #181c1f;
-  --surface-2: #20252a;
-  --text: #e9ecef;
-  --muted: #9aa3ab;
-  --subtle: #6c757d;
-  --border: #2a3036;
-  --accent: #2bb3a3;
-  --accent-strong: #4cc7b8;
-  --accent-soft: #14302d;
-  --accent-fg: #06201d;
-  --danger: #ef6b6b;
-  --danger-soft: #3a1c1c;
-  --warning: #e3a93a;
-  --warning-soft: #3a2d14;
-  --success: #4cc27b;
-  --success-soft: #16301f;
-  --income: #4cc27b;
-  --expense: #e9ecef;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
-  --shift-day: #eab308;
-  --shift-day-fg: #1c1917;
-  --shift-night: #dc2626;
+  --coral-soft: #3d2420;
+  --mint-soft: #1f3a31;
+  --lavender-soft: #2e2747;
+  --lemon-soft: #3a3218;
+  --forest-soft: #1e332b;
+
+  --bg: #1c1714;
+  --surface: #262019;
+  --surface-2: #30281f;
+  --text: #f7ede2;
+  --muted: #bfae9e;
+  --subtle: #a29383;
+  --border: #3a3027;
+
+  --accent: #ff8a7e;
+  --accent-strong: #ffa59b;
+  --accent-soft: #3d2420;
+  --accent-fg: #2b0f0b;
+
+  --danger: #ff8f86;
+  --danger-soft: #3e1d1a;
+  --warning: #f8d96d;
+  --warning-soft: #3a3218;
+  --success: #9ddcc5;
+  --success-soft: #1f3a31;
+  --income: #9ddcc5;
+  --expense: #f7ede2;
+  --focus: #9ddcc5;
+
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 10px 28px -14px rgb(0 0 0 / 0.6);
+  --shadow-lg: 0 24px 60px -18px rgb(0 0 0 / 0.7);
+  --shadow-press: 0 1px 2px rgb(0 0 0 / 0.4);
+
+  --shift-day: #e9c552;
+  --shift-day-fg: #2b2420;
+  --shift-night: #d93a3f;
   --shift-night-fg: #ffffff;
   color-scheme: dark;
 }
 
-/* Accent palettes (Профиль → Приложение → Цвет). Mint is the default above. */
+/* Action-color palettes (Профиль → Приложение → Цвет). Coral is the default above. */
+[data-palette="lavender"] {
+  --accent: #c7b8f5;
+  --accent-strong: #5b45b0;
+  --accent-soft: #efeafd;
+  --accent-fg: #231a3d;
+}
+[data-theme="dark"][data-palette="lavender"] {
+  --accent: #c7b8f5;
+  --accent-strong: #d9cefa;
+  --accent-soft: #2e2747;
+  --accent-fg: #1d1636;
+}
+[data-palette="mint"] {
+  --accent: #9ddcc5;
+  --accent-strong: #2e6b55;
+  --accent-soft: #e4f5ee;
+  --accent-fg: #12352a;
+}
+[data-theme="dark"][data-palette="mint"] {
+  --accent: #9ddcc5;
+  --accent-strong: #b9e8d6;
+  --accent-soft: #1f3a31;
+  --accent-fg: #0e2a20;
+}
+[data-palette="lemon"] {
+  --accent: #f8d96d;
+  --accent-strong: #7a5a00;
+  --accent-soft: #fdf4d3;
+  --accent-fg: #3a2e05;
+}
+[data-theme="dark"][data-palette="lemon"] {
+  --accent: #f8d96d;
+  --accent-strong: #fbe59a;
+  --accent-soft: #3a3218;
+  --accent-fg: #2e2404;
+}
+[data-palette="forest"] {
+  --accent: #315b4c;
+  --accent-strong: #24463a;
+  --accent-soft: #e2ede8;
+  --accent-fg: #fff7ed;
+}
+[data-theme="dark"][data-palette="forest"] {
+  --accent: #6fb39a;
+  --accent-strong: #95cbb6;
+  --accent-soft: #1e332b;
+  --accent-fg: #0d211a;
+}
 [data-palette="ocean"] {
-  --accent: #2563eb;
-  --accent-strong: #1d4ed8;
-  --accent-soft: #e7eefd;
+  --accent: #2f6fb0;
+  --accent-strong: #1f5f99;
+  --accent-soft: #e3eef8;
   --accent-fg: #ffffff;
 }
 [data-theme="dark"][data-palette="ocean"] {
-  --accent: #5b8def;
-  --accent-strong: #82a8f5;
-  --accent-soft: #172440;
-  --accent-fg: #0a1530;
-}
-[data-palette="lavender"] {
-  --accent: #7c3aed;
-  --accent-strong: #6d28d9;
-  --accent-soft: #f1eafd;
-  --accent-fg: #ffffff;
-}
-[data-theme="dark"][data-palette="lavender"] {
-  --accent: #a07cf0;
-  --accent-strong: #bb9ef5;
-  --accent-soft: #2a1f44;
-  --accent-fg: #170f2b;
-}
-[data-palette="rose"] {
-  --accent: #be185d;
-  --accent-strong: #9d174d;
-  --accent-soft: #fce8f1;
-  --accent-fg: #ffffff;
-}
-[data-theme="dark"][data-palette="rose"] {
-  --accent: #ec6aa0;
-  --accent-strong: #f28fb9;
-  --accent-soft: #3b1a2a;
-  --accent-fg: #2a0c19;
-}
-[data-palette="sunset"] {
-  --accent: #c2410c;
-  --accent-strong: #9a3412;
-  --accent-soft: #fdeee4;
-  --accent-fg: #ffffff;
-}
-[data-theme="dark"][data-palette="sunset"] {
-  --accent: #f28c4b;
-  --accent-strong: #f6a874;
-  --accent-soft: #3a2416;
-  --accent-fg: #2a1407;
-}
-[data-palette="forest"] {
-  --accent: #16803c;
-  --accent-strong: #11692f;
-  --accent-soft: #e5f4ea;
-  --accent-fg: #ffffff;
-}
-[data-theme="dark"][data-palette="forest"] {
-  --accent: #45b86e;
-  --accent-strong: #6ccb8d;
-  --accent-soft: #16301f;
-  --accent-fg: #082012;
+  --accent: #7fb2e5;
+  --accent-strong: #a6cbf0;
+  --accent-soft: #1c2c3d;
+  --accent-fg: #0b1a2a;
 }
 [data-palette="graphite"] {
-  --accent: #374151;
-  --accent-strong: #1f2937;
-  --accent-soft: #e9ebee;
-  --accent-fg: #ffffff;
+  --accent: #3f3a36;
+  --accent-strong: #2b2420;
+  --accent-soft: #efe9e3;
+  --accent-fg: #fff7ed;
 }
 [data-theme="dark"][data-palette="graphite"] {
-  --accent: #c4cad2;
-  --accent-strong: #e2e6ea;
-  --accent-soft: #2a3036;
-  --accent-fg: #111418;
+  --accent: #d6ccc2;
+  --accent-strong: #ede4da;
+  --accent-soft: #332b24;
+  --accent-fg: #1c1714;
 }
 
 @theme inline {
@@ -158,10 +208,23 @@
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-income: var(--income);
+  --color-coral: var(--coral);
+  --color-mint: var(--mint);
+  --color-lavender: var(--lavender);
+  --color-lemon: var(--lemon);
+  --color-forest: var(--forest);
+  --color-cream: var(--cream);
+  --color-coral-soft: var(--coral-soft);
+  --color-mint-soft: var(--mint-soft);
+  --color-lavender-soft: var(--lavender-soft);
+  --color-lemon-soft: var(--lemon-soft);
+  --color-forest-soft: var(--forest-soft);
+  --color-on-bright: var(--on-bright);
   --color-expense: var(--expense);
   --radius-card: var(--radius);
   --shadow-card: var(--shadow);
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --shadow-sheet: var(--shadow-lg);
+  --font-sans: "Nunito Variable", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 @layer base {
@@ -206,8 +269,13 @@
     font-size: 16px;
   }
   :focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2.5px solid var(--focus);
     outline-offset: 2px;
+  }
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.01em;
   }
 }
 
@@ -229,10 +297,23 @@
   }
 }
 
+/* ---------- Motion ---------------------------------------------------------------
+ * Only transform/opacity are animated (GPU-friendly). Entrances run once; nothing loops
+ * except loading indicators. Everything collapses to instant under reduced motion. */
 @keyframes fade-in {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
   }
   to {
     opacity: 1;
@@ -247,6 +328,11 @@
     transform: none;
   }
 }
+@keyframes sheet-out {
+  to {
+    transform: translateY(100%);
+  }
+}
 @keyframes overlay-in {
   from {
     opacity: 0;
@@ -255,19 +341,181 @@
     opacity: 1;
   }
 }
+@keyframes overlay-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -46%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+@keyframes dialog-out {
+  to {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.97);
+  }
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+}
+@keyframes pop {
+  0% {
+    transform: scale(0.6);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) rotate(var(--rot));
+  }
+}
+
 .animate-fade-in {
-  animation: fade-in 180ms ease-out both;
+  animation: fade-in var(--dur) var(--ease-out) both;
 }
 .animate-sheet-in {
-  animation: sheet-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: sheet-in 320ms var(--ease-out) both;
+}
+.animate-sheet-in[data-state="closed"] {
+  animation: sheet-out 200ms ease-in both;
 }
 .animate-overlay-in {
-  animation: overlay-in 160ms ease-out both;
+  animation: overlay-in 200ms ease-out both;
 }
+.animate-overlay-in[data-state="closed"] {
+  animation: overlay-out 180ms ease-in both;
+}
+.animate-dialog-in {
+  animation: dialog-in 260ms var(--ease-spring) both;
+}
+.animate-dialog-in[data-state="closed"] {
+  animation: dialog-out 160ms ease-in both;
+}
+.animate-toast-in {
+  animation: toast-in 260ms var(--ease-spring) both;
+}
+.animate-toast-out {
+  animation: toast-out 180ms ease-in both;
+}
+.animate-pop {
+  animation: pop 320ms var(--ease-spring) both;
+}
+
+/* Cards of a screen rise in one after another — only the first eight, so long lists never wait. */
+.stagger > * {
+  animation: rise-in 380ms var(--ease-out) both;
+}
+.stagger > :nth-child(2) {
+  animation-delay: 40ms;
+}
+.stagger > :nth-child(3) {
+  animation-delay: 80ms;
+}
+.stagger > :nth-child(4) {
+  animation-delay: 120ms;
+}
+.stagger > :nth-child(5) {
+  animation-delay: 160ms;
+}
+.stagger > :nth-child(6) {
+  animation-delay: 200ms;
+}
+.stagger > :nth-child(7) {
+  animation-delay: 240ms;
+}
+.stagger > :nth-child(n + 8) {
+  animation-delay: 280ms;
+}
+
+/* Tactile press: a quick squish on tap for anything marked .press. */
+.press {
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) ease,
+    filter var(--dur-fast) ease;
+}
+.press:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, var(--surface-2) 0%, color-mix(in srgb, var(--surface-2) 55%, var(--surface)) 50%, var(--surface-2) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.check-draw {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: draw 300ms var(--ease-out) 60ms forwards;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 12px;
+  border-radius: 2px;
+  animation: confetti-fall 1100ms cubic-bezier(0.2, 0.7, 0.4, 1) forwards;
+  will-change: transform, opacity;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-in,
-  .animate-sheet-in,
-  .animate-overlay-in {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .check-draw {
+    stroke-dashoffset: 0;
   }
 }

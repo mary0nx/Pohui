@@ -53,10 +53,10 @@ export function AppShell() {
       {!onAssistant && (
         <nav
           aria-label="Основная навигация"
-          className="fixed inset-x-0 bottom-0 z-30 border-t border-border/80 bg-surface/95 backdrop-blur-md"
-          style={{ paddingBottom: "var(--safe-bottom)" }}
+          className="fixed inset-x-0 bottom-0 z-30 px-3"
+          style={{ paddingBottom: "calc(var(--safe-bottom) + 8px)" }}
         >
-          <ul className="mx-auto flex h-[var(--nav-height)] max-w-lg items-stretch justify-around px-1">
+          <ul className="mx-auto flex h-[var(--nav-height)] max-w-lg items-stretch justify-around rounded-[28px] border border-border/70 bg-surface/92 px-1.5 shadow-sheet backdrop-blur-md">
             {TABS.map(({ to, key, icon: Icon, ...rest }) => (
               <li key={to} className="flex-1">
                 <NavLink
@@ -64,11 +64,22 @@ export function AppShell() {
                   end={"end" in rest}
                   onClick={() => haptic("select")}
                   className={({ isActive }) =>
-                    cn("flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors", isActive ? "text-accent" : "text-subtle")
+                    cn("press flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-colors", isActive ? "text-text" : "text-subtle hover:text-muted")
                   }
                 >
-                  <Icon className="size-[22px]" strokeWidth={1.9} aria-hidden />
-                  <span className="truncate">{t(key)}</span>
+                  {({ isActive }) => (
+                    <>
+                      <span
+                        className={cn(
+                          "flex h-8 w-12 items-center justify-center rounded-full transition-[background-color,transform] duration-300 ease-[var(--ease-spring)]",
+                          isActive ? "scale-100 bg-accent text-accent-fg" : "scale-90",
+                        )}
+                      >
+                        <Icon className="size-[21px]" strokeWidth={isActive ? 2.3 : 1.9} aria-hidden />
+                      </span>
+                      <span className="truncate">{t(key)}</span>
+                    </>
+                  )}
                 </NavLink>
               </li>
             ))}

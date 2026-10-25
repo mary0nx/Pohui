@@ -15,16 +15,16 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<Variant, string> = {
-  primary: "bg-accent text-accent-fg hover:bg-accent-strong active:scale-[0.98]",
-  secondary: "bg-surface text-text border border-border hover:bg-surface-2 active:scale-[0.98]",
-  soft: "bg-accent-soft text-accent-strong hover:brightness-95 active:scale-[0.98]",
+  primary: "bg-accent text-accent-fg font-semibold shadow-card hover:brightness-[1.03] active:shadow-[var(--shadow-press)]",
+  secondary: "bg-surface text-text border border-border shadow-[var(--shadow-press)] hover:bg-surface-2",
+  soft: "bg-accent-soft text-accent-strong font-semibold hover:brightness-[0.98]",
   ghost: "bg-transparent text-text hover:bg-surface-2",
-  danger: "bg-danger text-white hover:brightness-95 active:scale-[0.98]",
+  danger: "bg-danger text-white font-semibold hover:brightness-95 dark:text-[#2b0f0b]",
 };
 const sizes: Record<Size, string> = {
-  sm: "h-9 px-3 text-sm rounded-xl gap-1.5",
-  md: "h-11 px-4 text-[15px] rounded-2xl gap-2",
-  lg: "h-12 px-5 text-base rounded-2xl gap-2",
+  sm: "h-9 px-3.5 text-sm rounded-full gap-1.5",
+  md: "h-11 px-5 text-[15px] rounded-full gap-2",
+  lg: "h-12 px-6 text-base rounded-full gap-2",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
@@ -36,8 +36,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       type={type}
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
       className={cn(
-        "inline-flex select-none items-center justify-center font-medium transition-[background,transform,filter] duration-150 disabled:opacity-50",
+        "press inline-flex select-none items-center justify-center font-medium disabled:opacity-50",
         variants[variant],
         sizes[size],
         block && "w-full",
@@ -57,7 +58,7 @@ export function IconButton({ label, className, children, ...rest }: ButtonHTMLAt
       type="button"
       aria-label={label}
       title={label}
-      className={cn("inline-flex size-10 items-center justify-center rounded-full text-muted transition hover:bg-surface-2 hover:text-text active:scale-95", className)}
+      className={cn("press inline-flex size-10 items-center justify-center rounded-full text-muted hover:bg-surface-2 hover:text-text", className)}
       {...rest}
     >
       {children}

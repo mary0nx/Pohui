@@ -4,13 +4,13 @@ import { forwardRef, useEffect, useId, useRef, type InputHTMLAttributes, type Re
 import { cn } from "@/lib/cn";
 
 const control =
-  "w-full rounded-2xl border border-border bg-surface px-3.5 text-text placeholder:text-subtle transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 disabled:opacity-60";
+  "w-full rounded-2xl border border-border bg-surface px-4 text-text shadow-[var(--shadow-press)] placeholder:text-subtle transition-[border-color,box-shadow] duration-200 focus:border-[var(--focus)] focus:outline-none focus:ring-4 focus:ring-[color-mix(in_srgb,var(--focus)_18%,transparent)] disabled:opacity-60";
 
 export function Field({ label, error, hint, children, htmlFor }: { label?: string; error?: string; hint?: string; children: ReactNode; htmlFor?: string }) {
   return (
     <div className="space-y-1.5">
       {label && (
-        <label htmlFor={htmlFor} className="block px-1 text-sm font-medium text-muted">
+        <label htmlFor={htmlFor} className="block px-1 text-sm font-semibold text-muted">
           {label}
         </label>
       )}
@@ -83,17 +83,30 @@ export function Switch({ checked, onChange, label, description, disabled }: { ch
         aria-label={label}
         disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={cn("relative h-7 w-12 shrink-0 rounded-full transition", checked ? "bg-accent" : "bg-border")}
+        className={cn("press relative h-8 w-[52px] shrink-0 rounded-full transition-colors duration-200", checked ? "bg-accent" : "bg-surface-2 ring-1 ring-inset ring-border")}
       >
-        <span className={cn("absolute top-0.5 size-6 rounded-full bg-white shadow transition-all", checked ? "left-[22px]" : "left-0.5")} />
+        <span
+          className="absolute left-1 top-1 size-6 rounded-full bg-white shadow-md transition-transform duration-300 ease-[var(--ease-spring)]"
+          style={{ transform: checked ? "translateX(20px)" : "none" }}
+        />
       </button>
     </label>
   );
 }
 
 export function Segmented<T extends string>({ value, onChange, options, className }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[]; className?: string }) {
+  const index = Math.max(
+    0,
+    options.findIndex((o) => o.value === value),
+  );
   return (
-    <div role="tablist" className={cn("flex gap-1 rounded-2xl bg-surface-2 p-1", className)}>
+    <div role="tablist" className={cn("relative flex rounded-full bg-surface-2 p-1", className)}>
+      {/* Sliding pill behind the active tab. */}
+      <span
+        aria-hidden
+        className="absolute bottom-1 left-1 top-1 rounded-full bg-surface shadow-card transition-transform duration-300 ease-[var(--ease-out)]"
+        style={{ width: `calc((100% - 8px) / ${options.length})`, transform: `translateX(${index * 100}%)` }}
+      />
       {options.map((o) => (
         <button
           key={o.value}
@@ -101,10 +114,7 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
           role="tab"
           aria-selected={value === o.value}
           onClick={() => onChange(o.value)}
-          className={cn(
-            "h-9 flex-1 truncate rounded-xl px-2 text-sm font-medium transition",
-            value === o.value ? "bg-surface text-text shadow-sm" : "text-muted hover:text-text",
-          )}
+          className={cn("relative z-10 h-9 flex-1 truncate rounded-full px-2 text-sm font-semibold transition-colors duration-200", value === o.value ? "text-text" : "text-muted hover:text-text")}
         >
           {o.label}
         </button>
@@ -130,8 +140,8 @@ export function Chips<T extends string>({ value, onChange, options }: { value: T
           aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "h-9 shrink-0 rounded-full border px-3.5 text-sm font-medium transition",
-            value === o.value ? "border-accent bg-accent-soft text-accent-strong" : "border-border bg-surface text-muted",
+            "press h-9 shrink-0 rounded-full border px-4 text-sm font-semibold",
+            value === o.value ? "border-transparent bg-accent text-accent-fg shadow-card" : "border-border bg-surface text-muted hover:text-text",
           )}
         >
           {o.label}

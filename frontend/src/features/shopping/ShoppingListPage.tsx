@@ -1,15 +1,16 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Archive, Check, History, ListPlus, MoreHorizontal, Send, Trash2 } from "lucide-react";
+import { Archive, History, ListPlus, MoreHorizontal, Send, Trash2 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 
 import { api, errorMessage, newIdempotencyKey } from "@/api/client";
 import { useFamily } from "@/app/session";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Button, Card, ConfirmDialog, EmptyState, ErrorState, IconButton, Input, LoadingBlock, Segmented, Sheet, Textarea, useToast } from "@/components/ui";
+import { Button, Card, CheckCircle, ConfirmDialog, EmptyState, ErrorState, IconButton, Input, LoadingBlock, Segmented, Sheet, Textarea, useToast } from "@/components/ui";
 import { shortDayLabel, WeekPlanner } from "@/components/WeekPlanner";
 import { cn } from "@/lib/cn";
 import { formatMoney, formatQty, timeAgo } from "@/lib/format";
+import { celebrate } from "@/lib/motion";
 import { haptic } from "@/lib/telegram";
 import type { HistoryEntry, ShoppingItem, ShoppingListDetail } from "@/types/api";
 
@@ -69,6 +70,9 @@ export function ShoppingListPage() {
     mutationFn: (item: ShoppingItem) => api<ShoppingItem>(f(`/shopping/lists/${listId}/items/${item.id}`), { method: "PATCH", body: { status: item.status === "needed" ? "bought" : "needed" } }),
     onMutate: async (item) => {
       haptic("select");
+      // The last item of the list bought: a small celebration.
+      const needed = qc.getQueryData<ShoppingListDetail>(key)?.items.filter((i) => i.status === "needed") ?? [];
+      if (item.status === "needed" && needed.length === 1 && needed[0]!.id === item.id) celebrate();
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<ShoppingListDetail>(key);
       if (prev) qc.setQueryData<ShoppingListDetail>(key, { ...prev, items: prev.items.map((i) => (i.id === item.id ? { ...i, status: item.status === "needed" ? "bought" : "needed" } : i)) });
@@ -366,18 +370,11 @@ function ItemRow({ item, onToggle, onEdit, meta, showDay = true }: { item: Shopp
   const bought = item.status === "bought";
   return (
     <div className="flex items-center gap-3 px-3 py-2">
-      <button
-        type="button"
-        role="checkbox"
-        aria-checked={bought}
-        aria-label={bought ? `Вернуть ${item.name}` : `Купить ${item.name}`}
-        onClick={onToggle}
-        className={cn("flex size-8 shrink-0 items-center justify-center rounded-full border-2 transition", bought ? "border-accent bg-accent text-accent-fg" : "border-border")}
-      >
-        {bought && <Check className="size-4" />}
+      <button type="button" role="checkbox" aria-checked={bought} aria-label={bought ? `Вернуть ${item.name}` : `Купить ${item.name}`} onClick={onToggle} className="press -m-1 rounded-full p-1">
+        <CheckCircle checked={bought} />
       </button>
       <button type="button" onClick={onEdit} className="min-w-0 flex-1 py-1 text-left">
-        <span className={cn("block truncate text-[15px]", bought && "line-through")}>{item.name}</span>
+        <span className={cn("block truncate text-[15px] font-semibold transition-colors duration-300", bought && "text-muted line-through decoration-2")}>{item.name}</span>
         <span className="block truncate text-xs text-muted">
           {[showDay && item.planned_for && `на ${shortDayLabel(item.planned_for)}`, formatQty(item.quantity, item.unit), item.store, item.note, meta].filter(Boolean).join(" · ")}
         </span>
