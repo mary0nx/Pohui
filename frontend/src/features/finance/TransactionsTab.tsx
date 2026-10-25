@@ -1,4 +1,4 @@
-import { ArrowLeftRight, Search, Upload } from "lucide-react";
+import { Search, Upload } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { useFamily } from "@/app/session";
@@ -10,6 +10,8 @@ import type { Transaction } from "@/types/api";
 
 import { useAccounts, useCategories, useTransactions } from "./api";
 import { ImportSheet } from "./ImportSheet";
+import { MerchantIcon } from "./merchants/MerchantIcon";
+import { merchantTitle, transactionIcon } from "./merchants/registry";
 import { TransactionSheet } from "./TransactionSheet";
 
 const KIND_LABEL = { expense: "Расход", income: "Доход", refund: "Возврат", transfer: "Перевод" } as const;
@@ -27,7 +29,7 @@ export function TransactionsTab() {
   const accounts = useAccounts(true);
   const tx = useTransactions({ q: q.trim() || undefined, kind: kind || undefined, category_id: category || undefined, member_id: member || undefined, offset });
 
-  const catName = useMemo(() => new Map((categories.data ?? []).map((c) => [c.id, c.name])), [categories.data]);
+  const catById = useMemo(() => new Map((categories.data ?? []).map((c) => [c.id, c])), [categories.data]);
   const accName = useMemo(() => new Map((accounts.data ?? []).map((a) => [a.id, a.name])), [accounts.data]);
 
   const groups = useMemo(() => {
@@ -93,21 +95,26 @@ export function TransactionsTab() {
               <Card className="divide-y divide-border p-0">
                 {g.items.map((t) => {
                   const positive = t.kind === "income" || t.kind === "refund";
+                  const category = catById.get(t.category_id ?? "") ?? null;
+                  const tx = { kind: t.kind, merchant: t.merchant, description: t.description, category };
+                  // Where the money went (shop logo / illustration) — display only, the data is unchanged.
+                  const shop = merchantTitle(tx);
+                  const title = shop || t.description || (t.kind === "transfer" ? `${accName.get(t.account_id)} → ${accName.get(t.to_account_id ?? "")}` : (category?.name ?? KIND_LABEL[t.kind]));
+                  const note = shop && t.description && t.description !== shop ? t.description : null;
                   return (
                     <button key={t.id} type="button" onClick={() => setEdit(t)} className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-surface-2">
-                      <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-surface-2 text-muted">
-                        {t.kind === "transfer" ? <ArrowLeftRight className="size-4" /> : <span className="text-sm font-semibold">{(catName.get(t.category_id ?? "") ?? KIND_LABEL[t.kind])[0]}</span>}
-                      </span>
+                      <MerchantIcon icon={transactionIcon(tx)} refund={t.kind === "refund"} />
                       <span className="min-w-0 flex-1">
-                        <span className="flex items-center gap-1.5 truncate text-[15px]">
-                          {t.description || t.merchant || (t.kind === "transfer" ? `${accName.get(t.account_id)} → ${accName.get(t.to_account_id ?? "")}` : (catName.get(t.category_id ?? "") ?? KIND_LABEL[t.kind]))}
+                        <span className="flex items-start gap-1.5 text-[15px] font-semibold leading-snug text-heading">
+                          <span className="line-clamp-2 break-words">{title}</span>
                           {t.visibility === "private" && <PrivateMark />}
                         </span>
                         <span className="block truncate text-xs text-muted">
-                          {catName.get(t.category_id ?? "") ?? KIND_LABEL[t.kind]} · {accName.get(t.account_id)} · {memberName(t.created_by)} · {formatTime(t.occurred_at, tz)}
+                          {formatTime(t.occurred_at, tz)} · {category?.name ?? KIND_LABEL[t.kind]} · {accName.get(t.account_id)} · {memberName(t.created_by)}
                         </span>
+                        {note && <span className="line-clamp-2 break-words text-xs text-subtle">{note}</span>}
                       </span>
-                      <span className={`tabular shrink-0 font-semibold ${positive ? "text-income" : t.kind === "transfer" ? "text-muted" : ""}`}>
+                      <span className={`tabular shrink-0 whitespace-nowrap font-semibold ${positive ? "text-income" : t.kind === "transfer" ? "text-muted" : ""}`}>
                         {t.kind === "transfer" ? "" : positive ? "+" : "−"}
                         {formatMoney(t.amount, t.currency)}
                       </span>

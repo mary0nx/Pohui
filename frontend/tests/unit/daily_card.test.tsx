@@ -51,7 +51,8 @@ describe("«Листочек дня» on the home screen", () => {
     mockFetch(routes([], "missing"));
     render(<App />);
     const card = await screen.findByRole("button", { name: /^Листочек дня/ });
-    await waitFor(() => expect(card.querySelector("svg[viewBox='0 0 120 100']")).not.toBeNull());
+    // The picture is retried once (≈1 s) before the built-in one is shown.
+    await waitFor(() => expect(card.querySelector("svg[viewBox='0 0 120 100']")).not.toBeNull(), { timeout: 4000 });
     expect(card.querySelector(".leaf-test")).toBeNull();
   });
 
