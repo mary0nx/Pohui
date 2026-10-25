@@ -31,7 +31,7 @@ export function LoadingBlock({ rows = 3 }: { rows?: number }) {
  */
 export function EmptyState({ art, icon, title, text, action }: { art?: ArtName; icon?: ReactNode; title: string; text?: string; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center px-6 py-8 text-center">
+    <div className="animate-fade-in flex flex-col items-center px-6 py-8 text-center">
       {art ? (
         <Art name={art} className="animate-art-in mb-3 h-[104px] w-[125px]" />
       ) : (

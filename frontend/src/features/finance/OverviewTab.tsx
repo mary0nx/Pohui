@@ -64,7 +64,7 @@ function SummaryView({ data, scope, currency }: { data: NonNullable<ReturnType<t
         ].map((t, i) => (
           <Card key={t.label} tone={i === 0 ? "mint" : i === 1 ? "coral" : "lavender"} className="p-3">
             <p className="text-xs font-semibold text-muted">{t.label}</p>
-            <p className={`tabular mt-0.5 text-[15px] font-extrabold ${t.cls}`}>{formatMoney(t.value, currency, { compact: true })}</p>
+            <p className={`num-in tabular mt-0.5 text-[15px] font-extrabold ${t.cls}`}>{formatMoney(t.value, currency, { compact: true })}</p>
           </Card>
         ))}
       </div>
@@ -72,7 +72,7 @@ function SummaryView({ data, scope, currency }: { data: NonNullable<ReturnType<t
       {data.budget && scope === "family" && (
         <Card className="flex items-center gap-4">
           <ProgressRing value={data.budget.percent} level={data.budget.level} size={88} stroke={11} label={`Бюджет месяца: ${Math.round(data.budget.percent)}%`}>
-            <span className="tabular text-lg font-extrabold">{Math.round(data.budget.percent)}%</span>
+            <span className="num-in tabular text-lg font-extrabold">{Math.round(data.budget.percent)}%</span>
           </ProgressRing>
           <div className="min-w-0">
             <p className="text-base font-bold">Бюджет месяца</p>

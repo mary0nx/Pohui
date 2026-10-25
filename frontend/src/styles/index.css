@@ -518,7 +518,7 @@
 @keyframes page-in {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -597,7 +597,7 @@
 }
 /* Switching between sections of the bottom navigation. */
 .animate-page-in {
-  animation: page-in 360ms var(--ease-out) both;
+  animation: page-in 240ms var(--ease-out) both;
 }
 /* Switching tabs inside a section (finance tabs, calendar views…). */
 .animate-tab-in {
@@ -620,6 +620,93 @@
 .collapse-panel > * {
   min-height: 0;
   overflow: hidden;
+}
+
+/* Living illustration (Art alive): a few seconds of life after mounting, then rest.
+ * transform/opacity only; transform origins are in viewBox units (inline style). */
+@keyframes leaf-sway {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(-4deg);
+  }
+  70% {
+    transform: rotate(3deg);
+  }
+}
+@keyframes heart-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.4);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes heart-float {
+  50% {
+    transform: translateY(-2.5px) scale(1.06);
+  }
+}
+@keyframes smoke-drift {
+  0%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+  50% {
+    opacity: 0.35;
+    transform: translate(1.5px, -3px);
+  }
+}
+.ill-alive .ill-sway {
+  transform-box: view-box;
+  animation: leaf-sway 3.2s ease-in-out 0.5s 3;
+}
+.ill-alive .ill-heart {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation:
+    heart-in 700ms var(--ease-spring) 0.45s both,
+    heart-float 2.6s ease-in-out 1.2s 3;
+}
+.ill-alive .ill-smoke {
+  transform-box: fill-box;
+  animation: smoke-drift 3s ease-in-out 0.2s 4;
+}
+
+/* Numbers settle in softly (the real value is shown from the first frame, no counting). */
+@keyframes number-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.num-in {
+  animation: number-in 520ms var(--ease-out) 180ms both;
+}
+
+/* The icon of the tab that just became active gives a small spring. */
+@keyframes nav-pop {
+  0% {
+    transform: scale(0.82);
+  }
+  55% {
+    transform: scale(1.14);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.nav-pop {
+  animation: nav-pop 420ms var(--ease-out) both;
 }
 
 /* Cards of a screen rise in one after another — only the first eight, so long lists never wait. */
@@ -651,14 +738,16 @@
 /* Tactile press: a quick squish on tap for anything marked .press. */
 .press {
   transition:
-    transform var(--dur-fast) var(--ease-out),
+    transform 320ms var(--ease-spring),
     box-shadow var(--dur-fast) var(--ease-out),
     background-color var(--dur-fast) ease,
     filter var(--dur-fast) ease;
 }
+/* Squeezes in fast, springs back softly on release. */
 .press:active:not(:disabled) {
   transform: scale(0.96);
-  transition-duration: 80ms;
+  transition-duration: 90ms;
+  transition-timing-function: var(--ease-out);
 }
 
 .skeleton-shimmer {

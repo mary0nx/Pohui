@@ -11,15 +11,16 @@ import {
   Plus,
   ShoppingCart,
   Sparkles,
+  UserPlus,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 
 import { api } from "@/api/client";
 import { useAiEnabled, useFamily } from "@/app/session";
 import { Art, type ArtName } from "@/components/illustrations/Art";
 import { PrivateMark } from "@/components/Visibility";
-import { Avatar, Badge, Button, Card, CardHeader, Collapse, EmptyState, ErrorState, IconBadge, ProgressBar, ProgressRing, Skeleton } from "@/components/ui";
+import { Avatar, Badge, Button, Card, CardHeader, Collapse, ErrorState, IconBadge, ProgressBar, ProgressRing, Skeleton } from "@/components/ui";
 import { TransactionSheet } from "@/features/finance/TransactionSheet";
 import { useTasks } from "@/features/tasks/api";
 import { TaskRow } from "@/features/tasks/TaskRow";
@@ -48,6 +49,10 @@ const QUICK_TONE: Record<Tone, string> = {
 };
 
 /** Greeting by the time of day in the family's time zone. */
+/* The cards cascade in on the first visit of the session only; coming back to the home
+ * screen or a background refresh shows them at once. */
+let introPlayed = false;
+
 function greeting(tz: string): string {
   const h = Number(zonedTime(new Date(), tz).slice(0, 2));
   if (h < 5) return "Доброй ночи";
@@ -72,7 +77,7 @@ function SectionTitle({ title, to, linkLabel = "Все" }: { title: string; to?:
 /** One-line empty state inside a dashboard card: small picture, a sentence, an add button. */
 function InlineEmpty({ art, text, action }: { art: ArtName; text: string; action?: ReactNode }) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="animate-fade-in flex items-center gap-3">
       <Art name={art} className="h-12 w-[58px]" />
       <p className="min-w-0 flex-1 text-sm text-muted">{text}</p>
       {action}
@@ -151,7 +156,12 @@ export function DashboardPage() {
   const aiEnabled = useAiEnabled();
   const [txOpen, setTxOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
+  const [intro] = useState(() => !introPlayed);
   const q = useQuery({ queryKey: ["dashboard", familyId], queryFn: () => api<Dashboard>(f("/dashboard")), refetchInterval: 60_000 });
+
+  useEffect(() => {
+    if (q.data) introPlayed = true;
+  }, [q.data]);
 
   if (q.isPending) return <DashboardSkeleton />;
   if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
@@ -161,6 +171,9 @@ export function DashboardPage() {
   const shoppingLink = d.shopping.list_id ? `/home/shopping/${d.shopping.list_id}` : "/home/shopping";
   const budgetTone = d.budget?.level === "exceeded" ? "danger" : d.budget?.level === "warning" ? "warning" : "success";
   const budgetText = d.budget?.level === "exceeded" ? "Лимит превышен" : d.budget?.level === "warning" ? "Близко к лимиту" : "Всё по плану";
+  // Nothing recorded this month and no limit set: show a friendly start instead of zeros.
+  const monthEmpty = !d.budget && Number(d.month_family.income) === 0 && Number(d.month_family.expense) === 0;
+  const num = intro ? "num-in" : undefined;
 
   const actions: QuickAction[] = [
     { label: "Расход", icon: CircleDollarSign, tone: "peach", onClick: () => setTxOpen(true) },
@@ -170,7 +183,7 @@ export function DashboardPage() {
   ];
 
   return (
-    <div className="stagger space-y-5">
+    <div className={cn("space-y-5", intro && "stagger")}>
       {/* Greeting */}
       <header className="pt-5">
         <div className="flex items-center justify-between gap-3">
@@ -204,77 +217,98 @@ export function DashboardPage() {
             </h1>
             <p className="mt-1 text-sm font-semibold text-muted first-letter:uppercase">{formatDate(today, tz, { weekday: "long", day: "numeric", month: "long" })}</p>
           </div>
-          <Art name="house" className="animate-art-in -mr-1 h-[96px] w-[116px]" />
+          <Art name="house" alive className={cn("-mr-1 h-[96px] w-[116px]", intro && "animate-art-in")} />
         </div>
       </header>
 
       {/* Main block: the month budget */}
-      <Card className="p-5" style={{ background: "linear-gradient(140deg, var(--surface) 45%, var(--peach-soft) 100%)" }}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-muted">Бюджет · {monthName}</p>
-            {d.budget ? (
-              <>
-                <p className="tabular mt-1 text-[30px] font-extrabold leading-tight text-heading">{formatMoney(d.budget.remaining, d.currency)}</p>
-                <p className="text-sm text-muted">
-                  осталось из {formatMoney(d.budget.limit, d.currency, { compact: true })}
-                </p>
-                <Badge tone={budgetTone} className="mt-2">
-                  {budgetText}
-                </Badge>
-              </>
-            ) : (
-              <>
-                <p className="tabular mt-1 text-[30px] font-extrabold leading-tight text-heading">{formatMoney(d.month_family.expense, d.currency)}</p>
-                <p className="text-sm text-muted">потрачено в этом месяце</p>
-                <Link to="/finance/budgets" className="press mt-2 inline-flex items-center gap-1 rounded-full bg-peach px-3 py-1 text-sm font-bold text-peach-ink">
-                  <Plus className="size-4" aria-hidden /> Задать бюджет
-                </Link>
-              </>
-            )}
+      {monthEmpty ? (
+        <Card className="p-5" style={{ background: "linear-gradient(140deg, var(--surface) 45%, var(--peach-soft) 100%)" }}>
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-muted">Бюджет · {monthName}</p>
+              <p className="mt-1 text-xl font-extrabold leading-snug text-heading">Операций за месяц пока нет</p>
+              <p className="mt-1 text-sm text-muted">Добавьте первый расход или задайте лимит — здесь появится кольцо бюджета.</p>
+            </div>
+            <Art name="jar" alive className="-mr-2 -mt-1 h-[76px] w-[90px]" />
           </div>
-          {d.budget && (
-            <ProgressRing value={d.budget.percent} level={d.budget.level} size={80} stroke={9} label={`Бюджет использован на ${Math.round(d.budget.percent)}%`}>
-              <span className="text-center leading-tight">
-                <span className="tabular block text-lg font-extrabold text-heading">{Math.round(d.budget.percent)}%</span>
-                <span className="block text-[10px] font-bold text-muted">потрачено</span>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button size="sm" icon={<Plus className="size-4" />} onClick={() => setTxOpen(true)}>
+              Первая операция
+            </Button>
+            <Link to="/finance/budgets" className="press inline-flex h-9 items-center gap-1.5 rounded-full bg-peach px-3.5 text-sm font-bold text-peach-ink">
+              Задать бюджет
+            </Link>
+          </div>
+        </Card>
+      ) : (
+        <>
+          <Card className="p-5" style={{ background: "linear-gradient(140deg, var(--surface) 45%, var(--peach-soft) 100%)" }}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-muted">Бюджет · {monthName}</p>
+                {d.budget ? (
+                  <>
+                    <p className={cn("tabular mt-1 text-[30px] font-extrabold leading-tight text-heading", num)}>{formatMoney(d.budget.remaining, d.currency)}</p>
+                    <p className="text-sm text-muted">осталось из {formatMoney(d.budget.limit, d.currency, { compact: true })}</p>
+                    <Badge tone={budgetTone} className="mt-2">
+                      {budgetText}
+                    </Badge>
+                  </>
+                ) : (
+                  <>
+                    <p className={cn("tabular mt-1 text-[30px] font-extrabold leading-tight text-heading", num)}>{formatMoney(d.month_family.expense, d.currency)}</p>
+                    <p className="text-sm text-muted">потрачено в этом месяце</p>
+                    <Link to="/finance/budgets" className="press mt-2 inline-flex items-center gap-1 rounded-full bg-peach px-3 py-1 text-sm font-bold text-peach-ink">
+                      <Plus className="size-4" aria-hidden /> Задать бюджет
+                    </Link>
+                  </>
+                )}
+              </div>
+              {d.budget && (
+                <ProgressRing value={d.budget.percent} level={d.budget.level} size={80} stroke={9} label={`Бюджет использован на ${Math.round(d.budget.percent)}%`}>
+                  <span className={cn("text-center leading-tight", num)}>
+                    <span className="tabular block text-lg font-extrabold text-heading">{Math.round(d.budget.percent)}%</span>
+                    <span className="block text-[11px] font-bold text-muted">потрачено</span>
+                  </span>
+                </ProgressRing>
+              )}
+            </div>
+            <Link to="/finance" className="press mt-4 flex items-center justify-between gap-2 rounded-2xl bg-surface-2/70 px-3 py-2.5 text-sm">
+              <span className="font-semibold text-muted">Общий баланс месяца</span>
+              <span className={cn("tabular flex items-center gap-1 font-extrabold text-heading", num)}>
+                {formatMoney(d.month_family.net, d.currency, { sign: true })}
+                <ChevronRight className="size-4 text-subtle" aria-hidden />
               </span>
-            </ProgressRing>
-          )}
-        </div>
-        <Link to="/finance" className="press mt-4 flex items-center justify-between gap-2 rounded-2xl bg-surface-2/70 px-3 py-2.5 text-sm">
-          <span className="font-semibold text-muted">Общий баланс месяца</span>
-          <span className="tabular flex items-center gap-1 font-extrabold text-heading">
-            {formatMoney(d.month_family.net, d.currency, { sign: true })}
-            <ChevronRight className="size-4 text-subtle" aria-hidden />
-          </span>
-        </Link>
-        {Number(d.month_personal.expense) > 0 && (
-          <p className="mt-2 flex items-center gap-1.5 px-1 text-xs font-semibold text-muted">
-            <PrivateMark /> Мои личные расходы: {formatMoney(d.month_personal.expense, d.currency)}
-          </p>
-        )}
-      </Card>
+            </Link>
+            {Number(d.month_personal.expense) > 0 && (
+              <p className="mt-2 flex items-center gap-1.5 px-1 text-xs font-semibold text-muted">
+                <PrivateMark /> Мои личные расходы: {formatMoney(d.month_personal.expense, d.currency)}
+              </p>
+            )}
+          </Card>
 
-      {/* Income / expense */}
-      <div className="grid grid-cols-2 gap-3">
-        <Link to="/finance/transactions" className="press rounded-card">
-          <Card tone="mint" className="h-full p-3.5">
-            <p className="flex items-center gap-1.5 text-sm font-bold text-mint-ink">
-              <ArrowDownLeft className="size-4" aria-hidden /> Доходы
-            </p>
-            <p className="tabular mt-1 truncate text-lg font-extrabold text-heading">{formatMoney(d.month_family.income, d.currency)}</p>
-          </Card>
-        </Link>
-        <Link to="/finance/transactions" className="press rounded-card">
-          <Card tone="coral" className="h-full p-3.5">
-            <p className="flex items-center gap-1.5 text-sm font-bold text-peach-ink">
-              <ArrowUpRight className="size-4" aria-hidden /> Расходы
-            </p>
-            <p className="tabular mt-1 truncate text-lg font-extrabold text-heading">{formatMoney(d.month_family.expense, d.currency)}</p>
-          </Card>
-        </Link>
-      </div>
+          {/* Income / expense */}
+          <div className="grid grid-cols-2 gap-3">
+            <Link to="/finance/transactions" className="press rounded-card">
+              <Card tone="mint" className="h-full p-3.5">
+                <p className="flex items-center gap-1.5 text-sm font-bold text-mint-ink">
+                  <ArrowDownLeft className="size-4" aria-hidden /> Доходы
+                </p>
+                <p className={cn("tabular mt-1 truncate text-lg font-extrabold text-heading", num)}>{formatMoney(d.month_family.income, d.currency)}</p>
+              </Card>
+            </Link>
+            <Link to="/finance/transactions" className="press rounded-card">
+              <Card tone="coral" className="h-full p-3.5">
+                <p className="flex items-center gap-1.5 text-sm font-bold text-peach-ink">
+                  <ArrowUpRight className="size-4" aria-hidden /> Расходы
+                </p>
+                <p className={cn("tabular mt-1 truncate text-lg font-extrabold text-heading", num)}>{formatMoney(d.month_family.expense, d.currency)}</p>
+              </Card>
+            </Link>
+          </div>
+        </>
+      )}
 
       {/* Quick actions */}
       <nav aria-label="Быстрые действия" className="grid grid-cols-4 gap-2">
@@ -310,17 +344,17 @@ export function DashboardPage() {
       )}
 
       {d.is_empty && (
-        <Card>
-          <EmptyState
-            art="plant"
-            title="Начните с первых данных"
-            text="Добавьте расход, событие или список покупок — сводка на главной появится автоматически."
-            action={
-              <Button icon={<Plus className="size-4" />} onClick={() => setTxOpen(true)}>
-                Добавить операцию
-              </Button>
-            }
-          />
+        <Card tone="lavender" className="animate-fade-in flex items-center gap-3 py-3.5">
+          <Art name="mugs" alive className="h-14 w-[66px]" />
+          <div className="min-w-0 flex-1">
+            <p className="font-extrabold text-heading">Начните с первых данных</p>
+            <p className="text-sm text-lavender-ink">{members.length > 1 ? "Добавьте покупку, дело или событие." : "Позовите близкого — всё станет общим."}</p>
+            {members.length <= 1 && (
+              <Link to="/profile" className="press mt-2 inline-flex h-8 items-center gap-1 rounded-full bg-surface px-3 text-sm font-bold text-lavender-ink shadow-card">
+                <UserPlus className="size-4" aria-hidden /> Пригласить
+              </Link>
+            )}
+          </div>
         </Card>
       )}
 
@@ -346,7 +380,7 @@ export function DashboardPage() {
                   <li key={`${e.event_id}-${e.start}`}>
                     <Link to={`/calendar/${e.event_id}`} className="press flex items-center gap-3 rounded-2xl p-1.5 hover:bg-surface-2">
                       <div className="w-[68px] shrink-0 rounded-2xl bg-lavender py-1.5 text-center text-lavender-ink">
-                        <p className="text-[11px] font-extrabold uppercase">{relativeDay(day, today) ?? formatDate(e.start, tz, { weekday: "short", day: "numeric" })}</p>
+                        <p className="text-xs font-extrabold uppercase">{relativeDay(day, today) ?? formatDate(e.start, tz, { weekday: "short", day: "numeric" })}</p>
                         <p className="tabular text-sm font-bold">{e.all_day ? "весь день" : formatTime(e.start, tz)}</p>
                       </div>
                       <div className="min-w-0">
@@ -424,70 +458,72 @@ export function DashboardPage() {
         </Card>
       )}
 
-      {/* Family summary */}
-      <section>
-        <SectionTitle title="Семейная сводка" />
-        <Card className="space-y-4">
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <Link to="/home/tasks" className="press rounded-2xl bg-mint px-1 py-2.5">
-              <p className="tabular text-xl font-extrabold text-heading">{d.task_stats.done_this_week}</p>
-              <p className="text-[11px] font-bold leading-tight text-mint-ink">сделано за неделю</p>
-            </Link>
-            <Link to="/home/tasks" className="press rounded-2xl bg-lemon-soft px-1 py-2.5">
-              <p className="tabular text-xl font-extrabold text-heading">{d.task_stats.open_total}</p>
-              <p className="text-[11px] font-bold leading-tight text-lemon-ink">
-                {d.task_stats.overdue_total > 0 ? `открыто · ${d.task_stats.overdue_total} просрочено` : "задач открыто"}
-              </p>
-            </Link>
-            <Link to="/home/life" className="press rounded-2xl bg-lavender px-1 py-2.5">
-              <p className="tabular text-xl font-extrabold text-heading">{d.life_goals_open}</p>
-              <p className="text-[11px] font-bold leading-tight text-lavender-ink">общих целей</p>
-            </Link>
-          </div>
-
-          {d.goals.length > 0 && (
-            <Link to="/finance/goals" className="block space-y-3">
-              {d.goals.map((g) => (
-                <div key={g.id}>
-                  <div className="mb-1 flex justify-between gap-2 text-sm">
-                    <span className="truncate font-semibold">
-                      {g.emoji} {g.name}
-                    </span>
-                    <span className="tabular font-bold text-muted">{Math.round(g.percent)}%</span>
-                  </div>
-                  <ProgressBar value={g.percent} level={g.percent >= 100 ? "done" : "ok"} label={`${g.name}: ${Math.round(g.percent)}%`} />
-                </div>
-              ))}
-            </Link>
-          )}
-
-          {d.activity.length > 0 && (
-            <div>
-              <button
-                type="button"
-                className="press flex w-full items-center justify-between rounded-2xl bg-surface-2 px-3 py-2.5 text-sm font-bold text-heading"
-                aria-expanded={activityOpen}
-                aria-controls="dashboard-activity"
-                onClick={() => setActivityOpen((v) => !v)}
-              >
-                Последние изменения
-                <ChevronDown className={cn("size-4 text-muted transition-transform duration-300 ease-[var(--ease-out)]", activityOpen && "rotate-180")} aria-hidden />
-              </button>
-              <Collapse open={activityOpen} id="dashboard-activity">
-                <ul className="space-y-2.5 px-1 pt-3">
-                  {d.activity.slice(0, 6).map((a, i) => (
-                    <li key={i} className="text-sm">
-                      <span className="font-bold">{a.is_me ? "Вы" : (a.actor_name ?? "Система")}</span> <span className="text-muted">{activityLabel(a.action)}</span>
-                      {a.summary && <span>: {a.summary}</span>}
-                      <span className="block text-xs text-subtle">{timeAgo(a.created_at)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </Collapse>
+      {/* Family summary — only once there is something to sum up */}
+      {(d.task_stats.done_this_week > 0 || d.task_stats.open_total > 0 || d.life_goals_open > 0 || d.goals.length > 0 || d.activity.length > 0) && (
+        <section>
+          <SectionTitle title="Семейная сводка" />
+          <Card className="space-y-4">
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <Link to="/home/tasks" className="press rounded-2xl bg-mint px-1 py-2.5">
+                <p className="tabular text-xl font-extrabold text-heading">{d.task_stats.done_this_week}</p>
+                <p className="text-xs font-bold leading-tight text-mint-ink">сделано за неделю</p>
+              </Link>
+              <Link to="/home/tasks" className="press rounded-2xl bg-lemon-soft px-1 py-2.5">
+                <p className="tabular text-xl font-extrabold text-heading">{d.task_stats.open_total}</p>
+                <p className="text-xs font-bold leading-tight text-lemon-ink">
+                  {d.task_stats.overdue_total > 0 ? `открыто · ${d.task_stats.overdue_total} просрочено` : "задач открыто"}
+                </p>
+              </Link>
+              <Link to="/home/life" className="press rounded-2xl bg-lavender px-1 py-2.5">
+                <p className="tabular text-xl font-extrabold text-heading">{d.life_goals_open}</p>
+                <p className="text-xs font-bold leading-tight text-lavender-ink">общих целей</p>
+              </Link>
             </div>
-          )}
-        </Card>
-      </section>
+
+            {d.goals.length > 0 && (
+              <Link to="/finance/goals" className="block space-y-3">
+                {d.goals.map((g) => (
+                  <div key={g.id}>
+                    <div className="mb-1 flex justify-between gap-2 text-sm">
+                      <span className="truncate font-semibold">
+                        {g.emoji} {g.name}
+                      </span>
+                      <span className="tabular font-bold text-muted">{Math.round(g.percent)}%</span>
+                    </div>
+                    <ProgressBar value={g.percent} level={g.percent >= 100 ? "done" : "ok"} label={`${g.name}: ${Math.round(g.percent)}%`} />
+                  </div>
+                ))}
+              </Link>
+            )}
+
+            {d.activity.length > 0 && (
+              <div>
+                <button
+                  type="button"
+                  className="press flex w-full items-center justify-between rounded-2xl bg-surface-2 px-3 py-2.5 text-sm font-bold text-heading"
+                  aria-expanded={activityOpen}
+                  aria-controls="dashboard-activity"
+                  onClick={() => setActivityOpen((v) => !v)}
+                >
+                  Последние изменения
+                  <ChevronDown className={cn("size-4 text-muted transition-transform duration-300 ease-[var(--ease-out)]", activityOpen && "rotate-180")} aria-hidden />
+                </button>
+                <Collapse open={activityOpen} id="dashboard-activity">
+                  <ul className="space-y-2.5 px-1 pt-3">
+                    {d.activity.slice(0, 6).map((a, i) => (
+                      <li key={i} className="text-sm">
+                        <span className="font-bold">{a.is_me ? "Вы" : (a.actor_name ?? "Система")}</span> <span className="text-muted">{activityLabel(a.action)}</span>
+                        {a.summary && <span>: {a.summary}</span>}
+                        <span className="block text-xs text-subtle">{timeAgo(a.created_at)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Collapse>
+              </div>
+            )}
+          </Card>
+        </section>
+      )}
 
       <TransactionSheet open={txOpen} onOpenChange={setTxOpen} />
     </div>

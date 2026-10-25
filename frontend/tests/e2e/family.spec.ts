@@ -17,7 +17,7 @@ test("two partners share a family while private data stays private", async ({ br
   await expect(a.getByText("Создайте семейное пространство")).toBeVisible();
   await a.getByLabel("Название").fill("E2E семья");
   await a.getByRole("button", { name: "Создать" }).click();
-  await expect(a.getByText("Общий баланс месяца")).toBeVisible();
+  await expect(a.getByText(/^Бюджет · /)).toBeVisible();
 
   // Invitation.
   await a.goto("/profile");
@@ -29,7 +29,7 @@ test("two partners share a family while private data stays private", async ({ br
   const b = await loginAs(browser, "2002", "Павел", `/?invite=${code}`);
   await expect(b.getByText("«E2E семья»")).toBeVisible();
   await b.getByRole("button", { name: "Присоединиться" }).click();
-  await expect(b.getByText("Общий баланс месяца")).toBeVisible();
+  await expect(b.getByText(/^Бюджет · /)).toBeVisible();
 
   // 3. A records a shared expense; 4. B sees it.
   await a.goto("/");
@@ -85,7 +85,7 @@ test("another family cannot open shared data by URL", async ({ browser }) => {
   const eve = await loginAs(browser, "2666", "Ева");
   await eve.getByLabel("Название").fill("Чужие");
   await eve.getByRole("button", { name: "Создать" }).click();
-  await expect(eve.getByText("Общий баланс месяца")).toBeVisible();
+  await expect(eve.getByText(/^Бюджет · /)).toBeVisible();
   const status = await eve.evaluate(async () => {
     const token = sessionStorage.getItem("familyos.session");
     const r = await fetch("/api/v1/families/00000000-0000-0000-0000-000000000000/dashboard", { headers: { Authorization: `Bearer ${token}` } });

@@ -75,7 +75,7 @@ export function AppShell() {
                           isActive ? "scale-100 bg-peach" : "scale-90 bg-transparent",
                         )}
                       >
-                        <Icon className="size-[21px]" aria-hidden />
+                        <Icon className={cn("size-[21px]", isActive && "nav-pop")} aria-hidden />
                       </span>
                       <span className="truncate">{t(key)}</span>
                     </>

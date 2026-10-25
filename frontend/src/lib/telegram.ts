@@ -111,8 +111,10 @@ export function paintChrome(background: string): void {
 }
 
 export function haptic(kind: "light" | "success" | "error" | "select" = "light"): void {
-  const h = webApp()?.HapticFeedback;
-  if (!h) return;
+  const tg = webApp();
+  // Haptics exist only inside Telegram 6.1+; elsewhere the SDK would just log a warning.
+  if (!tg?.initData || !tg.isVersionAtLeast("6.1") || !tg.HapticFeedback) return;
+  const h = tg.HapticFeedback;
   try {
     if (kind === "success" || kind === "error") h.notificationOccurred(kind);
     else if (kind === "select") h.selectionChanged();

@@ -28,7 +28,7 @@ const ART: Record<ArtName, ReactNode> = {
   house: (
     <>
       <Ground cx={62} rx={52} />
-      <path d="M78 22c-3-3 3-5 0-9" fill="none" stroke="var(--ill-smoke)" strokeWidth={2.5} strokeLinecap="round" />
+      <path className="ill-smoke" d="M78 22c-3-3 3-5 0-9" fill="none" stroke="var(--ill-smoke)" strokeWidth={2.5} strokeLinecap="round" />
       <rect x={72} y={24} width={9} height={16} rx={2} fill="var(--ill-coral-deep)" {...LINE} />
       <path d="M26 50 58 22l32 28Z" fill="var(--ill-peach)" />
       <rect x={32} y={46} width={52} height={46} rx={5} fill="var(--ill-wall)" {...LINE} />
@@ -38,24 +38,32 @@ const ART: Record<ArtName, ReactNode> = {
       <path d="M44.5 57v13M38 63.5h13" {...LINE} strokeWidth={1.6} />
       <path d="M57 92V76a7 7 0 0 1 14 0v16Z" fill="var(--ill-forest)" {...LINE} />
       <circle cx={67} cy={84} r={1.3} fill="var(--ill-light)" />
-      <Heart x={86} y={8} s={0.9} />
-      {/* potted plant by the door */}
-      <Leaf d="M100 70c-7-2-9-10-6-16 6 2 9 9 6 16Z" />
-      <Leaf d="M101 70c2-8 9-11 15-9-1 7-8 11-15 9Z" fill="var(--ill-leaf-deep)" />
-      <Leaf d="M100 70c-1-8 2-15 7-18 3 6 0 14-7 18Z" fill="var(--ill-leaf)" />
+      <g className="ill-heart">
+        <Heart x={86} y={8} s={0.9} />
+      </g>
+      {/* potted plant by the door; the leaves sway from the rim of the pot */}
+      <g className="ill-sway" style={{ transformOrigin: "101px 72px" }}>
+        <Leaf d="M100 70c-7-2-9-10-6-16 6 2 9 9 6 16Z" />
+        <Leaf d="M101 70c2-8 9-11 15-9-1 7-8 11-15 9Z" fill="var(--ill-leaf-deep)" />
+        <Leaf d="M100 70c-1-8 2-15 7-18 3 6 0 14-7 18Z" fill="var(--ill-leaf)" />
+      </g>
       <path d="M92 72h18l-2.5 20h-13Z" fill="var(--ill-peach)" {...LINE} />
     </>
   ),
   plant: (
     <>
       <Ground />
-      <Leaf d="M60 64c-12-3-17-17-12-28 11 3 16 16 12 28Z" />
-      <Leaf d="M61 64c2-14 15-21 26-17-2 12-14 20-26 17Z" fill="var(--ill-leaf-deep)" />
-      <Leaf d="M59 64c-3-14 3-27 12-32 5 11-1 25-12 32Z" fill="var(--ill-leaf)" />
-      <Leaf d="M59 66c-10 1-19-5-21-13 9-3 18 3 21 13Z" fill="var(--ill-leaf-deep)" />
+      <g className="ill-sway" style={{ transformOrigin: "60px 66px" }}>
+        <Leaf d="M60 64c-12-3-17-17-12-28 11 3 16 16 12 28Z" />
+        <Leaf d="M61 64c2-14 15-21 26-17-2 12-14 20-26 17Z" fill="var(--ill-leaf-deep)" />
+        <Leaf d="M59 64c-3-14 3-27 12-32 5 11-1 25-12 32Z" fill="var(--ill-leaf)" />
+        <Leaf d="M59 66c-10 1-19-5-21-13 9-3 18 3 21 13Z" fill="var(--ill-leaf-deep)" />
+      </g>
       <path d="M42 64h36l-5 28H47Z" fill="var(--ill-coral)" {...LINE} />
       <path d="M40 64h40" {...LINE} strokeWidth={4} />
-      <Heart x={78} y={22} s={0.8} fill="var(--ill-lavender-deep)" />
+      <g className="ill-heart">
+        <Heart x={78} y={22} s={0.8} fill="var(--ill-lavender-deep)" />
+      </g>
     </>
   ),
   calendar: (
@@ -175,10 +183,14 @@ const ART: Record<ArtName, ReactNode> = {
   ),
 };
 
-/** Decorative only (aria-hidden): the meaning is always in the text next to it. */
-export function Art({ name, className }: { name: ArtName; className?: string }) {
+/**
+ * Decorative only (aria-hidden): the meaning is always in the text next to it.
+ * `alive` plays a short "breath" of life — leaves sway, the heart floats in, smoke
+ * drifts — for a few seconds after mounting, then the picture rests (no endless loops).
+ */
+export function Art({ name, className, alive }: { name: ArtName; className?: string; alive?: boolean }) {
   return (
-    <svg viewBox="0 0 120 100" className={cn("shrink-0", className)} aria-hidden focusable="false">
+    <svg viewBox="0 0 120 100" className={cn("shrink-0", alive && "ill-alive", className)} aria-hidden focusable="false">
       {ART[name]}
     </svg>
   );
