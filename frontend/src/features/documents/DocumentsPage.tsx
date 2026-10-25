@@ -38,6 +38,7 @@ export function DocumentsPage() {
   const docs = useQuery({ queryKey: ["documents", familyId, q, archived], queryFn: () => api<DocumentItem[]>(f("/documents"), { query: { q: q.trim() || undefined, archived } }), placeholderData: (p) => p });
   const invalidate = () => qc.invalidateQueries({ queryKey: ["documents"] });
   const maxMb = meta?.max_upload_mb ?? 15;
+  const uploadsEnabled = meta?.uploads_enabled !== false;
 
   const create = useMutation({
     mutationFn: async (v: UploadForm) => {
@@ -164,11 +165,17 @@ export function DocumentsPage() {
         {upload && (
           <div className="space-y-3">
             <Input label="Название" value={upload.title} onChange={(e) => setUpload({ ...upload, title: e.target.value })} placeholder="Паспорт Анны" />
-            <label className="flex h-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-border text-sm text-muted">
-              <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,text/plain" className="sr-only" onChange={(e) => setUpload({ ...upload, file: e.target.files?.[0] ?? null, title: upload.title || (e.target.files?.[0]?.name.replace(/\.[^.]+$/, "") ?? "") })} />
-              <Upload className="size-5" />
-              {upload.file ? `${upload.file.name} (${fileSize(upload.file.size)})` : `PDF, JPEG, PNG, WebP, HEIC или текст, до ${maxMb} МБ`}
-            </label>
+            {uploadsEnabled ? (
+              <label className="flex h-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-border text-sm text-muted">
+                <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,text/plain" className="sr-only" onChange={(e) => setUpload({ ...upload, file: e.target.files?.[0] ?? null, title: upload.title || (e.target.files?.[0]?.name.replace(/\.[^.]+$/, "") ?? "") })} />
+                <Upload className="size-5" />
+                {upload.file ? `${upload.file.name} (${fileSize(upload.file.size)})` : `PDF, JPEG, PNG, WebP, HEIC или текст, до ${maxMb} МБ`}
+              </label>
+            ) : (
+              <p className="rounded-2xl bg-lemon-soft p-3 text-sm text-lemon-ink">
+                Прикреплять файлы пока нельзя: хранилище документов ещё не подключено. Сохраните документ без файла — напоминание о сроке действия всё равно придёт.
+              </p>
+            )}
             {tooBig && <p className="text-sm text-danger">Файл больше {maxMb} МБ</p>}
             <Select label="Категория" value={upload.category} onChange={(e) => setUpload({ ...upload, category: e.target.value })}>
               <option value="">Без категории</option>

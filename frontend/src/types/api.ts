@@ -45,6 +45,8 @@ export interface Meta {
   bot_username: string | null;
   storage: string;
   max_upload_mb: number;
+  /** False while files would land on a disk wiped by deploys; documents can be saved without a file. */
+  uploads_enabled: boolean;
 }
 
 export interface Member {

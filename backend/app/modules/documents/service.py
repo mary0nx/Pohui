@@ -10,7 +10,7 @@ from app.config import get_settings
 from app.core.audit import audit
 from app.core.errors import ServiceUnavailable, ValidationFailed
 from app.core.time import utcnow
-from app.integrations.storage import get_storage
+from app.integrations.storage import get_storage, require_uploads
 from app.models import Document
 from app.modules.documents.files import safe_filename, sniff_content_type
 from app.modules.documents.schemas import DocumentMeta, DocumentOut, DocumentPatch
@@ -50,6 +50,7 @@ async def list_documents(
 async def _store(
     ctx: FamilyContext, data: bytes, filename: str | None
 ) -> tuple[str, str, str, str]:
+    require_uploads()
     settings = get_settings()
     if not data:
         raise ValidationFailed("Файл пустой")

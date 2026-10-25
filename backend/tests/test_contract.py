@@ -10,6 +10,7 @@ META_FIELDS = {
     "bot_username": (str, type(None)),
     "storage": str,
     "max_upload_mb": int,
+    "uploads_enabled": bool,
 }
 
 

@@ -144,18 +144,16 @@ Family OS при каждом запуске отзывает у Data API дос
 2. Кнопку меню «Family OS» и команды бот настраивает сам при запуске сервера.
 3. Напишите боту `/start` → нажмите кнопку **Открыть** → должно предложить создать семью.
 
-## Шаг 6. Не давать Render засыпать (cron-job.org)
+## Шаг 6. Не давать Render засыпать
 
-1. https://cron-job.org → **Sign up** (бесплатно) → подтвердите e-mail → войдите.
-2. **Create cronjob**:
-   - **Title**: `Family OS`.
-   - **URL**: `https://<адрес_backend>/health`.
-   - **Execution schedule**: **Every 10 minutes**.
-   - **Create**.
-3. Через 10–20 минут во вкладке **History** должны быть успешные запуски (статус 200).
+Уже настроено в репозитории: GitHub Actions → **Keep-alive** раз в 10 минут открывает
+`/health/ready` и проверяет, что API, база и фоновые задачи в порядке (`"worker":"ok"`).
+Красный запуск в **Actions → Keep-alive** значит, что backend требует внимания.
+Чтобы получать письмо о таких запусках: GitHub → аватар → **Settings** → **Notifications** →
+**Actions** → включите **Send notifications for failed workflows only**.
 
-Альтернатива — UptimeRobot (https://uptimerobot.com, монитор HTTP(s) раз в 5 минут): он
-заодно пришлёт письмо, если сервер упадёт.
+Дополнительно (по желанию) можно завести второй пинг на https://cron-job.org: **Create
+cronjob** → URL `https://<адрес_backend>/health/ready` → **Every 10 minutes**.
 
 ## Если что-то не работает
 
@@ -165,17 +163,42 @@ Family OS при каждом запуске отзывает у Data API дос
 | `password authentication failed` в логах | Неверный пароль в `DATABASE_URL`: Render → сервис → **Environment** → исправьте → **Save, rebuild and deploy** |
 | `/health/ready` → `unavailable` | Та же проверка `DATABASE_URL`; в Supabase проект не на паузе |
 | `embedded bot failed to start` в логах | Неверный `TELEGRAM_BOT_TOKEN`. API при этом работает, сервер сам повторит попытку; исправьте токен в **Environment** |
-| Бот молчит | В логах должно быть `bot webhook registered`. Сервер мог спать — проверьте cron-job.org |
+| Бот молчит | В логах должно быть `bot webhook registered`. Сервер мог спать — проверьте GitHub → **Actions** → **Keep-alive** |
+| `/health/ready` → `"worker":"stale"` | Фоновые задачи не работают: Render → **Logs**, ищите `worker` / `job failed`; при ошибке пароля базы worker делает паузу 5 минут |
 | В Mini App «Подпись Telegram недействительна» | Токен в Render не от того бота, через которого открыто приложение |
 
-## Хранилище файлов (по желанию)
+## Хранилище документов (Supabase Storage)
 
-Чтобы загруженные документы не пропадали, подключите бесплатное S3-хранилище, например
-Backblaze B2 (10 ГБ бесплатно, как создать bucket и ключ — `docs/FREE_SETUP_GUIDE.md`,
-шаг 14). Затем в Render → **familyos-api** → **Environment** добавьте:
-`STORAGE_BACKEND=s3`, `STORAGE_ENDPOINT` (Endpoint bucket'а с `https://`),
-`STORAGE_REGION` (например `eu-central-003`), `STORAGE_BUCKET`, `STORAGE_ACCESS_KEY` (keyID),
-`STORAGE_SECRET_KEY` (applicationKey) → **Save, rebuild and deploy**.
+Диск Render стирается при каждом деплое и перезапуске, поэтому без внешнего хранилища загрузка
+файлов в Family OS отключена (документ можно сохранить без файла — напоминание о сроке придёт).
+Бесплатно — в том же проекте Supabase (1 ГБ):
+
+1. Supabase → ваш проект → **Storage** → **New bucket** → Name `documents`, **Public bucket —
+   выключено** → **Create**.
+2. **Storage** → **Settings** (или **Project Settings** → **Storage**) → раздел
+   **S3 Connection**: скопируйте **Endpoint** (вида `https://<ref>.storage.supabase.co/storage/v1/s3`)
+   и **Region** (например `eu-west-1`).
+3. Там же **S3 Access Keys** → **New access key** → описание `family-os` → **Create**.
+   Скопируйте **Access key ID** и **Secret access key** — секрет показывается один раз.
+4. Render → **familyos-api** → **Environment** → **Add Environment Variable** по одной:
+
+   | Key | Value |
+   |---|---|
+   | `STORAGE_BACKEND` | `s3` |
+   | `STORAGE_ENDPOINT` | Endpoint из шага 2 |
+   | `STORAGE_REGION` | Region из шага 2 |
+   | `STORAGE_BUCKET` | `documents` |
+   | `STORAGE_ACCESS_KEY` | Access key ID |
+   | `STORAGE_SECRET_KEY` | Secret access key |
+
+   → **Save, rebuild and deploy**.
+5. Проверка: `https://<адрес_backend>/api/v1/meta` показывает `"storage":"s3"` и
+   `"uploads_enabled":true`; загрузите документ, нажмите в Render **Manual Deploy → Restart
+   service** и убедитесь, что документ скачивается.
+
+Файлы не получают публичных ссылок: их отдаёт API после проверки доступа к документу.
+Подойдёт и любое другое S3-совместимое хранилище (Backblaze B2, Cloudflare R2) с теми же
+переменными.
 
 ## AI-ассистент (по желанию)
 

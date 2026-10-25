@@ -16,6 +16,8 @@ const MetaSchema = z.object({
   bot_username: z.string().nullable(),
   storage: z.string(),
   max_upload_mb: z.number(),
+  // Older servers do not send it; they had no ephemeral-disk check, so uploads were allowed.
+  uploads_enabled: z.boolean().default(true),
 });
 
 const MeSchema = z.object({

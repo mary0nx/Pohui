@@ -1,0 +1,37 @@
+# Keeps the free Render instance awake (it sleeps after ~15 min without requests, and the
+# embedded worker that sends reminders sleeps with it) and checks that the API, the database
+# and the worker are healthy. A red run means the backend needs attention.
+name: Keep-alive
+
+on:
+  schedule:
+    - cron: "*/10 * * * *" # GitHub may start scheduled runs a few minutes late
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    env:
+      READY_URL: ${{ vars.API_READY_URL || 'https://familyos-api-pf2z.onrender.com/health/ready' }}
+    steps:
+      - name: Check API, database and worker
+        run: |
+          # A sleeping instance needs up to a minute to wake; the worker then reports
+          # "starting" until its first tick finishes, so retry a few times before failing.
+          for attempt in 1 2 3 4; do
+            body=$(curl -sS --max-time 90 "$READY_URL" || true)
+            echo "attempt $attempt: $body"
+            if echo "$body" | grep -q '"status":"ok"' && echo "$body" | grep -q '"worker":"ok"'; then
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::Family OS backend is not healthy: $body"
+          exit 1

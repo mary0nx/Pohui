@@ -14,6 +14,7 @@ from app.db.session import get_sessionmaker
 from app.integrations.telegram import AiogramSender, TelegramSender
 from app.workers.dispatch import dispatch_due
 from app.workers.jobs import run_job
+from app.workers.status import mark_started, mark_tick
 
 log = logging.getLogger("worker")
 HEARTBEAT = Path("/tmp/familyos-worker-heartbeat")  # noqa: S108 - container-local liveness file
@@ -46,10 +47,12 @@ async def run_loop(stop: asyncio.Event) -> None:
         log.warning("TELEGRAM_BOT_TOKEN not set: notifications stay in the in-app inbox only")
     last_run: dict[str, float] = {}
     log.info("worker started", extra={"ctx": {"tick": settings.worker_tick_seconds}})
+    mark_started()
     try:
         while not stop.is_set():
             started = time.monotonic()
             rejected = False
+            failed = False
             for job in ("materialize", "auto_pay", "reminders", "cleanup"):
                 interval = SLOW_JOBS.get(job, 0.0)
                 if interval and started - last_run.get(job, -interval) < interval:
@@ -63,6 +66,7 @@ async def run_loop(stop: asyncio.Event) -> None:
                     if _rejected_credentials(exc):
                         rejected = True
                         break
+                    failed = True
                     log.exception("job failed", extra={"ctx": {"job": job}})
             if not rejected:
                 try:
@@ -72,8 +76,10 @@ async def run_loop(stop: asyncio.Event) -> None:
                 except Exception as exc:
                     rejected = _rejected_credentials(exc)
                     if not rejected:
+                        failed = True
                         log.exception("dispatch failed")
             HEARTBEAT.touch()  # noqa: ASYNC240 - tiny local file, once per tick
+            mark_tick(ok=not (failed or rejected))
             pause = settings.worker_tick_seconds
             if rejected:
                 pause = CREDENTIAL_BACKOFF_SECONDS

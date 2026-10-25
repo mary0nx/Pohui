@@ -229,7 +229,7 @@ async def test_readiness_names_the_database_problem(
 async def test_readiness_ok_on_migrated_database(client: AsyncClient) -> None:
     r = await client.get("/health/ready")
     assert r.status_code == 200
-    assert r.json() == {"status": "ok"}
+    assert r.json() == {"status": "ok", "worker": "not_embedded"}
 
 
 async def test_readiness_reports_missing_migrations(client: AsyncClient) -> None:
@@ -260,7 +260,7 @@ async def test_readiness_reports_missing_migrations(client: AsyncClient) -> None
     finally:
         async with get_engine().begin() as conn:
             await conn.execute(text("UPDATE alembic_version SET version_num = :h"), {"h": head})
-    assert (await client.get("/health/ready")).json() == {"status": "ok"}
+    assert (await client.get("/health/ready")).json()["status"] == "ok"
 
 
 def test_unrecognised_database_errors_get_a_safe_signature() -> None:

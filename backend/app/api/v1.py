@@ -52,5 +52,6 @@ async def meta() -> dict[str, object]:
         "ai_available": ai_available(),
         "bot_username": s.telegram_bot_username or None,
         "storage": s.storage_backend,
+        "uploads_enabled": s.uploads_enabled,
         "max_upload_mb": s.max_upload_mb,
     }

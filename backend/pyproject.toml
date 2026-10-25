@@ -26,6 +26,7 @@ dev = [
     "ruff==0.17.2",
     "mypy==2.4.0",
     "pip-audit",
+    "moto[server]>=5",
 ]
 
 [build-system]

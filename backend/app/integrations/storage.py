@@ -83,8 +83,14 @@ class S3Storage:
             region_name=s.storage_region,
             aws_access_key_id=s.storage_access_key.get_secret_value(),
             aws_secret_access_key=s.storage_secret_key.get_secret_value(),
-            config=Config(signature_version="s3v4", retries={"max_attempts": 3}),
+            config=Config(
+                signature_version="s3v4",
+                retries={"max_attempts": 3},
+                # Custom endpoints (Supabase Storage, MinIO) need path-style bucket URLs.
+                s3={"addressing_style": "path" if s.storage_endpoint else "auto"},
+            ),
         )
+        self.presign = s.storage_presigned_downloads
 
     async def put(self, key: str, data: bytes, content_type: str) -> None:
         await asyncio.to_thread(
@@ -108,6 +114,8 @@ class S3Storage:
         await asyncio.to_thread(self.client.delete_object, Bucket=self.bucket, Key=key)
 
     def presigned_url(self, key: str, filename: str, ttl_seconds: int) -> str | None:
+        if not self.presign:
+            return None  # streamed by the API through a signed download token
         return str(
             self.client.generate_presigned_url(
                 "get_object",
@@ -122,6 +130,16 @@ class S3Storage:
 
 
 _storage: Storage | None = None
+
+
+def require_uploads() -> None:
+    """Refuse to accept files that would be lost (local storage on an ephemeral disk)."""
+    if not get_settings().uploads_enabled:
+        raise ServiceUnavailable(
+            "Загрузка файлов отключена: хранилище документов ещё не подключено. "
+            "Документ можно сохранить без файла — напоминание о сроке придёт.",
+            code="storage_not_configured",
+        )
 
 
 def get_storage() -> Storage:

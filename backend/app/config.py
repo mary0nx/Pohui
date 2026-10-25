@@ -113,6 +113,11 @@ class Settings(BaseSettings):
     storage_bucket: str = ""
     storage_access_key: SecretStr = SecretStr("")
     storage_secret_key: SecretStr = SecretStr("")
+    # Off: files are streamed by the API, which re-checks access on every download. On: the
+    # client gets a presigned bucket URL (only for providers that support presigning).
+    storage_presigned_downloads: bool = False
+    # Local storage on a disk wiped by every deploy/restart (Render). None = detect Render.
+    storage_ephemeral: bool | None = None
     max_upload_mb: int = 15
 
     # Limits
@@ -129,6 +134,8 @@ class Settings(BaseSettings):
     embedded_bot: bool = False
     # Public URL Render assigns to the service; fills BACKEND_URL / TELEGRAM_WEBHOOK_URL if unset.
     render_external_url: str = ""
+    # Render sets RENDER=true in every service.
+    render: bool = False
 
     @field_validator("cors_origins", mode="before")
     @classmethod
@@ -204,6 +211,16 @@ class Settings(BaseSettings):
             and bool(self.openai_api_key.get_secret_value())
             and bool(self.ai_model)
         )
+
+    @property
+    def uploads_enabled(self) -> bool:
+        """False when files would land on a disk that the next deploy wipes."""
+        if self.storage_backend == "s3":
+            return True
+        ephemeral = self.storage_ephemeral
+        if ephemeral is None:
+            ephemeral = self.render or bool(self.render_external_url)
+        return not ephemeral
 
     @property
     def telegram_configured(self) -> bool:

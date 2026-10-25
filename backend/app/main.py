@@ -20,6 +20,7 @@ from app.core.logging import setup_logging
 from app.core.middleware import BodyLimitMiddleware, SecurityHeadersMiddleware
 from app.db.health import database_problem
 from app.db.session import dispose_engine
+from app.workers.status import worker_state
 
 log = logging.getLogger("app")
 
@@ -140,7 +141,14 @@ def create_app() -> FastAPI:
     async def ready() -> JSONResponse:
         problem = await database_problem()
         if problem is None:
-            return JSONResponse({"status": "ok"})
+            # The worker runs in this process only with EMBEDDED_WORKER; otherwise it lives in
+            # its own container with its own health check.
+            worker = (
+                worker_state(settings.worker_tick_seconds)
+                if settings.embedded_worker
+                else "not_embedded"
+            )
+            return JSONResponse({"status": "ok", "worker": worker})
         code, signature = problem
         body = {"status": "unavailable", "problem": code}
         if code == "database_error":
