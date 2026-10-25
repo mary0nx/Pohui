@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "awwwards": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "awwwards-mcp"
+      ],
+      "env": {}
+    }
+  }
+}
