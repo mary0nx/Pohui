@@ -218,3 +218,22 @@ class IdempotencyKey(UUIDPk, Base):
     status_code: Mapped[int | None]
     response_body: Mapped[Any | None] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(server_default=sa.func.now())
+
+
+class IntegrationToken(UUIDPk, Timestamps, Base):
+    """Personal key of an external sender, e.g. an iPhone Shortcuts automation that reports
+    Apple Pay transactions. Only the SHA-256 of the key is stored; it is shown once."""
+
+    __tablename__ = "integration_tokens"
+    __table_args__ = (sa.UniqueConstraint("family_id", "user_id", "kind"),)
+
+    family_id: Mapped[uuid.UUID] = family_fk()
+    user_id: Mapped[uuid.UUID] = mapped_column(sa.ForeignKey("users.id", ondelete="CASCADE"))
+    kind: Mapped[str] = mapped_column(sa.String(32))
+    token_hash: Mapped[str] = mapped_column(sa.String(64), unique=True)
+    token_prefix: Mapped[str] = mapped_column(sa.String(16))
+    # Where new expenses go; None = the member's first usable account.
+    account_id: Mapped[uuid.UUID | None] = mapped_column(
+        sa.ForeignKey("accounts.id", ondelete="SET NULL")
+    )
+    last_used_at: Mapped[datetime | None]

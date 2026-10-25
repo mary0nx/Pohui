@@ -15,6 +15,8 @@ from app.modules.documents.router import files_router
 from app.modules.documents.router import router as documents_router
 from app.modules.families.router import router as families_router
 from app.modules.finance.router import router as finance_router
+from app.modules.integrations.apple_pay import router as apple_pay_hook_router
+from app.modules.integrations.apple_pay import settings_router as apple_pay_router
 from app.modules.kitchen.router import router as kitchen_router
 from app.modules.life.router import router as life_router
 from app.modules.notifications.router import router as notifications_router
@@ -27,6 +29,8 @@ api_router.include_router(families_router)
 api_router.include_router(finance_router)
 api_router.include_router(calendar_router)
 api_router.include_router(shifts_router)
+api_router.include_router(apple_pay_router)
+api_router.include_router(apple_pay_hook_router)
 api_router.include_router(shopping_router)
 api_router.include_router(tasks_router)
 api_router.include_router(notifications_router)

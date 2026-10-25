@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Check, Copy, LogOut, Moon, Palette as PaletteIcon, Share2, Sparkles, Trash2, UserMinus, UserPlus } from "lucide-react";
+import { Bell, Check, Smartphone, Copy, LogOut, Moon, Palette as PaletteIcon, Share2, Sparkles, Trash2, UserMinus, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 
@@ -246,6 +246,9 @@ export function ProfilePage() {
         <Card className="divide-y divide-border p-0">
           <Link to="/profile/notifications" className="flex items-center gap-3 px-4 py-3.5">
             <Bell className="size-5 text-accent" /> Уведомления
+          </Link>
+          <Link to="/profile/apple-pay" className="flex items-center gap-3 px-4 py-3.5">
+            <Smartphone className="size-5 text-accent" /> Apple Pay → расходы
           </Link>
           {aiEnabled && (
             <Link to="/profile/ai" className="flex items-center gap-3 px-4 py-3.5">
