@@ -213,3 +213,15 @@ def test_supabase_endpoint_uses_path_style(settings_env: pytest.MonkeyPatch) -> 
         "get_object", Params={"Bucket": "documents", "Key": "f/x"}, ExpiresIn=60
     )
     assert url.startswith("https://abc.storage.supabase.co/storage/v1/s3/documents/f/x?")
+
+
+def test_storage_settings_typed_on_a_phone_are_normalised(settings_env: pytest.MonkeyPatch) -> None:
+    settings_env.setenv("STORAGE_BACKEND", " S3 ")
+    settings_env.setenv("STORAGE_BUCKET", "documents ")
+    settings_env.setenv("STORAGE_REGION", " eu-west-1")
+    settings_env.setenv("STORAGE_ACCESS_KEY", " key\n")
+    get_settings.cache_clear()
+    s = get_settings()
+    assert s.storage_backend == "s3" and s.uploads_enabled
+    assert (s.storage_bucket, s.storage_region) == ("documents", "eu-west-1")
+    assert s.storage_access_key.get_secret_value() == "key"

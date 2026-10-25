@@ -137,6 +137,24 @@ class Settings(BaseSettings):
     # Render sets RENDER=true in every service.
     render: bool = False
 
+    @field_validator("storage_backend", mode="before")
+    @classmethod
+    def _storage_backend(cls, value: object) -> object:
+        # Values typed on a phone often get a capital letter or a trailing space ("S3 ").
+        return value.strip().lower() if isinstance(value, str) else value
+
+    @field_validator(
+        "storage_endpoint",
+        "storage_region",
+        "storage_bucket",
+        "storage_access_key",
+        "storage_secret_key",
+        mode="before",
+    )
+    @classmethod
+    def _strip_storage(cls, value: object) -> object:
+        return value.strip() if isinstance(value, str) else value
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _split_origins(cls, value: object) -> object:
