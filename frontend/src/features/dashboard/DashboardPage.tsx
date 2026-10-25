@@ -23,6 +23,7 @@ import { Art, type ArtName } from "@/components/illustrations/Art";
 import { PrivateMark } from "@/components/Visibility";
 import { Avatar, Badge, Button, Card, CardHeader, CheckCircle, Collapse, ErrorState, IconBadge, ProgressBar, ProgressRing, Skeleton, useToast } from "@/components/ui";
 import { ProductThumb } from "@/features/catalog/thumb";
+import { DailyCard } from "@/features/daily/DailyLeaf";
 import { BudgetSheet } from "@/features/finance/BudgetSheet";
 import { TransactionSheet } from "@/features/finance/TransactionSheet";
 import { useTasks } from "@/features/tasks/api";
@@ -464,6 +465,9 @@ export function DashboardPage() {
           <Art name="house" alive className={cn("-mr-1 h-[96px] w-[116px]", intro && "animate-art-in")} />
         </div>
       </header>
+
+      {/* «Листочек дня»: a small page of the day, opens into the full page */}
+      <DailyCard />
 
       {/* Main block: the month budget — limit, spent, remaining from the server */}
       <BudgetCard d={d} monthName={monthName} num={num} canEdit={canEditBudget} onAddExpense={() => setTxOpen(true)} onEditBudget={() => setBudgetOpen(true)} />

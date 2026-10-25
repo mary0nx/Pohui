@@ -773,6 +773,33 @@
   will-change: transform, opacity;
 }
 
+/* «Листочек дня»: a row of punched holes along the top edge, like a tear-off calendar,
+ * and the page that slides in when the day changes while the app is open. */
+.daily-perf::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 22px;
+  right: 22px;
+  height: 10px;
+  background: radial-gradient(circle, var(--border) 3px, transparent 3.6px) 0 0 / 16px 10px repeat-x;
+  pointer-events: none;
+}
+@keyframes leaf-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) rotate(-1.2deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-leaf-in {
+  transform-origin: 50% 0;
+  animation: leaf-in 560ms var(--ease-spring) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

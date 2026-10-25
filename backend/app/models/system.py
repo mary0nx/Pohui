@@ -237,3 +237,20 @@ class IntegrationToken(UUIDPk, Timestamps, Base):
         sa.ForeignKey("accounts.id", ondelete="SET NULL")
     )
     last_used_at: Mapped[datetime | None]
+
+
+class DailyFavorite(UUIDPk, Base):
+    """A phrase of «Листочек дня» a user saved. Personal: never shown to other members.
+    phrase_id refers to the frontend collection; the text is kept so the favourite survives
+    edits of the collection."""
+
+    __tablename__ = "daily_favorites"
+    __table_args__ = (sa.UniqueConstraint("user_id", "phrase_id"),)
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        sa.ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    phrase_id: Mapped[str] = mapped_column(sa.String(40))
+    text: Mapped[str] = mapped_column(sa.String(300))
+    day: Mapped[date]
+    created_at: Mapped[datetime] = mapped_column(server_default=sa.func.now())

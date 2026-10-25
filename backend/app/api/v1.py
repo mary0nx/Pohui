@@ -11,6 +11,7 @@ from app.modules.auth.router import router as auth_router
 from app.modules.calendar.router import router as calendar_router
 from app.modules.calendar.shifts import router as shifts_router
 from app.modules.catalog.router import router as catalog_router
+from app.modules.daily.router import router as daily_router
 from app.modules.dashboard.router import router as dashboard_router
 from app.modules.documents.router import files_router
 from app.modules.documents.router import router as documents_router
@@ -42,6 +43,7 @@ api_router.include_router(life_router)
 api_router.include_router(documents_router)
 api_router.include_router(files_router)
 api_router.include_router(dashboard_router)
+api_router.include_router(daily_router)
 
 
 @api_router.get("/meta", tags=["meta"])
