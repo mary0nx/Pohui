@@ -4,6 +4,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 
 import { useAiEnabled } from "@/app/session";
 import { useI18n } from "@/i18n";
+import { useAppBadge } from "@/lib/badge";
 import { cn } from "@/lib/cn";
 import { haptic, showBackButton } from "@/lib/telegram";
 
@@ -39,6 +40,7 @@ export function AppShell() {
   const { t } = useI18n();
   const location = useLocation();
   useTelegramBack();
+  useAppBadge();
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [location.pathname]);

@@ -15,9 +15,9 @@ export function InboxPage() {
   const q = useQuery({ queryKey: ["inbox", familyId], queryFn: () => api<{ items: NotificationItem[]; unread: number }>("/notifications") });
   const readAll = useMutation({
     mutationFn: () => api("/notifications/read-all", { method: "POST" }),
-    onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: ["inbox"] }), qc.invalidateQueries({ queryKey: ["dashboard"] })]),
+    onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: ["inbox"] }), qc.invalidateQueries({ queryKey: ["dashboard"] }), qc.invalidateQueries({ queryKey: ["unread"] })]),
   });
-  const read = (n: NotificationItem) => !n.read_at && api(`/notifications/${n.id}/read`, { method: "POST" }).then(() => qc.invalidateQueries({ queryKey: ["dashboard"] }));
+  const read = (n: NotificationItem) => !n.read_at && api(`/notifications/${n.id}/read`, { method: "POST" }).then(() => Promise.all([qc.invalidateQueries({ queryKey: ["dashboard"] }), qc.invalidateQueries({ queryKey: ["unread"] })]));
   return (
     <div className="space-y-3">
       <PageHeader

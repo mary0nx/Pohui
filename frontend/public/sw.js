@@ -17,7 +17,7 @@ self.addEventListener("push", (event) => {
     tag: data.tag || undefined,
     icon: "/icon-192.png",
     badge: "/icon-192.png",
-    data: { url },
+    data: { url, id: /^[0-9a-f-]{36}$/i.test(data.tag || "") ? data.tag : null },
   });
   const badge =
     typeof data.badge === "number" && "setAppBadge" in self.navigator
@@ -28,8 +28,11 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const path = (event.notification.data && event.notification.data.url) || "/";
-  const target = new URL(path, self.location.origin).href;
+  const data = event.notification.data || {};
+  const url = new URL(data.url || "/", self.location.origin);
+  // The app marks this notification as read and corrects the icon badge.
+  if (data.id) url.searchParams.set("notif", data.id);
+  const target = url.href;
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
       for (const w of windows) {
