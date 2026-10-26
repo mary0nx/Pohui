@@ -23,6 +23,7 @@ import { Art, type ArtName } from "@/components/illustrations/Art";
 import { PrivateMark } from "@/components/Visibility";
 import { Avatar, Badge, Button, Card, CardHeader, CheckCircle, Collapse, ErrorState, IconBadge, ProgressBar, ProgressRing, Skeleton, useToast } from "@/components/ui";
 import { ProductThumb } from "@/features/catalog/thumb";
+import { CareCard } from "@/features/care/CareCard";
 import { DailyCard } from "@/features/daily/DailyLeaf";
 import { BudgetSheet } from "@/features/finance/BudgetSheet";
 import { TransactionSheet } from "@/features/finance/TransactionSheet";
@@ -494,6 +495,8 @@ export function DashboardPage() {
 
       {/* «Листочек дня»: a small page of the day, opens into the full page */}
       <DailyCard />
+      {/* «Забота на каждый день»: today's weather in one line, only when switched on */}
+      <CareCard />
 
       {/* Main block: the month budget — limit, spent, remaining from the server */}
       <BudgetCard d={d} monthName={monthName} num={num} canEdit={canEditBudget} onAddExpense={() => setTxOpen(true)} onEditBudget={() => setBudgetOpen(true)} />

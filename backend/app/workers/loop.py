@@ -53,7 +53,7 @@ async def run_loop(stop: asyncio.Event) -> None:
             started = time.monotonic()
             rejected = False
             failed = False
-            for job in ("materialize", "auto_pay", "reminders", "cleanup"):
+            for job in ("materialize", "auto_pay", "reminders", "care", "cleanup"):
                 interval = SLOW_JOBS.get(job, 0.0)
                 if interval and started - last_run.get(job, -interval) < interval:
                     continue

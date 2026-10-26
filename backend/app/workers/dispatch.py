@@ -162,7 +162,12 @@ async def _process_one(
         finish(NotificationStatus.skipped, "telegram disabled by user")
         stats.skipped += 1
         return
-    quiet_end = in_quiet_hours(now, settings, default_tz)
+    # The morning message goes at the time its recipient chose, even inside quiet hours.
+    quiet_end = (
+        None
+        if n.category == NotificationCategory.morning_care
+        else in_quiet_hours(now, settings, default_tz)
+    )
     if quiet_end is not None:
         n.scheduled_for = quiet_end
         n.attempts = max(n.attempts - 1, 0)

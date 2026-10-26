@@ -552,6 +552,7 @@ export type NotificationCategory =
   | "goal_update"
   | "document_expiry"
   | "custom_reminder"
+  | "morning_care"
   | "system";
 
 export interface NotificationItem {

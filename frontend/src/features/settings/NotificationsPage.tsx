@@ -15,6 +15,7 @@ const LABELS: Record<NotificationCategory, string> = {
   task_assigned: "Новые задачи",
   task_reminder: "Напоминания по задачам и задачи на сегодня",
   custom_reminder: "Личные напоминания",
+  morning_care: "Забота на каждый день (утреннее сообщение)",
   shopping_update: "Изменения списков покупок",
   shopping_reminder: "Покупки на сегодня",
   goal_update: "Цели и накопления",

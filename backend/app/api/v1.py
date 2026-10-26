@@ -10,6 +10,7 @@ from app.modules.assistant.router import router as assistant_router
 from app.modules.auth.router import router as auth_router
 from app.modules.calendar.router import router as calendar_router
 from app.modules.calendar.shifts import router as shifts_router
+from app.modules.care.router import router as care_router
 from app.modules.catalog.router import router as catalog_router
 from app.modules.daily.router import router as daily_router
 from app.modules.dashboard.router import router as dashboard_router
@@ -38,6 +39,7 @@ api_router.include_router(shopping_router)
 api_router.include_router(catalog_router)
 api_router.include_router(tasks_router)
 api_router.include_router(notifications_router)
+api_router.include_router(care_router)
 api_router.include_router(push_router)
 api_router.include_router(assistant_router)
 api_router.include_router(kitchen_router)

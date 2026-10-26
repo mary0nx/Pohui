@@ -158,6 +158,7 @@ class NotificationCategory(StrEnum):
     goal_update = "goal_update"
     document_expiry = "document_expiry"
     custom_reminder = "custom_reminder"
+    morning_care = "morning_care"
     system = "system"
 
 

@@ -107,6 +107,46 @@ class NotificationSettings(Base):
     )
 
 
+class CareSettings(Base):
+    """«Забота на каждый день»: a member's own morning message with the day's weather.
+
+    Personal: only the member reads or changes it (/me/care), and the message goes to that
+    member only. last_sent_on (local date) makes the daily send idempotent.
+    """
+
+    __tablename__ = "care_settings"
+    __table_args__ = (
+        sa.CheckConstraint("gender IN ('f', 'm')", name="gender_valid"),
+        sa.CheckConstraint(
+            "tone IN ('tender', 'romantic', 'friendly', 'short')", name="tone_valid"
+        ),
+        sa.CheckConstraint("weekdays BETWEEN 0 AND 127", name="weekdays_valid"),
+    )
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        sa.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    enabled: Mapped[bool] = mapped_column(server_default=sa.false(), default=False)
+    recipient_name: Mapped[str | None] = mapped_column(sa.String(64))
+    gender: Mapped[str] = mapped_column(sa.String(1), server_default="f", default="f")
+    city: Mapped[str] = mapped_column(sa.String(100))
+    country: Mapped[str | None] = mapped_column(sa.String(64))
+    latitude: Mapped[float] = mapped_column(sa.Float)
+    longitude: Mapped[float] = mapped_column(sa.Float)
+    timezone: Mapped[str] = mapped_column(sa.String(64))
+    send_time: Mapped[time]
+    leave_time: Mapped[time]
+    # Bit 0 = Monday … bit 6 = Sunday.
+    weekdays: Mapped[int] = mapped_column(sa.SmallInteger, server_default="127", default=127)
+    tone: Mapped[str] = mapped_column(sa.String(16), server_default="tender", default="tender")
+    weather_tips: Mapped[bool] = mapped_column(server_default=sa.true(), default=True)
+    signature: Mapped[str | None] = mapped_column(sa.String(64))
+    last_sent_on: Mapped[date | None]
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=sa.func.now(), onupdate=lambda: datetime.now(UTC)
+    )
+
+
 class AiConversation(UUIDPk, Timestamps, Base):
     __tablename__ = "ai_conversations"
     __table_args__ = (sa.Index("ix_ai_conversations_user", "family_id", "user_id", "updated_at"),)

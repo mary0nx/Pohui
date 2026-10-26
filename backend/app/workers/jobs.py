@@ -30,6 +30,7 @@ LOCKS = {
     "auto_pay": 727274102,
     "reminders": 727274103,
     "cleanup": 727274104,
+    "care": 727274105,
 }
 
 
@@ -98,6 +99,10 @@ async def run_job(
             result = await schedule_all(db, now)
         elif name == "cleanup":
             result = await cleanup(db, now)
+        elif name == "care":
+            from app.modules.care.service import send_due
+
+            result = await send_due(db, now)
         else:
             raise ValueError(name)
         await db.commit()
