@@ -115,11 +115,11 @@ describe("transaction icon", () => {
     expect(src({ merchant: "NETTO 1234 WROCLAW" })).toBe("brands/netto.svg");
   });
 
-  it("a known grocery shop without a logo file shows the grocery basket, not a broken image", () => {
-    expect(BRAND_LOGOS.has("biedronka")).toBe(false);
-    const i = icon({ merchant: "BIEDRONKA 1234" });
-    expect(i).toMatchObject({ type: "art", art: "grocery-basket" });
-    expect(i.brand?.name).toBe("Biedronka");
+  it("every shop of the catalogue has its logo or brand badge", () => {
+    expect(BRANDS.filter((b) => !BRAND_LOGOS.has(b.id)).map((b) => b.id)).toEqual([]);
+    expect(src({ merchant: "BIEDRONKA 1234" })).toBe("brands/biedronka.svg");
+    expect(src({ merchant: "DINO POLSKA S.A." })).toBe("brands/dino.svg");
+    expect(icon({ merchant: "BIEDRONKA 1234" }).brand?.name).toBe("Biedronka");
   });
 
   it("8: an unknown grocery shop shows the grocery basket", () => {
