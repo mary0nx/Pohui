@@ -43,6 +43,7 @@ class SearchOut(BaseModel):
 class NearStopOut(BaseModel):
     name: str
     code: str
+    near_address: str | None = None
     distance_m: int
     walk_min: int
     lat: float
@@ -142,6 +143,7 @@ class StopOut(BaseModel):
     code: str
     lat: float | None = None
     lon: float | None = None
+    near_address: str | None = None  # the closest address of the city's register
 
 
 class LegOut(BaseModel):

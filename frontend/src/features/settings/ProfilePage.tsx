@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Check, Heart, LayoutGrid, Smartphone, Copy, LogOut, Moon, Palette as PaletteIcon, Share2, Sparkles, SquarePlus, Trash2, UserMinus, UserPlus } from "lucide-react";
+import { Bell, Check, Heart, LayoutGrid, Smartphone, Copy, LogOut, Moon, Palette as PaletteIcon, Share2, Sparkles, SquarePlus, TramFront, Trash2, UserMinus, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 
@@ -277,6 +277,9 @@ export function ProfilePage() {
           </Link>
           <Link to="/profile/care" className="flex items-center gap-3 px-4 py-3.5">
             <Heart className="size-5 text-accent" /> Забота на каждый день
+          </Link>
+          <Link to="/route/places" className="flex items-center gap-3 px-4 py-3.5">
+            <TramFront className="size-5 text-accent" /> Мой маршрут: дом, работа, места
           </Link>
           <Link to="/profile/widget" className="flex items-center gap-3 px-4 py-3.5">
             <LayoutGrid className="size-5 text-accent" /> Виджет «Листочек дня» на iPhone

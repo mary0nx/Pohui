@@ -22,6 +22,7 @@ PREFIXES = {
     "ul", "ulica", "al", "aleja", "aleje", "pl", "plac", "os", "osiedle", "rondo", "most",
     "bulwar", "skwer", "wybrzeze", "gen", "ks", "sw", "bp", "kard", "prof", "im",
 }  # fmt: skip
+GRID = 2000  # micro-degrees ≈ 220 m: cells for the nearest-address lookup
 NUMBER = re.compile(r"^\d+[a-z]?(?:/\d+[a-z]?)?$")
 
 
@@ -72,6 +73,7 @@ class AddressIndex:
         self._lat = array("i", (p[3] for p in pts))
         self._lon = array("i", (p[4] for p in pts))
         self._estate = array("H", (p[5] for p in pts))
+        self._grid: dict[tuple[int, int], list[int]] | None = None
         self._by_street: dict[int, list[int]] = {}
         for i, s in enumerate(self._street):
             self._by_street.setdefault(s, []).append(i)
@@ -147,17 +149,23 @@ class AddressIndex:
         return [self._address(i) for _, i in found[:limit]], []
 
     def nearest(self, lat: float, lon: float) -> Address | None:
-        """The address point closest to a position (within ~150 m), for a stop or a pin."""
+        """The address point closest to a position (within ~150 m), e.g. to describe a stop."""
+        if self._grid is None:
+            grid: dict[tuple[int, int], list[int]] = {}
+            for i in range(len(self)):
+                grid.setdefault((self._lat[i] // GRID, self._lon[i] // GRID), []).append(i)
+            self._grid = grid
         la, lo = round(lat * 1e6), round(lon * 1e6)
-        best, best_d = -1, 1500**2 * 2  # in micro-degrees², ≈ 150 m
-        for i in range(len(self)):
-            dy = self._lat[i] - la
-            if dy > 1500 or dy < -1500:
-                continue
-            dx = (self._lon[i] - lo) * 0.63  # cos(51°)
-            d = dy * dy + dx * dx
-            if d < best_d:
-                best, best_d = i, d
+        best, best_d = -1, 1350**2  # micro-degrees² of latitude, ≈ 150 m
+        cy, cx = la // GRID, lo // GRID
+        for gy in (cy - 1, cy, cy + 1):
+            for gx in (cx - 1, cx, cx + 1):
+                for i in self._grid.get((gy, gx), ()):
+                    dy = self._lat[i] - la
+                    dx = (self._lon[i] - lo) * 0.63  # cos(51°)
+                    d = dy * dy + dx * dx
+                    if d < best_d:
+                        best, best_d = i, d
         return self._address(best) if best >= 0 else None
 
 

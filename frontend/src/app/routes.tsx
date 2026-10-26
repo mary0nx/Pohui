@@ -42,6 +42,8 @@ export const router = createBrowserRouter([
           return { Component: () => <AiGate><AssistantPage /></AiGate> };
         },
       },
+      { path: "route", lazy: async () => ({ Component: (await import("@/features/route/RoutePage")).RoutePage }) },
+      { path: "route/places", lazy: async () => ({ Component: (await import("@/features/route/PlacesPage")).PlacesPage }) },
       { path: "profile", lazy: async () => ({ Component: (await import("@/features/settings/ProfilePage")).ProfilePage }) },
       { path: "profile/apple-pay", lazy: async () => ({ Component: (await import("@/features/settings/ApplePayPage")).ApplePayPage }) },
       { path: "profile/care", lazy: async () => ({ Component: (await import("@/features/care/CarePage")).CarePage }) },

@@ -225,6 +225,7 @@ def near_stops(tt: Timetable, lat: float, lon: float, limit: int = 4) -> list[Ne
             NearStopOut(
                 name=name,
                 code=tt.stop_codes[s],
+                near_address=_near_address(tt.lat[s], tt.lon[s]),
                 distance_m=walk_metres(d),
                 walk_min=walk_seconds(d) // 60,
                 lat=tt.lat[s],
@@ -253,8 +254,19 @@ def _cache_key(*parts: object) -> str:
     return hashlib.sha256("|".join(map(str, parts)).encode()).hexdigest()
 
 
+def _near_address(lat: float, lon: float) -> str | None:
+    a = get_index().nearest(lat, lon)
+    return a.label if a else None
+
+
 def _stop(tt: Timetable, s: int) -> StopOut:
-    return StopOut(name=tt.stop_names[s], code=tt.stop_codes[s], lat=tt.lat[s], lon=tt.lon[s])
+    return StopOut(
+        name=tt.stop_names[s],
+        code=tt.stop_codes[s],
+        lat=tt.lat[s],
+        lon=tt.lon[s],
+        near_address=_near_address(tt.lat[s], tt.lon[s]),
+    )
 
 
 def option_out(

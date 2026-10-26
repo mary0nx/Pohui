@@ -49,6 +49,8 @@ services:
         value: PLN
       # BACKEND_URL and TELEGRAM_WEBHOOK_URL default to RENDER_EXTERNAL_URL (set by Render).
       # Optional AI assistant: add OPENAI_API_KEY and AI_MODEL in the dashboard later.
+      # Optional «Мой маршрут» via Jakdojade: JAKDOJADE_API_KEY and JAKDOJADE_API_SECRET (partner
+      # keys from Jakdojade). Without them routes come from the city's open GTFS schedule.
       # Documents: Render's disk is wiped on deploy, so uploads stay disabled until S3 storage
       # (e.g. Supabase Storage) is set in the dashboard: STORAGE_BACKEND=s3, STORAGE_ENDPOINT,
       # STORAGE_REGION, STORAGE_BUCKET, STORAGE_ACCESS_KEY, STORAGE_SECRET_KEY.

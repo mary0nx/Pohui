@@ -499,6 +499,8 @@ async def test_plan_api_options_scheduled_times_and_sources(alice: Actor, net: f
         and ride["from_stop"]["name"] == "Dom Przystanek"
     )
     assert ride["departure_at"].startswith("2026-10-27T07:05")
+    # The stop is described by the nearest address of the city's register.
+    assert ride["from_stop"]["near_address"].startswith("ul. Legnicka")
     assert all(leg["time_kind"] == "scheduled" and leg["delay_min"] is None for leg in best["legs"])
     assert any(o["transfers"] == 0 and "fewer_transfers" in o["tags"] for o in plan["options"])
     assert plan["jakdojade_url"].startswith("https://jakdojade.pl/wroclaw/")
