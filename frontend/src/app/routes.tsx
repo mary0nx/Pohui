@@ -44,6 +44,7 @@ export const router = createBrowserRouter([
       },
       { path: "profile", lazy: async () => ({ Component: (await import("@/features/settings/ProfilePage")).ProfilePage }) },
       { path: "profile/apple-pay", lazy: async () => ({ Component: (await import("@/features/settings/ApplePayPage")).ApplePayPage }) },
+      { path: "profile/widget", lazy: async () => ({ Component: (await import("@/features/settings/WidgetPage")).WidgetPage }) },
       { path: "profile/notifications", lazy: async () => ({ Component: (await import("@/features/settings/NotificationsPage")).NotificationsPage }) },
       {
         path: "profile/ai",
