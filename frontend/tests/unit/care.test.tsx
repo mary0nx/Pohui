@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { App } from "@/app/App";
+import { daysText } from "@/features/care/CarePage";
 import { router } from "@/app/routes";
 import { setToken } from "@/lib/session";
 
@@ -63,7 +64,10 @@ describe("«Забота на каждый день»", () => {
     const user = userEvent.setup();
     await user.type(screen.getByLabelText("Имя в приветствии"), "Мария");
     await user.click(screen.getByRole("radio", { name: "Романтичный" }));
+    expect(screen.getByText("Сообщения приходят: каждый день в 06:00. Зелёные дни — включены.")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Сб" }));
+    expect(screen.getByText(/Сообщения приходят: пн–пт, вс в 06:00/)).toBeInTheDocument();
+    expect(screen.getByText(/несохранённые изменения/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Сохранить" }));
     await waitFor(() => expect(saved).not.toBeNull());
     expect(saved).toMatchObject({ recipient_name: "Мария", tone: "romantic", send_time: "06:00", days: [0, 1, 2, 3, 4, 6] });
@@ -100,5 +104,18 @@ describe("notification channel", () => {
     await userEvent.click(screen.getByRole("tab", { name: "Приложение и Telegram" }));
     await waitFor(() => expect(saved).toMatchObject({ channel: "both" }));
     expect(await screen.findByText(/дублируются в Telegram/)).toBeInTheDocument();
+  });
+});
+
+describe("days in words", () => {
+  it("names the chosen days", () => {
+    expect(daysText([0, 1, 2, 3, 4, 5, 6])).toBe("каждый день");
+    expect(daysText([2, 3, 4, 5, 6])).toBe("ср–вс");
+    expect(daysText([0, 1, 2, 3, 4])).toBe("по будням (пн–пт)");
+    expect(daysText([5, 6])).toBe("по выходным (сб–вс)");
+    expect(daysText([0, 2, 4])).toBe("пн, ср, пт");
+    expect(daysText([0, 1, 3])).toBe("пн, вт, чт");
+    expect(daysText([6, 0, 1, 2])).toBe("пн–ср, вс");
+    expect(daysText([])).toBe("");
   });
 });

@@ -23,6 +23,29 @@ type Form = Omit<CareSettings, "configured" | "default_name" | "country" | "next
 
 const hhmm = (t: string) => t.slice(0, 5);
 
+/** "каждый день", "ср–вс", "пн, ср, пт" — the chosen days in words. */
+export function daysText(days: number[]): string {
+  const sorted = [...new Set(days)].sort((a, b) => a - b);
+  if (sorted.length === 7) return "каждый день";
+  if (sorted.length === 0) return "";
+  if (sorted.join() === "0,1,2,3,4") return "по будням (пн–пт)";
+  if (sorted.join() === "5,6") return "по выходным (сб–вс)";
+  const parts: string[] = [];
+  let start = sorted[0]!;
+  let prev = start;
+  for (const d of [...sorted.slice(1), -1]) {
+    if (d === prev + 1) {
+      prev = d;
+      continue;
+    }
+    const a = DAYS[start]!.toLowerCase();
+    const b = DAYS[prev]!.toLowerCase();
+    parts.push(prev - start >= 2 ? `${a}–${b}` : prev === start ? a : `${a}, ${b}`);
+    start = prev = d;
+  }
+  return parts.join(", ");
+}
+
 function nextSendText(iso: string | null, tz: string): string {
   if (!iso) return "Сейчас сообщения не запланированы.";
   const at = new Date(iso);
@@ -72,6 +95,8 @@ export function CarePage() {
   const f = form!;
   const set = <K extends keyof Form>(key: K, value: Form[K]) => setForm({ ...f, [key]: value });
   const tg = s.telegram;
+  const saved: Form = { enabled: s.enabled, recipient_name: s.recipient_name, gender: s.gender, city: s.city, timezone: s.timezone, send_time: hhmm(s.send_time), leave_time: hhmm(s.leave_time), days: [...s.days].sort(), tone: s.tone, weather_tips: s.weather_tips, signature: s.signature };
+  const dirty = JSON.stringify({ ...f, days: [...f.days].sort() }) !== JSON.stringify(saved);
 
   return (
     <div className="space-y-5">
@@ -182,6 +207,9 @@ export function CarePage() {
                 );
               })}
             </div>
+            <p className={cn("mt-1.5 px-1 text-sm", f.days.length ? "text-muted" : "text-danger")}>
+              {f.days.length ? `Сообщения приходят: ${daysText(f.days)} в ${f.send_time}. Зелёные дни — включены.` : "Не выбран ни один день — сообщения приходить не будут."}
+            </p>
           </div>
           <Input label="Город" value={f.city} maxLength={100} onChange={(e) => set("city", e.target.value)} hint="По умолчанию Вроцлав. Можно написать по-польски или по-русски." />
           <Select label="Часовой пояс" value={f.timezone} onChange={(e) => set("timezone", e.target.value)}>
@@ -191,6 +219,7 @@ export function CarePage() {
           </Select>
           <Switch label="Советы по погоде" description="Зонт, тёплая одежда, вода в жару, сильный ветер." checked={f.weather_tips} onChange={(v) => set("weather_tips", v)} />
           <Input label="Подпись (необязательно)" value={f.signature ?? ""} placeholder="Например: Твой Юра" maxLength={40} onChange={(e) => set("signature", e.target.value || null)} />
+          {dirty && <p className="px-1 text-sm font-semibold text-warning">Есть несохранённые изменения — нажмите «Сохранить».</p>}
           <Button block loading={save.isPending} onClick={() => save.mutate(f)}>
             Сохранить
           </Button>
