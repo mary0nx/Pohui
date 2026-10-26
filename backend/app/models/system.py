@@ -94,6 +94,7 @@ class NotificationPreference(UUIDPk, Base):
 
 class NotificationSettings(Base):
     __tablename__ = "notification_settings"
+    __table_args__ = (sa.CheckConstraint("channel IN ('app', 'both')", name="channel_valid"),)
 
     user_id: Mapped[uuid.UUID] = mapped_column(
         sa.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
@@ -102,6 +103,9 @@ class NotificationSettings(Base):
     quiet_end: Mapped[time | None]
     timezone: Mapped[str | None] = mapped_column(sa.String(64))
     telegram_enabled: Mapped[bool] = mapped_column(server_default=sa.true(), default=True)
+    # "app": the installed Family OS app; Telegram only when no app can take the notification.
+    # "both": the app and Telegram. (telegram_enabled=false never uses Telegram.)
+    channel: Mapped[str] = mapped_column(sa.String(16), server_default="app", default="app")
     updated_at: Mapped[datetime] = mapped_column(
         server_default=sa.func.now(), onupdate=lambda: datetime.now(UTC)
     )

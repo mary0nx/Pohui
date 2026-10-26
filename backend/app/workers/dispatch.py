@@ -1,10 +1,10 @@
-"""Notification dispatcher: durable outbox in PostgreSQL -> installed apps (Web Push) + Telegram.
+"""Notification dispatcher: durable outbox in PostgreSQL -> installed app (Web Push) / Telegram.
 
 State machine: pending -> sending (lease) -> sent | failed | skipped, or back to pending
 with a later scheduled_for on temporary errors. A crashed worker leaves rows in `sending`
 with an expired lease; they are picked up again (at-least-once delivery, nothing is lost).
-The push to the user's home-screen apps goes out once (push_sent_at); a notification counts as
-sent when either the push or the Telegram message was delivered.
+The push to the user's home-screen apps goes out once (push_sent_at). By default the app is the
+only channel and Telegram is the fallback; channel="both" also sends to Telegram.
 """
 
 from __future__ import annotations
@@ -198,6 +198,15 @@ async def _process_one(
 
     if not telegram_on:
         delivered_by_push("telegram disabled by user")
+        return
+    # Default: the installed app is the channel; Telegram stands in only when no app could take
+    # the notification (none installed, all removed, or the push service kept failing).
+    app_only = settings is None or settings.channel == "app"
+    if app_only and pushed:
+        delivered_by_push("delivered to the app")
+        return
+    if app_only and push_retry and n.attempts < MAX_ATTEMPTS:
+        delivered_by_push("push temporarily unavailable")
         return
     if user.bot_started_at is None or user.bot_blocked:
         # Telegram only allows messages to users who started the bot; the in-app inbox

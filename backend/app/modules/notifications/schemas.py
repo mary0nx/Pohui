@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, time
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -33,9 +34,11 @@ class NotificationSettingsIn(BaseModel):
     quiet_end: time | None = None
     timezone: TimeZoneName | None = None
     telegram_enabled: bool = True
+    channel: Literal["app", "both"] = "app"
     categories: dict[NotificationCategory, bool] = Field(default_factory=dict)
 
 
 class NotificationSettingsOut(NotificationSettingsIn):
     bot_started: bool
     bot_blocked: bool
+    push_devices: int = 0

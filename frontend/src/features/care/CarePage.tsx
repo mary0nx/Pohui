@@ -1,12 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw, Send } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 
 import { api, errorMessage } from "@/api/client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button, Card, ErrorState, Input, LoadingBlock, Section, Segmented, Select, Switch, useToast } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { openExternal } from "@/lib/telegram";
 
 import { useCare, useCarePreview, type CareSettings, type CareTone } from "./api";
 
@@ -59,8 +59,9 @@ export function CarePage() {
   const test = useMutation({
     mutationFn: () => api<{ queued: boolean; telegram_ready: boolean; push_devices: number }>("/me/care/test", { method: "POST" }),
     onSuccess: (r) => {
-      if (r.telegram_ready || r.push_devices > 0) toast.show("Отправлено — сообщение придёт в течение минуты");
-      else toast.show("Сообщение сохранено во «Входящих», но бот пока не может вам писать — откройте бота и нажмите «Старт»", "error");
+      if (r.push_devices > 0) toast.show("Отправлено — уведомление Family OS придёт в течение минуты");
+      else if (r.telegram_ready) toast.show("Отправлено в Telegram: приложение с уведомлениями пока не установлено");
+      else toast.show("Сообщение во «Входящих»: включите уведомления в приложении Family OS", "error");
     },
     onError: (e) => toast.show(errorMessage(e), "error"),
   });
@@ -78,7 +79,7 @@ export function CarePage() {
       <Card className="space-y-2">
         <Switch
           label="Утреннее сообщение с погодой"
-          description="Каждое утро: прогноз на день, совет по одежде и тёплое пожелание — в Telegram и на телефон."
+          description="Каждое утро: прогноз на день, совет по одежде и тёплое пожелание — уведомлением из приложения Family OS."
           checked={f.enabled}
           onChange={(v) => {
             const next = { ...f, enabled: v };
@@ -89,19 +90,18 @@ export function CarePage() {
         {s.enabled && <p className="text-sm text-muted">{nextSendText(s.next_send_at, s.timezone)}</p>}
       </Card>
 
-      {(!tg.bot_started || tg.bot_blocked) && (
+      {s.push_devices > 0 ? (
+        <Card className="bg-mint-soft text-sm text-mint-ink">Сообщение придёт уведомлением из приложения Family OS на этом телефоне (устройств: {s.push_devices}).</Card>
+      ) : (
         <Card className="space-y-2 border-warning/40 bg-warning-soft text-sm">
-          <p className="font-semibold">{tg.bot_blocked ? "Бот заблокирован в Telegram" : "Бот пока не может вам писать"}</p>
+          <p className="font-semibold">Чтобы сообщение приходило из приложения Family OS</p>
           <p>
-            Telegram разрешает боту писать только тем, кто сам открыл его чат.{" "}
-            {tg.bot_blocked ? "Разблокируйте бота в Telegram." : "Откройте бота и нажмите «Старт» — один раз."}
-            {s.push_devices > 0 && " Сообщения уже приходят на телефон с установленным Family OS."}
+            Установите Family OS на экран «Домой» (Safari → «Поделиться» → «На экран "Домой"»), войдите и включите уведомления: «Профиль» → «Уведомления» → «Включить уведомления».
+            {tg.bot_started && !tg.bot_blocked ? " Пока приложение не установлено, сообщение придёт в Telegram." : " До этого сообщение будет видно только во «Входящих»."}
           </p>
-          {tg.bot_link && (
-            <Button size="sm" variant="secondary" icon={<Send className="size-4" />} onClick={() => openExternal(tg.bot_link!)}>
-              Открыть бота
-            </Button>
-          )}
+          <Link to="/profile/notifications" className="inline-block font-semibold text-accent">
+            Открыть настройки уведомлений →
+          </Link>
         </Card>
       )}
 

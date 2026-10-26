@@ -59,7 +59,7 @@ describe("«Забота на каждый день»", () => {
     render(<App />);
     expect(await screen.findByText("Доброе утро, Мария! ❤️")).toBeInTheDocument();
     expect(screen.getByText(/Прогноз: Open-Meteo/)).toBeInTheDocument();
-    expect(screen.getByText("Бот пока не может вам писать")).toBeInTheDocument();
+    expect(screen.getByText("Чтобы сообщение приходило из приложения Family OS")).toBeInTheDocument();
     const user = userEvent.setup();
     await user.type(screen.getByLabelText("Имя в приветствии"), "Мария");
     await user.click(screen.getByRole("radio", { name: "Романтичный" }));
@@ -70,7 +70,7 @@ describe("«Забота на каждый день»", () => {
     await user.click(screen.getByRole("switch", { name: /Утреннее сообщение/ }));
     expect(await screen.findByText(/Следующее сообщение: среда, 11 ноября, 06:00/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Отправить тест" }));
-    expect(await screen.findByText(/бот пока не может вам писать/)).toBeInTheDocument();
+    expect(await screen.findByText(/включите уведомления в приложении Family OS/)).toBeInTheDocument();
     expect(m.calls.some((c) => c.method === "POST" && c.url.pathname.endsWith("/me/care/test"))).toBe(true);
   });
 
@@ -80,5 +80,25 @@ describe("«Забота на каждый день»", () => {
     render(<App />);
     expect(await screen.findByText("+6°C утром, днём до +9°C, дождь")).toBeInTheDocument();
     expect(screen.getByText("Возьми зонт; тёплая куртка.")).toBeInTheDocument();
+  });
+});
+
+describe("notification channel", () => {
+  it("defaults to the app and can add Telegram", async () => {
+    await act(() => router.navigate("/profile/notifications"));
+    setToken("tok");
+    const categories = Object.fromEntries(["event_reminder", "payment_due", "task_overdue", "task_assigned", "task_reminder", "custom_reminder", "shopping_update", "shopping_reminder", "goal_update", "document_expiry", "morning_care", "system"].map((c) => [c, true]));
+    const current = { quiet_start: null, quiet_end: null, timezone: null, telegram_enabled: true, channel: "app", categories, bot_started: true, bot_blocked: false, push_devices: 1 };
+    let saved: Record<string, unknown> | null = null;
+    mockFetch([
+      ...base,
+      { path: /\/notifications\/settings$/, body: current },
+      { method: "PUT", path: /\/notifications\/settings$/, handler: (body) => ((saved = body as Record<string, unknown>), { ...current, ...(body as object) }) },
+    ]);
+    render(<App />);
+    expect(await screen.findByText(/приходят из приложения Family OS \(устройств: 1\)\. Telegram молчит/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "Приложение и Telegram" }));
+    await waitFor(() => expect(saved).toMatchObject({ channel: "both" }));
+    expect(await screen.findByText(/дублируются в Telegram/)).toBeInTheDocument();
   });
 });

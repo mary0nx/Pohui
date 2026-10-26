@@ -18,6 +18,7 @@ from app.modules.notifications.schemas import (
     NotificationSettingsOut,
 )
 from app.modules.notifications.service import inbox_condition
+from app.modules.push.service import live_subscriptions
 from app.workers.dispatch import OPT_IN
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
@@ -85,6 +86,8 @@ async def _settings_out(db: DB, user: CurrentUser) -> NotificationSettingsOut:
         quiet_end=s.quiet_end if s else None,
         timezone=s.timezone if s else None,
         telegram_enabled=s.telegram_enabled if s else True,
+        channel=s.channel if s else "app",
+        push_devices=len(await live_subscriptions(db, user.id)),
         categories=categories,
         bot_started=user.bot_started_at is not None,
         bot_blocked=user.bot_blocked,
@@ -105,6 +108,7 @@ async def put_settings(
         "quiet_end": body.quiet_end,
         "timezone": body.timezone,
         "telegram_enabled": body.telegram_enabled,
+        "channel": body.channel,
     }
     await db.execute(
         insert(NotificationSettings)

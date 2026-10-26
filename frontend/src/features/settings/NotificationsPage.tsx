@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, errorMessage } from "@/api/client";
 import { useFamily } from "@/app/session";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Card, ErrorState, Input, LoadingBlock, Section, Switch, useToast } from "@/components/ui";
+import { Card, ErrorState, Input, LoadingBlock, Section, Segmented, Switch, useToast } from "@/components/ui";
 import type { NotificationCategory, NotificationSettings } from "@/types/api";
 
 import { PushCard } from "./PushCard";
@@ -39,12 +39,36 @@ export function NotificationsPage() {
   return (
     <div className="space-y-5">
       <PageHeader title="Уведомления" back="/profile" art="bell" />
-      {!s.bot_started && <Card className="border-warning/40 bg-warning-soft text-sm">Бот ещё не может писать вам: откройте чат с ботом и нажмите «Старт». До этого уведомления видны только во входящих приложения.</Card>}
-      {s.bot_blocked && <Card className="border-danger/40 bg-danger-soft text-sm">Бот заблокирован в Telegram — разблокируйте его, чтобы снова получать сообщения.</Card>}
       <PushCard />
-      <Card>
-        <Switch label="Отправлять в Telegram" checked={s.telegram_enabled} onChange={(v) => save.mutate({ telegram_enabled: v })} />
-      </Card>
+      <Section title="Куда приходят уведомления">
+        <Card className="space-y-3">
+          <Segmented<"app" | "both">
+            value={s.channel ?? "app"}
+            onChange={(v) => save.mutate({ channel: v })}
+            options={[
+              { value: "app", label: "Приложение" },
+              { value: "both", label: "Приложение и Telegram" },
+            ]}
+          />
+          <p className="text-sm text-muted">
+            {s.push_devices > 0
+              ? s.channel === "both"
+                ? `Уведомления приходят в Family OS на телефоне (устройств: ${s.push_devices}) и дублируются в Telegram.`
+                : `Уведомления приходят из приложения Family OS (устройств: ${s.push_devices}). Telegram молчит.`
+              : "Приложение с уведомлениями пока не установлено ни на одном телефоне — до этого уведомления приходят в Telegram. Включите уведомления в карточке выше на телефоне с Family OS на экране «Домой»."}
+          </p>
+          <Switch
+            label="Telegram как запасной канал"
+            description="Если приложение не установлено или удалено с телефона."
+            checked={s.telegram_enabled}
+            onChange={(v) => save.mutate({ telegram_enabled: v })}
+          />
+        </Card>
+      </Section>
+      {s.telegram_enabled && s.push_devices === 0 && !s.bot_started && (
+        <Card className="border-warning/40 bg-warning-soft text-sm">Бот ещё не может писать вам: откройте чат с ботом и нажмите «Старт». До этого уведомления видны только во входящих приложения.</Card>
+      )}
+      {s.telegram_enabled && s.push_devices === 0 && s.bot_blocked && <Card className="border-danger/40 bg-danger-soft text-sm">Бот заблокирован в Telegram — разблокируйте его, чтобы снова получать сообщения.</Card>}
       <Section title="Тихие часы">
         <Card className="space-y-2">
           <div className="grid grid-cols-2 gap-3">

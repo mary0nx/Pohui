@@ -19,7 +19,7 @@ from sqlalchemy import select, update
 from app.bot import logic
 from app.db.session import get_sessionmaker
 from app.integrations import webpush
-from app.models import Notification, NotificationSettings, PushSubscription
+from app.models import Notification, PushSubscription
 from app.models.enums import NotificationCategory, NotificationStatus
 from app.modules.notifications.service import enqueue
 from app.workers.dispatch import dispatch_due
@@ -209,13 +209,42 @@ async def test_subscribe_and_receive_on_own_device_only(
     assert (await alice.post("/api/v1/push/test")).json() == {"sent": 0}
 
 
-async def test_push_without_telegram_and_never_twice(
+async def test_app_first_telegram_as_fallback_or_both(
+    client: AsyncClient, couple: tuple[Actor, Actor], fake_push: FakePush
+) -> None:
+    alice, _ = couple
+    await start_bot(alice)
+    sm = get_sessionmaker()
+    sender = FakeSender()
+    # No app installed yet: Telegram delivers, as before.
+    await notify(alice.user_id, alice.family_id, "x0")
+    await dispatch_due(sm, sender, "Europe/Warsaw")
+    assert len(sender.sent) == 1 and fake_push.sent == []
+    # With the app installed, by default only the app gets it — no Telegram message.
+    headers = await signed_in_device(client, 1001)
+    await client.post("/api/v1/push/subscriptions", json=Device().json, headers=headers)
+    settings = (await alice.get("/api/v1/notifications/settings")).json()
+    assert settings["channel"] == "app" and settings["push_devices"] == 1
+    await notify(alice.user_id, alice.family_id, "x1")
+    stats = await dispatch_due(sm, sender, "Europe/Warsaw")
+    assert stats.sent == 1 and len(fake_push.sent) == 1 and len(sender.sent) == 1
+    # The app was removed (push service: gone): Telegram stands in.
+    fake_push.outcomes = ["gone"]
+    await notify(alice.user_id, alice.family_id, "x2")
+    await dispatch_due(sm, sender, "Europe/Warsaw")
+    assert len(fake_push.sent) == 1 and len(sender.sent) == 2
+
+
+async def test_both_channels_push_never_twice(
     client: AsyncClient, couple: tuple[Actor, Actor], fake_push: FakePush
 ) -> None:
     alice, _ = couple
     await start_bot(alice)
     headers = await signed_in_device(client, 1001)
     await client.post("/api/v1/push/subscriptions", json=Device().json, headers=headers)
+    settings = (await alice.get("/api/v1/notifications/settings")).json()
+    settings["channel"] = "both"
+    assert (await alice.put("/api/v1/notifications/settings", settings)).status_code == 200
     # Telegram fails temporarily: the push went out once and is not repeated on the retry.
     from app.integrations.telegram import TelegramTemporaryError
 
@@ -230,13 +259,14 @@ async def test_push_without_telegram_and_never_twice(
         await db.commit()
     await dispatch_due(sm, sender, "Europe/Warsaw")
     assert len(fake_push.sent) == 1 and len(sender.sent) == 1
-    # Telegram messages switched off: the phone still gets the push.
-    async with sm() as db:
-        db.add(NotificationSettings(user_id=n.user_id, telegram_enabled=False))
-        await db.commit()
+    # Telegram switched off entirely: the phone still gets the push.
+    settings["telegram_enabled"] = False
+    await alice.put("/api/v1/notifications/settings", settings)
     await notify(alice.user_id, alice.family_id, "x2")
     stats = await dispatch_due(sm, sender, "Europe/Warsaw")
     assert stats.sent == 1 and len(fake_push.sent) == 2 and len(sender.sent) == 1
+    bad = {**settings, "channel": "telegram-only"}
+    assert (await alice.put("/api/v1/notifications/settings", bad)).status_code == 422
 
 
 async def test_signed_out_or_removed_devices_get_nothing(

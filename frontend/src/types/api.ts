@@ -574,9 +574,12 @@ export interface NotificationSettings {
   quiet_end: string | null;
   timezone: string | null;
   telegram_enabled: boolean;
+  /** "app": the installed Family OS app, Telegram only as a fallback; "both": app and Telegram. */
+  channel: "app" | "both";
   categories: Record<NotificationCategory, boolean>;
   bot_started: boolean;
   bot_blocked: boolean;
+  push_devices: number;
 }
 
 // --- AI ---
