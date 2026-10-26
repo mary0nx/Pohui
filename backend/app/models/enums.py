@@ -33,6 +33,8 @@ class Visibility(StrEnum):
 class AuthMethod(StrEnum):
     telegram = "telegram"
     dev = "dev"
+    # A browser or home-screen app signed in by confirming in the Telegram bot.
+    device = "device"
 
 
 class AccountKind(StrEnum):

@@ -8,3 +8,11 @@
 
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+
+# The service worker and manifest must never be served stale.
+/sw.js
+  Cache-Control: no-cache
+
+/manifest.webmanifest
+  Cache-Control: no-cache
+  Content-Type: application/manifest+json

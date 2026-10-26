@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -58,3 +59,34 @@ class TokenOut(BaseModel):
     expires_at: datetime
     start_param: str | None = None
     me: MeOut
+
+
+class LinkStartIn(BaseModel):
+    # The page runs as an app from the home screen (display-mode: standalone).
+    standalone: bool = False
+
+
+class LinkStartOut(BaseModel):
+    poll_token: str
+    bot_url: str
+    # Opens the Telegram app directly (tg://), bot_url is the https fallback.
+    app_url: str
+    expires_at: datetime
+
+
+class LinkPollIn(BaseModel):
+    poll_token: str = Field(min_length=1, max_length=128)
+
+
+class LinkPollOut(BaseModel):
+    status: Literal["pending", "approved", "rejected", "expired"]
+    auth: TokenOut | None = None
+
+
+class DeviceOut(BaseModel):
+    id: uuid.UUID
+    label: str
+    created_at: datetime
+    last_used_at: datetime
+    current: bool
+    push: bool

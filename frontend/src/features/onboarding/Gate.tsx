@@ -11,6 +11,7 @@ import { useSession } from "@/app/session";
 import { Button, Card, ErrorState, Input, Select, Spinner } from "@/components/ui";
 
 import { InviteCodeForm } from "./InviteCodeForm";
+import { LinkLogin } from "./LinkLogin";
 import type { Family, InvitationPreview, PendingInvitation } from "@/types/api";
 
 function Centered({ children }: { children: ReactNode }) {
@@ -46,10 +47,7 @@ export function OutsideTelegram() {
   return (
     <Centered>
       <Logo />
-      <Card>
-        <p className="font-semibold">Откройте приложение в Telegram</p>
-        <p className="mt-1 text-sm text-muted">Family OS работает как Telegram Mini App. Найдите бота семьи в Telegram и нажмите «Открыть».</p>
-      </Card>
+      <LinkLogin />
     </Centered>
   );
 }

@@ -45,6 +45,8 @@ def _markup(reply: logic.BotReply) -> InlineKeyboardMarkup | None:
                 InlineKeyboardButton(text="✖️ Отмена", callback_data=f"p:x:{pid}"),
             ]
         )
+    for row in reply.buttons:
+        rows.append([InlineKeyboardButton(text=t, callback_data=data) for t, data in row])
     url = _app_url(reply.open_app_path)
     if url:
         rows.append([InlineKeyboardButton(text=reply.open_app_text, web_app=WebAppInfo(url=url))])
@@ -127,6 +129,24 @@ async def on_proposal(callback: CallbackQuery) -> None:
     if isinstance(callback.message, Message):
         await callback.message.edit_reply_markup(reply_markup=None)
         await callback.message.answer(text)
+
+
+@router.callback_query(F.data.startswith("l:"))
+async def on_login(callback: CallbackQuery) -> None:
+    try:
+        _, action, raw = (callback.data or "").split(":", 2)
+        request_id = uuid.UUID(raw)
+    except ValueError:
+        await callback.answer("Некорректная кнопка")
+        return
+    u = callback.from_user
+    async with get_sessionmaker()() as db:
+        text = await logic.resolve_login(
+            db, u.id, u.first_name, u.username, u.language_code, request_id, action == "a"
+        )
+    await callback.answer()
+    if isinstance(callback.message, Message):
+        await callback.message.edit_text(text, reply_markup=None)
 
 
 async def configure(bot: Bot) -> None:

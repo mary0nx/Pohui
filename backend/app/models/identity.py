@@ -52,8 +52,32 @@ class UserSession(UUIDPk, Base):
     expires_at: Mapped[datetime]
     last_used_at: Mapped[datetime] = mapped_column(server_default=sa.func.now())
     revoked_at: Mapped[datetime | None]
+    # Device sessions only: e.g. "iPhone · Safari", shown in the device list.
+    device_label: Mapped[str | None] = mapped_column(sa.String(64))
 
     user: Mapped[User] = relationship(lazy="joined")
+
+
+class LoginRequest(UUIDPk, Base):
+    """Sign-in of a browser or home-screen app, confirmed by the user in the Telegram bot.
+
+    The browser holds the poll secret, the bot link carries the code; only their SHA-256 hashes
+    are stored. The first Telegram account that opens the link claims the request, only that
+    account can approve it, and the approved request yields exactly one session.
+    """
+
+    __tablename__ = "login_requests"
+
+    poll_hash: Mapped[str] = mapped_column(sa.String(64), unique=True)
+    code_hash: Mapped[str] = mapped_column(sa.String(64), unique=True)
+    device_label: Mapped[str] = mapped_column(sa.String(64))
+    claimed_telegram_id: Mapped[int | None] = mapped_column(sa.BigInteger)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(sa.ForeignKey("users.id", ondelete="CASCADE"))
+    created_at: Mapped[datetime] = mapped_column(server_default=sa.func.now())
+    expires_at: Mapped[datetime]
+    approved_at: Mapped[datetime | None]
+    rejected_at: Mapped[datetime | None]
+    consumed_at: Mapped[datetime | None]
 
 
 class Family(UUIDPk, Timestamps, Base):

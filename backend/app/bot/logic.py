@@ -52,6 +52,8 @@ class BotReply:
     open_app_path: str | None = None
     open_app_text: str = "Открыть Family OS"
     proposals: list[tuple[uuid.UUID, str]] = field(default_factory=list)
+    # Extra rows of inline buttons: (text, callback_data).
+    buttons: list[list[tuple[str, str]]] = field(default_factory=list)
 
 
 async def mark_started(
@@ -102,6 +104,19 @@ async def start(
     payload: str | None,
 ) -> BotReply:
     user = await mark_started(db, tg_user_id, first_name, username, language)
+    if payload and payload.startswith("login_"):
+        from app.modules.auth import device
+
+        req = await device.claim(db, tg_user_id, payload)
+        if req is None:
+            return BotReply(
+                text="Эта ссылка для входа устарела или уже использована. "
+                "Нажмите «Войти через Telegram» в приложении ещё раз."
+            )
+        return BotReply(
+            text=device.confirm_text(req),
+            buttons=[[("✅ Войти", f"l:a:{req.id}"), ("✖️ Отклонить", f"l:x:{req.id}")]],
+        )
     if payload and payload.startswith("inv_"):
         from app.modules.families.service import remember_invitation
 
@@ -197,3 +212,18 @@ async def resolve_proposal(
     if p.status == ProposalStatus.failed:
         return f"⚠️ Не выполнено: {html.escape((p.result or {}).get('error', ''))}"
     return f"Статус: {p.status.value}"
+
+
+async def resolve_login(
+    db: AsyncSession,
+    tg_user_id: int,
+    first_name: str,
+    username: str | None,
+    language: str | None,
+    request_id: uuid.UUID,
+    approve: bool,
+) -> str:
+    from app.modules.auth import device
+
+    user = await mark_started(db, tg_user_id, first_name, username, language)
+    return await device.resolve(db, user, request_id, approve)

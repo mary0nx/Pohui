@@ -28,7 +28,7 @@ export interface Me {
   user: UserOut;
   families: Membership[];
   active_family_id: UUID | null;
-  auth_method: "telegram" | "dev";
+  auth_method: "telegram" | "dev" | "device";
   /** An invitation opened in the bot that the user has not answered yet (newer servers). */
   pending_invitation?: PendingInvitation | null;
 }

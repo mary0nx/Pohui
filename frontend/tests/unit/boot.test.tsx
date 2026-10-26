@@ -54,7 +54,7 @@ describe("static-host build (Cloudflare Pages) without VITE_API_URL", () => {
     vi.stubEnv("VITE_API_URL", "https://api.familyos.test/");
     const m = mockFetch([{ path: /\/api\/v1\/meta$/, body: meta(false) }]);
     render(<App />);
-    expect(await screen.findByText("Откройте приложение в Telegram")).toBeInTheDocument();
+    expect(await screen.findByText("Вход в Family OS")).toBeInTheDocument();
     expect(m.calls[0]!.url.origin).toBe("https://api.familyos.test");
   });
 });
@@ -84,7 +84,7 @@ describe("boot without a reachable backend", () => {
     await screen.findByText("Сервер Family OS недоступен");
     up = true;
     await userEvent.click(screen.getByRole("button", { name: "Повторить" }));
-    expect(await screen.findByText("Откройте приложение в Telegram")).toBeInTheDocument();
+    expect(await screen.findByText("Вход в Family OS")).toBeInTheDocument();
   });
 
   it("reports a /meta response that breaks the contract instead of crashing", async () => {
@@ -97,7 +97,7 @@ describe("boot without a reachable backend", () => {
   it("does not offer the dev login when the backend disables it", async () => {
     mockFetch([{ path: /\/meta$/, body: meta(false) }]);
     render(<App />);
-    expect(await screen.findByText("Откройте приложение в Telegram")).toBeInTheDocument();
+    expect(await screen.findByText("Вход в Family OS")).toBeInTheDocument();
     expect(screen.queryByText(/Режим разработки/)).not.toBeInTheDocument();
   });
 });

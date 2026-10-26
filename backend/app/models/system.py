@@ -74,6 +74,8 @@ class Notification(UUIDPk, Base):
     locked_until: Mapped[datetime | None]
     sent_at: Mapped[datetime | None]
     telegram_message_id: Mapped[int | None] = mapped_column(sa.BigInteger)
+    # Set once the push to the user's devices went out, so Telegram retries never repeat it.
+    push_sent_at: Mapped[datetime | None]
     last_error: Mapped[str | None] = mapped_column(sa.String(300))
     read_at: Mapped[datetime | None]
     created_at: Mapped[datetime] = mapped_column(server_default=sa.func.now())
@@ -254,3 +256,25 @@ class DailyFavorite(UUIDPk, Base):
     text: Mapped[str] = mapped_column(sa.String(300))
     day: Mapped[date]
     created_at: Mapped[datetime] = mapped_column(server_default=sa.func.now())
+
+
+class PushSubscription(UUIDPk, Base):
+    """Web Push subscription of one installed app (home-screen Family OS) of one session.
+
+    Bound to the session it was created with: signing out of that device (or revoking it from
+    another one) deletes the subscription, so a device that is signed out gets nothing.
+    """
+
+    __tablename__ = "push_subscriptions"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        sa.ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    session_id: Mapped[uuid.UUID] = mapped_column(
+        sa.ForeignKey("user_sessions.id", ondelete="CASCADE"), index=True
+    )
+    endpoint: Mapped[str] = mapped_column(sa.String(1024), unique=True)
+    p256dh: Mapped[str] = mapped_column(sa.String(128))
+    auth: Mapped[str] = mapped_column(sa.String(64))
+    created_at: Mapped[datetime] = mapped_column(server_default=sa.func.now())
+    last_success_at: Mapped[datetime | None]

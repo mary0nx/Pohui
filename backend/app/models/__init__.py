@@ -31,7 +31,14 @@ from app.models.household import (
     Task,
     TaskComment,
 )
-from app.models.identity import Family, FamilyInvitation, FamilyMember, User, UserSession
+from app.models.identity import (
+    Family,
+    FamilyInvitation,
+    FamilyMember,
+    LoginRequest,
+    User,
+    UserSession,
+)
 from app.models.system import (
     AiActionProposal,
     AiConversation,
@@ -46,6 +53,7 @@ from app.models.system import (
     Notification,
     NotificationPreference,
     NotificationSettings,
+    PushSubscription,
 )
 
 __all__ = [
@@ -71,12 +79,14 @@ __all__ = [
     "IdempotencyKey",
     "IntegrationToken",
     "LifeItem",
+    "LoginRequest",
     "MealPlanEntry",
     "Notification",
     "NotificationPreference",
     "NotificationSettings",
     "PantryItem",
     "ProductCatalog",
+    "PushSubscription",
     "Recipe",
     "RecipeIngredient",
     "RecurringRule",

@@ -14,6 +14,7 @@ from app.models import (
     AiActionProposal,
     Family,
     IdempotencyKey,
+    LoginRequest,
     Notification,
     RecurringRule,
     UserSession,
@@ -75,6 +76,10 @@ async def cleanup(db: AsyncSession, now: datetime) -> dict[str, int]:
         )
     )
     res["notifications"] = r.rowcount or 0  # type: ignore[attr-defined]
+    r = await db.execute(
+        delete(LoginRequest).where(LoginRequest.expires_at < now - timedelta(days=1))
+    )
+    res["login_requests"] = r.rowcount or 0  # type: ignore[attr-defined]
     return res
 
 

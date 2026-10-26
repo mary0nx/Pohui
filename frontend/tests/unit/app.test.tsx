@@ -25,7 +25,7 @@ describe("app gate", () => {
   it("asks to open the app in Telegram when dev login is disabled", async () => {
     mockFetch([{ path: /\/meta$/, body: meta(false) }]);
     render(<App />);
-    expect(await screen.findByText("Откройте приложение в Telegram")).toBeInTheDocument();
+    expect(await screen.findByText("Вход в Family OS")).toBeInTheDocument();
   });
 
   it("shows onboarding for a user without a family", async () => {

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -16,10 +16,29 @@ from app.security.tokens import hash_token, new_token
 
 TOUCH_INTERVAL = timedelta(minutes=5)
 ABSOLUTE_LIFETIME = timedelta(days=30)
+# A home-screen app stays signed in like an ordinary app: the session is renewed whenever it is
+# used and ends after 60 days without use, a year after sign-in, or when it is signed out from
+# the device list.
+DEVICE_IDLE_LIFETIME = timedelta(days=60)
+DEVICE_ABSOLUTE_LIFETIME = timedelta(days=365)
+
+
+def _idle_lifetime(method: AuthMethod) -> timedelta:
+    if method == AuthMethod.device:
+        return DEVICE_IDLE_LIFETIME
+    return timedelta(hours=get_settings().session_ttl_hours)
+
+
+def _absolute_lifetime(method: AuthMethod) -> timedelta:
+    return DEVICE_ABSOLUTE_LIFETIME if method == AuthMethod.device else ABSOLUTE_LIFETIME
 
 
 async def create_session(
-    db: AsyncSession, user: User, method: AuthMethod, init_data_hash: str | None = None
+    db: AsyncSession,
+    user: User,
+    method: AuthMethod,
+    init_data_hash: str | None = None,
+    device_label: str | None = None,
 ) -> tuple[str, UserSession]:
     now = utcnow()
     if init_data_hash:
@@ -36,7 +55,8 @@ async def create_session(
         token_hash=hash_token(token),
         auth_method=method,
         init_data_hash=init_data_hash,
-        expires_at=now + timedelta(hours=get_settings().session_ttl_hours),
+        device_label=device_label,
+        expires_at=now + _idle_lifetime(method),
         last_used_at=now,
     )
     db.add(session)
@@ -55,7 +75,7 @@ async def resolve_session(db: AsyncSession, token: str) -> UserSession:
         session is None
         or session.revoked_at is not None
         or session.expires_at <= now
-        or now - session.created_at > ABSOLUTE_LIFETIME
+        or now - session.created_at > _absolute_lifetime(session.auth_method)
     ):
         raise Unauthorized("Сессия истекла, откройте приложение заново", code="session_expired")
     settings = get_settings()
@@ -63,12 +83,16 @@ async def resolve_session(db: AsyncSession, token: str) -> UserSession:
         raise Unauthorized()
     if now - session.last_used_at > TOUCH_INTERVAL:
         session.last_used_at = now
-        session.expires_at = now + timedelta(hours=settings.session_ttl_hours)
+        session.expires_at = now + _idle_lifetime(session.auth_method)
         session.user.last_seen_at = now
         await db.commit()
     return session
 
 
 async def revoke_session(db: AsyncSession, session: UserSession) -> None:
+    from app.models.system import PushSubscription
+
     session.revoked_at = utcnow()
+    # A signed-out device must not keep receiving the family's notifications.
+    await db.execute(delete(PushSubscription).where(PushSubscription.session_id == session.id))
     await db.commit()

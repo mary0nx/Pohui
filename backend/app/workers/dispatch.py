@@ -1,8 +1,10 @@
-"""Notification dispatcher: durable outbox in PostgreSQL -> Telegram.
+"""Notification dispatcher: durable outbox in PostgreSQL -> installed apps (Web Push) + Telegram.
 
 State machine: pending -> sending (lease) -> sent | failed | skipped, or back to pending
 with a later scheduled_for on temporary errors. A crashed worker leaves rows in `sending`
 with an expired lease; they are picked up again (at-least-once delivery, nothing is lost).
+The push to the user's home-screen apps goes out once (push_sent_at); a notification counts as
+sent when either the push or the Telegram message was delivered.
 """
 
 from __future__ import annotations
@@ -31,6 +33,12 @@ from app.models import (
     User,
 )
 from app.models.enums import NotificationCategory, NotificationStatus
+from app.modules.push.service import (
+    live_subscriptions,
+    notification_payload,
+    push_to,
+    unread_count,
+)
 
 log = logging.getLogger(__name__)
 
@@ -148,7 +156,9 @@ async def _process_one(
         stats.skipped += 1
         return
     settings = await db.get(NotificationSettings, user.id)
-    if settings is not None and not settings.telegram_enabled:
+    telegram_on = settings is None or settings.telegram_enabled
+    subs = await live_subscriptions(db, user.id) if n.push_sent_at is None else []
+    if not telegram_on and not subs and n.push_sent_at is None:
         finish(NotificationStatus.skipped, "telegram disabled by user")
         stats.skipped += 1
         return
@@ -159,15 +169,40 @@ async def _process_one(
         finish(NotificationStatus.pending)
         stats.postponed += 1
         return
+    push_retry = False
+    if subs:
+        outcomes = await push_to(subs, db, notification_payload(n, await unread_count(db, user.id)))
+        if "ok" in outcomes:
+            n.push_sent_at = utcnow()
+        push_retry = "retry" in outcomes
+    pushed = n.push_sent_at is not None
+
+    def delivered_by_push(reason: str) -> None:
+        """Telegram is not used for this notification: the push alone decides the outcome."""
+        if pushed:
+            n.sent_at = n.sent_at or n.push_sent_at
+            finish(NotificationStatus.sent)
+            stats.sent += 1
+        elif push_retry and n.attempts < MAX_ATTEMPTS:
+            n.scheduled_for = now + timedelta(seconds=BASE_BACKOFF * 2 ** (n.attempts - 1))
+            finish(NotificationStatus.pending, "push temporarily unavailable")
+            stats.retried += 1
+        else:
+            finish(NotificationStatus.skipped, reason)
+            stats.skipped += 1
+
+    if not telegram_on:
+        delivered_by_push("telegram disabled by user")
+        return
     if user.bot_started_at is None or user.bot_blocked:
         # Telegram only allows messages to users who started the bot; the in-app inbox
         # still shows the notification.
-        finish(
-            NotificationStatus.skipped, "bot not started" if not user.bot_blocked else "bot blocked"
-        )
-        stats.skipped += 1
+        delivered_by_push("bot not started" if not user.bot_blocked else "bot blocked")
         return
     if sender is None:
+        if pushed:
+            delivered_by_push("telegram not configured")
+            return
         finish(NotificationStatus.pending, "telegram not configured")
         n.scheduled_for = now + timedelta(minutes=10)
         n.attempts = max(n.attempts - 1, 0)
@@ -187,10 +222,15 @@ async def _process_one(
     except TelegramPermanentError as exc:
         if exc.blocked:
             user.bot_blocked = True
-        finish(NotificationStatus.failed, str(exc))
-        stats.failed += 1
+        if pushed:
+            delivered_by_push(str(exc))
+        else:
+            finish(NotificationStatus.failed, str(exc))
+            stats.failed += 1
     except (TelegramTemporaryError, OSError) as exc:
-        if n.attempts >= MAX_ATTEMPTS:
+        if pushed and n.attempts >= MAX_ATTEMPTS:
+            delivered_by_push(str(exc))
+        elif n.attempts >= MAX_ATTEMPTS:
             finish(NotificationStatus.failed, f"gave up: {exc}")
             stats.failed += 1
         else:

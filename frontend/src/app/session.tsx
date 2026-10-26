@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 import { api, API_NOT_CONFIGURED, ApiError, BACKEND_UNAVAILABLE, CONFIG_ERROR_CODE, INVALID_RESPONSE, onUnauthorized } from "@/api/client";
 import { parseMe, parseMeta, parseTokenOut } from "@/api/contracts";
+import { resyncPush } from "@/lib/pwa";
 import { getToken, setToken } from "@/lib/session";
 import { isInsideTelegram, startParam, telegramInitData } from "@/lib/telegram";
 import type { Family, Me, Meta, TokenOut } from "@/types/api";
@@ -31,6 +32,8 @@ interface SessionValue {
   openInvite: (code: string) => void;
   clearInvite: () => void;
   devLogin: (telegramId: number, name: string) => Promise<void>;
+  /** Sign-in confirmed in the bot from Safari or the home-screen app. */
+  signIn: (out: TokenOut) => void;
   refreshMe: () => Promise<Me | null>;
   setActiveFamily: (id: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -82,6 +85,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         try {
           setMe(parseMe(await api<unknown>("/me")));
           setStatus("ready");
+          if (!isInsideTelegram()) void resyncPush();
           return;
         } catch (e) {
           if (!(e instanceof ApiError && e.status === 401)) throw e;
@@ -130,6 +134,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [applyToken, qc],
   );
 
+  const signIn = useCallback(
+    (out: TokenOut) => {
+      qc.clear();
+      applyToken(out);
+      void resyncPush();
+    },
+    [applyToken, qc],
+  );
+
   const refreshMe = useCallback(async () => {
     const m = parseMe(await api<unknown>("/me"));
     setMe(m);
@@ -152,8 +165,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [qc, meta]);
 
   const value = useMemo<SessionValue>(
-    () => ({ status, error, meta, me, pendingInvite, clearInvite: () => setPendingInvite(null), openInvite: setPendingInvite, devLogin, refreshMe, setActiveFamily, logout, retry: boot }),
-    [status, error, meta, me, pendingInvite, devLogin, refreshMe, setActiveFamily, logout, boot],
+    () => ({ status, error, meta, me, pendingInvite, clearInvite: () => setPendingInvite(null), openInvite: setPendingInvite, devLogin, signIn, refreshMe, setActiveFamily, logout, retry: boot }),
+    [status, error, meta, me, pendingInvite, devLogin, signIn, refreshMe, setActiveFamily, logout, boot],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
