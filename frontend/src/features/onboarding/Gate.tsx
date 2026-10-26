@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { api, errorMessage } from "@/api/client";
+import familyArt from "@/assets/family-splash.webp";
 import { router } from "@/app/routes";
 import { useSession } from "@/app/session";
 import { Button, Card, ErrorState, Input, Select, Spinner } from "@/components/ui";
@@ -32,14 +33,28 @@ function Logo() {
   );
 }
 
+/** Start-up screen, shown only while the session loads (no extra wait for the picture). The
+ * family illustration is a local asset decoded off the main thread; on its own cream ground it
+ * blends into the light theme and reads as a framed picture in the dark one. */
 export function Splash() {
   return (
-    <Centered>
-      <div className="flex flex-col items-center gap-3 text-muted" role="status">
+    <div className="pt-safe mx-auto flex min-h-dvh max-w-md flex-col items-center px-5 pb-[calc(24px+var(--safe-bottom))]">
+      <div className="flex flex-[1.1] flex-col items-center justify-end gap-3 pb-8 text-muted" role="status">
         <Spinner className="size-7" />
-        <span className="text-sm">Загрузка…</span>
+        <span className="text-sm">Загружаем ваше семейное пространство…</span>
       </div>
-    </Centered>
+      <div className="flex flex-1 items-start justify-center">
+        <img
+          src={familyArt}
+          alt=""
+          width={522}
+          height={390}
+          decoding="async"
+          fetchPriority="low"
+          className="animate-fade-in h-auto max-h-[34dvh] w-[min(72vw,300px)] rounded-[28px] bg-[#fef7ed] object-contain [animation-duration:600ms]"
+        />
+      </div>
+    </div>
   );
 }
 
