@@ -110,6 +110,9 @@ describe("transaction icon", () => {
     expect(i.type).toBe("logo");
     expect(src({ merchant: "LIDL POLSKA 1234" })).toBe("brands/lidl.svg");
     expect(src({ merchant: "ŻABKA N123" })).toBe("brands/zabka.svg");
+    // Polish Netto (Danish Salling Group, not the German Netto of Simple Icons): own badge.
+    expect(src({ merchant: "Netto", category: GROCERIES })).toBe("brands/netto.svg");
+    expect(src({ merchant: "NETTO 1234 WROCLAW" })).toBe("brands/netto.svg");
   });
 
   it("a known grocery shop without a logo file shows the grocery basket, not a broken image", () => {

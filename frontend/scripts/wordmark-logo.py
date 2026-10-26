@@ -1,0 +1,75 @@
+"""Brand badge from the brand's colours and its name set in Inter (SIL Open Font License),
+for shops whose official logo file is not available under a free licence.
+
+    PYTHONPATH=<fonttools> python3 scripts/wordmark-logo.py <id> <text> <background> <ink> <font.otf>
+
+Writes public/assets/brands/<id>.svg (64×64 circle, the word as outlines, no font needed on the
+device) and records it in ATTRIBUTION-WORDMARKS.md. Run scripts/brand-logos.mjs afterwards, or
+update brandLogos.ts, so the app knows the file exists.
+"""
+
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+from fontTools.pens.boundsPen import BoundsPen
+from fontTools.pens.svgPathPen import SVGPathPen
+from fontTools.pens.transformPen import TransformPen
+from fontTools.ttLib import TTFont
+
+ROOT = Path(__file__).resolve().parent.parent
+OUT = ROOT / "public" / "assets" / "brands"
+COLOR = re.compile(r"^#[0-9A-Fa-f]{6}$")
+
+
+def main() -> None:
+    brand, text, bg, ink, font_path = sys.argv[1:6]
+    if not re.match(r"^[a-z0-9_]+$", brand) or not COLOR.match(bg) or not COLOR.match(ink):
+        raise SystemExit("bad arguments")
+    font = TTFont(font_path)
+    glyphs = font.getGlyphSet()
+    cmap = font.getBestCmap()
+    # Lay the word out with advance widths, then measure its real outline box.
+    x = 0.0
+    placed = []
+    for ch in text:
+        name = cmap[ord(ch)]
+        placed.append((name, x))
+        x += glyphs[name].width
+    bounds = BoundsPen(glyphs)
+    for name, dx in placed:
+        glyphs[name].draw(TransformPen(bounds, (1, 0, 0, 1, dx, 0)))
+    x0, y0, x1, y1 = bounds.bounds
+    w, h = x1 - x0, y1 - y0
+    k = min(46 / w, 30 / h)  # fits the circle like the other wordmark logos
+    tx = 32 - (x0 + w / 2) * k
+    ty = 32 + (y0 + h / 2) * k  # font y grows upwards
+    pen = SVGPathPen(glyphs, ntos=lambda v: f"{v:.1f}")
+    for name, dx in placed:
+        glyphs[name].draw(TransformPen(pen, (1, 0, 0, 1, dx, 0)))
+    svg = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><title>{text}</title>'
+        f'<circle cx="32" cy="32" r="32" fill="{bg}"/>'
+        f'<path transform="translate({tx:.2f} {ty:.2f}) scale({k:.5f} {-k:.5f})" fill="{ink}" d="{pen.getCommands()}"/></svg>\n'
+    )
+    (OUT / f"{brand}.svg").write_text(svg)
+    log = OUT / "ATTRIBUTION-WORDMARKS.md"
+    rows = log.read_text().splitlines() if log.exists() else [
+        "# Brand badges (name in brand colours)",
+        "",
+        "Made by `scripts/wordmark-logo.py` where no freely licensed official logo file is available:",
+        "the brand name set in Inter (SIL Open Font License 1.1) on the brand colour. The names are",
+        "trademarks of their owners and are used only to label transactions made at these shops.",
+        "",
+        "| Brand id | Text | Background | Ink |",
+        "|---|---|---|---|",
+    ]
+    rows = [r for r in rows if not r.startswith(f"| {brand} |")] + [f"| {brand} | {text} | {bg} | {ink} |"]
+    log.write_text("\n".join(rows) + "\n")
+    print(f"{brand}.svg written")
+
+
+if __name__ == "__main__":
+    main()

@@ -9,7 +9,8 @@
 // src/features/finance/merchants/brandLogos.ts (the list of brands that really have a file).
 // Only brands verified to be the same company as in Poland are listed below; e.g. Simple Icons'
 // "Netto" (German Netto Marken-Discount), "CCC" (a Chinese certificate) and "Odido" (a Dutch
-// telecom) are different companies and are deliberately left out.
+// telecom) are different companies and are deliberately left out (Polish Netto has its own
+// badge from scripts/wordmark-logo.py).
 import { readFileSync, readdirSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
