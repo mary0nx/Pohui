@@ -6,6 +6,7 @@ import {
   MapPin,
   Plus,
   Search,
+  TramFront,
   Users,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -453,6 +454,23 @@ export function PlacesPage() {
           </Card>
         </Section>
       )}
+      <Link
+        to="/route/timetable"
+        className="press flex items-center gap-3 rounded-[22px] bg-mint-soft px-4 py-3 shadow-card"
+      >
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-mint text-mint-ink">
+          <TramFront className="size-5" aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-bold text-heading">
+            Расписание трамваев и автобусов
+          </span>
+          <span className="block text-xs text-muted">
+            Все линии в обе стороны, отправления с остановок
+          </span>
+        </span>
+        <ChevronRight className="size-4 shrink-0 text-muted" aria-hidden />
+      </Link>
       <p className="px-1 text-xs text-muted">
         Адреса ищутся по официальному справочнику адресов Вроцлава прямо на
         нашем сервере — в сторонние сервисы они не передаются. В базе адрес

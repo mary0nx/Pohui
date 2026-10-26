@@ -74,6 +74,12 @@ class Timetable:
     exceptions: list[dict[date, bool]]
     stop_patterns: list[list[tuple[int, int]]] = field(default_factory=list)
     transfers: list[list[tuple[int, int]]] = field(default_factory=list)
+    # trip -> GTFS direction_id (0/1), -1 when the feed has none
+    trip_direction: array = field(default_factory=lambda: array("b"))
+    # route -> its patterns
+    route_patterns: list[list[int]] = field(default_factory=list)
+    # lines for browsing (app.modules.transit.timetable), built on first use
+    lines_cache: dict | None = None
 
     def active_services(self, day: date) -> set[int]:
         out = set()
@@ -225,6 +231,7 @@ def _load(z: zipfile.ZipFile) -> Timetable:
     trip_route: list[int] = []
     trip_service = array("i")
     trip_headsign: list[str] = []
+    trip_direction = array("b")
     for row in _rows(z, "trips.txt"):
         r = route_index.get(row["route_id"])
         if r is None:
@@ -233,6 +240,8 @@ def _load(z: zipfile.ZipFile) -> Timetable:
         trip_route.append(r)
         trip_service.append(service(row["service_id"]))
         trip_headsign.append((row.get("trip_headsign") or "").strip())
+        d = (row.get("direction_id") or "").strip()
+        trip_direction.append(int(d) if d in ("0", "1") else -1)
 
     try:
         patterns = _patterns(_grouped(_stop_times(z, trip_index, stop_index)), trip_route)
@@ -259,7 +268,11 @@ def _load(z: zipfile.ZipFile) -> Timetable:
         services=services,
         calendar=calendar,
         exceptions=exceptions,
+        trip_direction=trip_direction,
     )
+    tt.route_patterns = [[] for _ in routes]
+    for p, pat in enumerate(patterns):
+        tt.route_patterns[pat.route].append(p)
     tt.stop_patterns = [[] for _ in stop_ids]
     for p, pat in enumerate(patterns):
         for i, s in enumerate(pat.stops):

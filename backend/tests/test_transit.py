@@ -641,3 +641,85 @@ def test_json_register_is_small() -> None:
 
     assert DATA.stat().st_size < 1_500_000
     assert json.loads(__import__("gzip").decompress(DATA.read_bytes()))["version"]
+
+
+# ---- timetables (/transit) ------------------------------------------------------------
+
+
+async def test_timetable_lines_directions_departures_and_board(
+    alice: Actor, net: fx.Net, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.transit import timetable_router
+
+    monkeypatch.setattr(timetable_router, "_today", lambda: TUESDAY)
+    r = (await alice.get("/api/v1/transit/lines")).json()
+    assert r["status"] == "no_schedule" and r["lines"] == []
+    await add_feed(net)
+    r = (await alice.get("/api/v1/transit/lines", params={"date": "2026-10-27"})).json()
+    assert r["status"] == "ok" and r["schedule"]["license"] == "CC0 1.0"
+    names = [x["line"] for x in r["lines"]]
+    assert names == ["1", "102", "103", "209"]  # trams first, night lines last
+    assert r["lines"][0]["mode"] == "tram" and r["lines"][-1]["night"] is False
+    # Saturday: the buses do not run.
+    sat = (await alice.get("/api/v1/transit/lines", params={"date": "2026-10-31"})).json()
+    assert {x["line"]: x["runs"] for x in sat["lines"]} == {
+        "1": True,
+        "102": False,
+        "103": False,
+        "209": False,
+    }
+
+    d = (await alice.get("/api/v1/transit/lines/1", params={"date": "2026-10-27"})).json()
+    direction = d["directions"][0]
+    assert direction["headsign"] == "Praca"
+    assert [s["name"] for s in direction["stops"]] == [
+        "Dom Przystanek",
+        "Węzeł",
+        "Praca Przystanek",
+    ]
+    stop = direction["stops"][0]["id"]
+    deps = (
+        await alice.get(
+            "/api/v1/transit/lines/1/departures",
+            params={"direction": direction["id"], "stop": stop, "date": "2026-10-27"},
+        )
+    ).json()
+    assert [x["time"] for x in deps["departures"]] == [
+        "07:00",
+        "07:20",
+        "07:40",
+        "08:00",
+        "08:20",
+        "08:40",
+    ]
+    assert deps["time_kind"] == "scheduled" and deps["stop"]["name"] == "Dom Przystanek"
+    # From the last stop nothing departs.
+    last = direction["stops"][-1]["id"]
+    end = await alice.get(
+        "/api/v1/transit/lines/1/departures",
+        params={"direction": direction["id"], "stop": last, "date": "2026-10-27"},
+    )
+    assert end.json()["departures"] == []
+    assert (await alice.get("/api/v1/transit/lines/77")).status_code == 404
+
+    found = (await alice.get("/api/v1/transit/stops/search", params={"q": "dom przyst"})).json()
+    assert found["stops"] == [{"name": "Dom Przystanek", "lines": ["1", "102", "209"]}]
+    board = (
+        await alice.get(
+            "/api/v1/transit/stops/board",
+            params={"name": "Dom Przystanek", "date": "2026-10-27", "time": "07:01"},
+        )
+    ).json()
+    assert [(x["time"], x["line"]) for x in board["rows"][:3]] == [
+        ("07:05", "102"),
+        ("07:20", "1"),
+        ("07:25", "102"),
+    ]
+    assert board["rows"][0]["minutes"] == 4 and board["rows"][0]["headsign"] == "Węzeł"
+    assert (
+        await alice.get("/api/v1/transit/lines", params={"date": "2027-06-01"})
+    ).status_code == 422
+
+
+async def test_timetable_requires_login(client: httpx.AsyncClient) -> None:
+    assert (await client.get("/api/v1/transit/lines")).status_code == 401

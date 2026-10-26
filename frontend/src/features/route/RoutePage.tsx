@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowUpDown,
+  Clock,
   ExternalLink,
   MapPinned,
   RefreshCw,
@@ -495,6 +496,12 @@ export function RoutePage() {
         className="press flex items-center gap-2 px-1 text-sm font-bold text-coral-ink"
       >
         <MapPinned className="size-4" aria-hidden /> Мои места
+      </Link>
+      <Link
+        to="/route/timetable"
+        className="press flex items-center gap-2 px-1 text-sm font-bold text-coral-ink"
+      >
+        <Clock className="size-4" aria-hidden /> Расписание трамваев и автобусов
       </Link>
     </div>
   );
