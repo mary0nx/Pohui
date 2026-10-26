@@ -1,0 +1,157 @@
+# Logo positions in the family logo collage (1536×1024): id centre-x centre-y radius label
+biedronka 62 80 30 Biedronka
+lidl 142 80 30 Lidl
+zabka 222 80 30 Żabka
+aldi 298 80 30 Aldi
+kaufland 376 80 30 Kaufland
+carrefour 454 76 30 Carrefour
+auchan 529 78 30 Auchan
+dino 605 78 30 Dino
+netto 62 165 30 Netto
+stokrotka 136 165 30 Stokrotka
+lewiatan 215 165 30 Lewiatan
+intermarche 294 163 30 Intermarché
+polomarket 376 165 30 POLOmarket
+delikatesy_centrum 455 163 30 Delikatesy Centrum
+spar 530 160 30 SPAR
+e_leclerc 605 160 30 E.Leclerc
+makro 63 258 30 Makro
+selgros 137 258 30 Selgros
+frisco 213 258 30 Frisco
+topaz 290 260 30 Topaz
+spolem 369 258 30 Społem
+abc_sklep 446 258 30 ABC
+groszek 522 258 30 Groszek
+odido 601 258 30 Odido
+chata_polska 62 335 30 Chata Polska
+twoj_market 143 335 30 Twój Market
+euro_sklep 230 333 30 Euro Sklep
+bi1 312 335 30 bi1
+allegro 722 85 32 Allegro
+olx 801 85 32 OLX
+amazon 877 85 32 Amazon
+temu 953 85 32 Temu
+aliexpress 1027 85 32 AliExpress
+shein 720 178 32 SHEIN
+vinted 799 178 32 Vinted
+zalando 877 178 32 Zalando
+ebay 952 178 32 eBay
+empik 1026 180 32 Empik
+modivo 722 280 32 Modivo
+eobuwie 813 280 32 eobuwie
+ceneo 909 280 32 Ceneo
+morele 1007 280 32 Morele.net
+ccc 1128 80 31 CCC
+reserved 1213 80 31 Reserved
+hm 1297 80 31 H&M
+zara 1382 80 31 Zara
+sinsay 1467 80 31 Sinsay
+decathlon 1128 163 31 Decathlon
+action 1215 163 31 Action
+pepco 1299 163 31 Pepco
+dealz 1383 163 31 Dealz
+tedi 1467 163 31 TEDi
+ikea 1119 313 29 IKEA
+leroy_merlin 1189 313 29 Leroy Merlin
+castorama 1259 313 29 Castorama
+obi 1329 313 29 OBI
+jysk 1400 313 29 JYSK
+bricomarche 1475 313 29 Bricomarché
+media_expert 65 476 30 Media Expert
+rtv_euro_agd 149 476 30 RTV Euro AGD
+mediamarkt 232 476 30 Media-Markt
+xkom 313 476 30 x-kom
+komputronik 399 474 30 Komputronik
+neonet 67 564 30 NEONET
+apple 146 564 30 Apple
+samsung 230 564 30 Samsung
+playstation 319 564 30 PlayStation
+steam 409 564 30 Steam
+rossmann 610 477 30 Rossmann
+hebe 692 477 30 Hebe
+super_pharm 857 477 30 Super-Pharm
+doz 941 477 30 DOZ.pl
+apteka_gemini 610 565 30 Gemini
+dr_max 689 565 30 Dr.Max
+ziko 771 565 30 Ziko Apteka
+medicover 857 565 30 Medicover
+luxmed 941 565 30 LUX MED
+mcdonalds 1060 476 31 McDonald's
+kfc 1140 476 31 KFC
+burger_king 1222 476 31 Burger King
+subway 1306 476 31 Subway
+pizza_hut 1389 476 31 Pizza Hut
+starbucks 1472 476 31 Starbucks
+costa_coffee 1059 566 31 Costa Coffee
+uber_eats 1136 566 31 Uber Eats
+glovo 1222 566 31 Glovo
+wolt 1308 566 31 Wolt
+pyszne 1392 566 31 Pyszne.pl
+bolt_food 1474 566 31 Bolt Food
+uber 64 709 31 Uber
+bolt 142 709 31 Bolt
+mpk 220 709 31 MPK
+jakdojade 297 709 31 Jakdojade
+pkp_intercity 380 709 31 PKP Intercity
+polregio 459 709 31 POLREGIO
+orlen 65 791 31 ORLEN
+bp 142 791 31 BP
+shell 220 791 31 Shell
+circle_k 297 791 31 Circle K
+moya 376 791 31 MoYA
+lotos 458 791 31 LOTOS
+orange 577 710 31 Orange
+play 659 710 31 Play
+plus 742 710 31 Plus
+t_mobile 832 710 31 T-Mobile
+netia 930 710 31 Netia
+pge 577 797 31 PGE
+tauron 652 794 31 Tauron
+enea 727 794 31 Enea
+energa 799 794 31 Energa
+veolia 871 794 31 Veolia
+upc 941 794 31 UPC
+netflix 1052 712 31 Netflix
+spotify 1134 712 31 Spotify
+youtube 1218 712 31 YouTube
+disney_plus 1302 712 31 Disney+
+hbo_max 1385 712 31 HBO Max
+canal_plus 1469 712 31 Canal+
+google_play 1052 796 31 Google Play
+google 1133 796 31 Google
+microsoft 1217 796 31 Microsoft
+xbox 1300 796 31 Xbox
+adobe 1384 796 31 Adobe
+icloud 1468 796 31 iCloud
+inpost 59 918 27 InPost
+dpd 133 918 27 DPD
+dhl 210 918 27 DHL
+poczta_polska 291 918 27 Poczta Polska
+ups 376 918 27 UPS
+fedex 460 918 27 FedEx
+gls 59 984 22 GLS
+orlen_paczka 212 984 22 Orlen Paczka
+pocztex 293 984 22 Pocztex
+allegro_one 376 984 22 Allegro One
+booking 583 922 27 Booking.com
+airbnb 651 922 27 Airbnb
+ryanair 724 922 27 Ryanair
+lot 800 922 27 LOT
+enter_air 876 922 27 Enter Air
+wizz_air 955 922 27 Wizz Air
+cinema_city 582 986 22 Cinema City
+multikino 656 986 22 Multikino
+funnow 802 986 22 FunnNow
+energylandia 885 986 22 Energylandia
+blik 1080 922 27 BLIK
+apple_pay 1156 922 27 Apple Pay
+google_pay 1231 922 27 Google Pay
+paypal 1305 922 27 PayPal
+revolut 1389 922 27 Revolut
+wise 1471 922 27 Wise
+mbank 1079 985 23 mBank
+pko_bp 1157 983 22 PKO BP
+santander 1233 983 22 Santander
+ing 1311 983 22 ING
+bnp_paribas 1390 983 22 BNP Paribas
+pekao 1472 983 22 Pekao

@@ -2,6 +2,18 @@
 
 Формат: [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/), версии — SemVer.
 
+## [0.12.5] — 2026-10-26
+
+### Изменено
+- Логотипы из семейного коллажа: 77 значков-надписей заменены настоящими логотипами
+  (Biedronka, Netto, Dino, Stokrotka, Orlen, BP, банки, доставка, аптеки и др.), вырезанными
+  из присланной картинки (`scripts/import-collage-logos.py`, координаты в
+  `scripts/collage-logos.txt`, файлы .webp). Официальные векторные логотипы (Simple Icons,
+  Wikimedia Commons) остались — они чётче. Значки-надписи остались только у 32 брендов,
+  которых нет на коллаже.
+- В каталог добавлены Ceneo, Veolia, UPC, Adobe, iCloud, FedEx, GLS, Orlen Paczka, Pocztex,
+  Allegro One, Enter Air, FunnNow, Energylandia, BNP Paribas — с логотипами.
+
 ## [0.12.4] — 2026-10-26
 
 ### Добавлено

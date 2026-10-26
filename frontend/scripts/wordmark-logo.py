@@ -6,8 +6,8 @@ for shops whose official logo file is not available under a free licence.
 wordmarks.json: [{"id": "<catalogue id>", "text": "Name" (\\n = second line), "bg": "#RRGGBB",
 "ink": "#RRGGBB"}]. Writes public/assets/brands/<id>.svg (64×64 circle, the words as outlines,
 so no font is needed on the device) and ATTRIBUTION-WORDMARKS.md. Brands that already have an
-official logo file (Simple Icons, Wikimedia Commons) are left alone. Afterwards update
-brandLogos.ts (scripts/brand-logos.mjs does it) so the app knows the files exist.
+official logo file (Simple Icons, Wikimedia Commons) are left alone. Afterwards run
+`node scripts/brand-logos.mjs --list-only` so the app knows the files exist.
 """
 
 from __future__ import annotations
@@ -96,8 +96,8 @@ def main() -> None:
         brand, text, bg, ink = entry["id"], entry["text"], entry["bg"], entry["ink"]
         if not ID.match(brand) or not COLOR.match(bg) or not COLOR.match(ink) or not text.strip():
             raise SystemExit(f"bad entry: {entry}")
-        if brand in official:
-            print("official logo kept:", brand)
+        if brand in official or (OUT / f"{brand}.webp").exists():
+            print("logo kept:", brand)
             continue
         (OUT / f"{brand}.svg").write_text(badge(font, text, bg, ink))
         rows.append(f"| {brand} | {text.replace(chr(10), ' ')} | {bg} | {ink} |")

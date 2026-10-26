@@ -9,8 +9,8 @@
  * An alias starting with "=" is an ordinary word or very short (play, plus, bp, temu…): it only
  * matches the beginning of the merchant field, never free descriptions, and only when the
  * transaction's category does not contradict the brand.
- * A logo is shown only if public/assets/brands/<id>.svg exists (see brandLogos.ts); otherwise the
- * category illustration is used.
+ * A logo is shown only if public/assets/brands/<id>.svg or <id>.webp exists (see brandLogos.ts);
+ * otherwise the category illustration is used.
  */
 import type { MerchantCategory } from "./types";
 
@@ -100,7 +100,7 @@ export const BRANDS: readonly BrandEntry[] = [
   { id: "komputronik", name: "Komputronik", category: "electronics", aliases: ["Komputronik"] },
   { id: "morele", name: "Morele.net", category: "electronics", aliases: ["Morele.net", "morele"] },
   { id: "neonet", name: "NEONET", category: "electronics", aliases: ["NEONET"] },
-  { id: "apple", name: "Apple", category: "electronics", aliases: ["=Apple", "apple.com bill", "apple com bill", "itunes", "icloud", "app store", "apple music", "apple store"] },
+  { id: "apple", name: "Apple", category: "electronics", aliases: ["=Apple", "apple.com bill", "apple com bill", "itunes", "app store", "apple music", "apple store"] },
   { id: "samsung", name: "Samsung", category: "electronics", aliases: ["Samsung"] },
   // digital
   { id: "playstation", name: "PlayStation", category: "digital", aliases: ["PlayStation", "psn", "sony interactive"] },
@@ -235,4 +235,19 @@ export const BRANDS: readonly BrandEntry[] = [
   { id: "santander", name: "Santander", category: "banking", aliases: ["Santander", "santander bank polska"] },
   { id: "pekao", name: "Bank Pekao", category: "banking", aliases: ["Pekao", "bank pekao", "pekao sa"] },
   { id: "millennium", name: "Bank Millennium", category: "banking", aliases: ["Bank Millennium", "millennium bank"] },
+  // added from the family's logo collage
+  { id: "ceneo", name: "Ceneo", category: "marketplace", aliases: ["Ceneo", "ceneo.pl"] },
+  { id: "veolia", name: "Veolia", category: "utilities", aliases: ["Veolia", "veolia energia"] },
+  { id: "upc", name: "UPC", category: "telecom", aliases: ["UPC Polska", "=upc"] },
+  { id: "adobe", name: "Adobe", category: "subscription", aliases: ["Adobe", "adobe systems"] },
+  { id: "icloud", name: "iCloud", category: "subscription", aliases: ["iCloud", "icloud storage"] },
+  { id: "fedex", name: "FedEx", category: "delivery", aliases: ["FedEx", "fedex express"] },
+  { id: "gls", name: "GLS", category: "delivery", aliases: ["GLS Poland", "=gls"] },
+  { id: "orlen_paczka", name: "Orlen Paczka", category: "delivery", aliases: ["Orlen Paczka", "orlenpaczka"] },
+  { id: "pocztex", name: "Pocztex", category: "delivery", aliases: ["Pocztex"] },
+  { id: "allegro_one", name: "Allegro One", category: "delivery", aliases: ["Allegro One", "allegro one box"] },
+  { id: "enter_air", name: "Enter Air", category: "travel", aliases: ["Enter Air", "enterair"] },
+  { id: "funnow", name: "FunnNow", category: "entertainment", aliases: ["FunnNow", "funnow"] },
+  { id: "energylandia", name: "Energylandia", category: "entertainment", aliases: ["Energylandia"] },
+  { id: "bnp_paribas", name: "BNP Paribas", category: "banking", aliases: ["BNP Paribas", "bnp paribas bank polska"] },
 ];

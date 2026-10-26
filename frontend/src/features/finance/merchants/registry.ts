@@ -203,7 +203,7 @@ export type TxIcon =
   | { type: "art"; src: string; art: CategoryArt; brand: BrandEntry | null };
 
 export const artSrc = (art: CategoryArt): string => `${import.meta.env.BASE_URL}assets/categories/${art}.svg`;
-export const logoSrc = (id: string): string => `${import.meta.env.BASE_URL}assets/brands/${id}.svg`;
+export const logoSrc = (id: string): string => `${import.meta.env.BASE_URL}assets/brands/${BRAND_LOGOS.get(id) ?? `${id}.svg`}`;
 
 const BRAND_ART: Record<MerchantCategory, CategoryArt> = {
   grocery: "grocery-basket",

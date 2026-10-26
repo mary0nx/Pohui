@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { BRAND_LOGOS } from "@/features/finance/merchants/brandLogos";
 import { BRANDS } from "@/features/finance/merchants/catalog";
-import { matchMerchant, merchantTitle, normalizeMerchantText, transactionIcon, type TxLike } from "@/features/finance/merchants/registry";
+import { logoSrc, matchMerchant, merchantTitle, normalizeMerchantText, transactionIcon, type TxLike } from "@/features/finance/merchants/registry";
 
 const PUBLIC = join(__dirname, "../../public");
 const GROCERIES = { name: "Продукты", icon: "shopping-basket" };
@@ -24,14 +24,25 @@ describe("merchant catalogue and assets", () => {
   });
 
   it("lists exactly the logo files that exist, and every logo belongs to a brand", () => {
-    const files = readdirSync(join(PUBLIC, "assets/brands")).filter((f) => f.endsWith(".svg")).map((f) => f.replace(".svg", ""));
-    expect(new Set(files)).toEqual(new Set(BRAND_LOGOS));
+    const dir = join(PUBLIC, "assets/brands");
+    const files = readdirSync(dir).filter((f) => /\.(svg|webp)$/.test(f));
     const ids = new Set(BRANDS.map((b) => b.id));
+    expect(new Set(files.map((f) => f.replace(/\.(svg|webp)$/, "")))).toEqual(new Set(BRAND_LOGOS.keys()));
+    for (const [id, file] of BRAND_LOGOS) {
+      expect(ids.has(id)).toBe(true);
+      expect(files).toContain(file);
+    }
     for (const f of files) {
-      expect(ids.has(f)).toBe(true);
-      const svg = readFileSync(join(PUBLIC, "assets/brands", `${f}.svg`), "utf8");
-      expect(svg).toMatch(/^<svg [^>]*viewBox="0 0 64 64"/);
-      expect(svg).not.toMatch(/<script|<foreignObject|<image|\son\w+=|href="(?!#)/i); // only links inside the file
+      if (f.endsWith(".svg")) {
+        const svg = readFileSync(join(dir, f), "utf8");
+        expect(svg).toMatch(/^<svg [^>]*viewBox="0 0 64 64"/);
+        expect(svg).not.toMatch(/<script|<foreignObject|<image|\son\w+=|href="(?!#)/i); // only links inside the file
+      } else {
+        const bytes = readFileSync(join(dir, f));
+        expect(bytes.subarray(0, 4).toString()).toBe("RIFF");
+        expect(bytes.subarray(8, 12).toString()).toBe("WEBP");
+        expect(bytes.length).toBeLessThan(40_000);
+      }
     }
   });
 
@@ -110,15 +121,19 @@ describe("transaction icon", () => {
     expect(i.type).toBe("logo");
     expect(src({ merchant: "LIDL POLSKA 1234" })).toBe("brands/lidl.svg");
     expect(src({ merchant: "ŻABKA N123" })).toBe("brands/zabka.svg");
-    // Polish Netto (Danish Salling Group, not the German Netto of Simple Icons): own badge.
-    expect(src({ merchant: "Netto", category: GROCERIES })).toBe("brands/netto.svg");
-    expect(src({ merchant: "NETTO 1234 WROCLAW" })).toBe("brands/netto.svg");
+    // Polish Netto (Danish Salling Group, not the German Netto of Simple Icons): from the collage.
+    expect(src({ merchant: "Netto", category: GROCERIES })).toBe("brands/netto.webp");
+    expect(src({ merchant: "NETTO 1234 WROCLAW" })).toBe("brands/netto.webp");
   });
 
   it("every shop of the catalogue has its logo or brand badge", () => {
     expect(BRANDS.filter((b) => !BRAND_LOGOS.has(b.id)).map((b) => b.id)).toEqual([]);
-    expect(src({ merchant: "BIEDRONKA 1234" })).toBe("brands/biedronka.svg");
-    expect(src({ merchant: "DINO POLSKA S.A." })).toBe("brands/dino.svg");
+    expect(src({ merchant: "BIEDRONKA 1234" })).toBe("brands/biedronka.webp");
+    expect(src({ merchant: "DINO POLSKA S.A." })).toBe("brands/dino.webp");
+    expect(logoSrc("pko_bp")).toMatch(/brands\/pko_bp\.webp$/); // banks: shown where a bank is the shop
+    expect(src({ merchant: "ICLOUD STORAGE" })).toBe("brands/icloud.webp");
+    expect(src({ merchant: "TK MAXX 123" })).toBe("brands/tk_maxx.svg"); // name badge where no logo
+    expect(src({ merchant: "ORLEN PACZKA 1234" })).toBe("brands/orlen_paczka.webp");
     expect(icon({ merchant: "BIEDRONKA 1234" }).brand?.name).toBe("Biedronka");
   });
 
