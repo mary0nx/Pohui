@@ -18,7 +18,7 @@ from app.workers.status import mark_started, mark_tick
 
 log = logging.getLogger("worker")
 HEARTBEAT = Path("/tmp/familyos-worker-heartbeat")  # noqa: S108 - container-local liveness file
-SLOW_JOBS = {"materialize": 3600.0, "cleanup": 3600.0}
+SLOW_JOBS = {"materialize": 3600.0, "cleanup": 3600.0, "transit": 3600.0}
 # Rejected credentials: hosted poolers (Supabase) temporarily block a user after repeated failed
 # logins, so retrying every tick would keep the block alive even after the password is fixed.
 CREDENTIAL_PROBLEMS = {
@@ -53,7 +53,7 @@ async def run_loop(stop: asyncio.Event) -> None:
             started = time.monotonic()
             rejected = False
             failed = False
-            for job in ("materialize", "auto_pay", "reminders", "care", "cleanup"):
+            for job in ("materialize", "auto_pay", "reminders", "care", "cleanup", "transit"):
                 interval = SLOW_JOBS.get(job, 0.0)
                 if interval and started - last_run.get(job, -interval) < interval:
                     continue

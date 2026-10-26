@@ -31,6 +31,7 @@ LOCKS = {
     "reminders": 727274103,
     "cleanup": 727274104,
     "care": 727274105,
+    "transit": 727274106,
 }
 
 
@@ -103,6 +104,10 @@ async def run_job(
             from app.modules.care.service import send_due
 
             result = await send_due(db, now)
+        elif name == "transit":
+            from app.modules.transit.jobs import update_schedule
+
+            result = await update_schedule(db, now)
         else:
             raise ValueError(name)
         await db.commit()

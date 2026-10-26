@@ -127,6 +127,13 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = 240
     auth_rate_limit_per_minute: int = 20
 
+    # «Мой маршрут». The Wrocław open data schedule (GTFS, CC0) needs no key. Jakdojade's
+    # official API is used only with the partner keys it issues on request (biuro@jakdojade.pl);
+    # when on, the start and end positions of a search are sent to Jakdojade.
+    transit_updates_enabled: bool = True
+    jakdojade_api_key: SecretStr = SecretStr("")
+    jakdojade_api_secret: SecretStr = SecretStr("")
+
     # Worker
     worker_tick_seconds: float = 20.0
 
@@ -256,6 +263,13 @@ class Settings(BaseSettings):
         if ephemeral is None:
             ephemeral = self.render or bool(self.render_external_url)
         return not ephemeral
+
+    @property
+    def jakdojade_configured(self) -> bool:
+        return bool(
+            self.jakdojade_api_key.get_secret_value()
+            and self.jakdojade_api_secret.get_secret_value()
+        )
 
     @property
     def telegram_configured(self) -> bool:

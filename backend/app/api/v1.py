@@ -26,6 +26,7 @@ from app.modules.notifications.router import router as notifications_router
 from app.modules.push.router import router as push_router
 from app.modules.shopping.router import router as shopping_router
 from app.modules.tasks.router import router as tasks_router
+from app.modules.transit.router import router as transit_router
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth_router)
@@ -48,6 +49,7 @@ api_router.include_router(documents_router)
 api_router.include_router(files_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(daily_router)
+api_router.include_router(transit_router)
 
 
 @api_router.get("/meta", tags=["meta"])

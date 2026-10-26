@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ROUTE_SEARCH_RESULT cityName="Poznań">
+    <routes>
+        <route startDate="07.12.09 11:30" finishDate="07.12.09 12:02">
+            <tickets>
+                <ticket price="360" description="Bilet 30 min. (3,6 zł)"/>
+            </tickets>
+            <lines>
+                <line distance="170" vehicleType="walk" mainRoute="true" orderIndex="0" operatorId="0">
+                    <stops>
+                        <stop departureTime="11:30" orderIndex="0"/>
+                        <stop arrivalTime="11:34" orderIndex="1"/>
+                    </stops>
+                    <shape>
+                        <coordinates orderIndex="0">52.392040:16.888570 52.392881:16.886544</coordinates>
+                    </shape>
+                </line>
+                <line name="7" direction="ZAWADY" vehicleType="tram" mainRoute="true" operatorName="MPK Poznań" orderIndex="1" lineId="7_1" operatorId="1">
+                    <stops>
+                        <stop additionalStop="true" name="Arena" symbol="AREN-02" orderIndex="0"/>
+                        <stop name="Arciszewskiego" symbol="ARCI-02" departureTime="11:34" orderIndex="1"/>
+                        <stop name="Głogowska/Hetmańska" symbol="GLHE-04" departureTime="11:36" orderIndex="2"/>
+                        <stop name="Kolejowa" symbol="KOLE-02" departureTime="11:38" orderIndex="3"/>
+                        <stop name="Traugutta" symbol="TRAU-04" departureTime="11:40" orderIndex="4"/>
+                        <stop name="Rolna" symbol="ROLN-02" departureTime="11:41" orderIndex="5"/>
+                        <stop name="Hetm. /Wiadukt" symbol="HEWI-02" departureTime="11:43" orderIndex="6"/>
+                        <stop name="Rondo Starołęka" symbol="RSTA-04" departureTime="11:45" orderIndex="7"/>
+                        <stop name="Rondo Starołęka" symbol="RSTA-02" departureTime="11:46" orderIndex="8"/>
+                        <stop name="os. Rzeczypospolitej" symbol="ORZE-02" departureTime="11:48" orderIndex="9"/>
+                        <stop name="os. Piastowskie" symbol="OPIA-02" departureTime="11:49" orderIndex="10"/>
+                        <stop name="Wioślarska" symbol="WIOS-02" departureTime="11:50" orderIndex="11"/>
+                        <stop name="Rondo Rataje" symbol="RRAT-04" departureTime="11:52" orderIndex="12"/>
+                        <stop name="Kórnicka" symbol="KORN-02" departureTime="11:54" orderIndex="13"/>
+                        <stop name="Kórnicka" symbol="KORN-05" departureTime="11:54" orderIndex="14"/>
+                        <stop name="Baraniaka" symbol="BAKA-02" departureTime="11:56" arrivalTime="11:56" orderIndex="15"/>
+                        <stop additionalStop="true" name="Rondo Śródka" symbol="ROSR-04" orderIndex="16"/>
+                    </stops>
+                    <alternatives>
+                        <line name="1" direction="ZAWADY" vehicleType="streetCar" mainRoute="true" operatorName="MPK Poznań" orderIndex="0" lineId="1_1" operatorId="1"/>
+                    </alternatives>
+                    <shape>
+                        <coordinates orderIndex="0">52.397902:16.888497 52.392881:16.886544</coordinates>
+                        <coordinates orderIndex="1">52.392881:16.886544 52.389941:16.894548</coordinates>
+                        <coordinates orderIndex="2">52.389941:16.894548 52.387073:16.902788</coordinates>
+                        <coordinates orderIndex="3">52.387073:16.902788 52.385102:16.914096</coordinates>
+                        <coordinates orderIndex="4">52.385102:16.914096 52.383956:16.918259</coordinates>
+                        <coordinates orderIndex="5">52.383956:16.918259 52.382705:16.929202</coordinates>
+                        <coordinates orderIndex="6">52.382705:16.929202 52.380459:16.941894</coordinates>
+                        <coordinates orderIndex="7">52.380459:16.941894 52.381048:16.943595</coordinates>
+                        <coordinates orderIndex="8">52.381048:16.943595 52.385491:16.945097</coordinates>
+                        <coordinates orderIndex="9">52.385491:16.945097 52.389983:16.947205</coordinates>
+                        <coordinates orderIndex="10">52.389983:16.947205 52.393257:16.949023</coordinates>
+                        <coordinates orderIndex="11">52.393257:16.949023 52.394910:16.949995</coordinates>
+                        <coordinates orderIndex="12">52.394910:16.949995 52.398823:16.952133</coordinates>
+                        <coordinates orderIndex="13">52.398823:16.952133 52.399992:16.952882</coordinates>
+                        <coordinates orderIndex="14">52.399992:16.952882 52.403826:16.954383</coordinates>
+                        <coordinates orderIndex="15">52.403826:16.954383 52.409579:16.956410</coordinates>
+                    </shape>
+                </line>
+                <line distance="240" vehicleType="walk" mainRoute="true" orderIndex="2" operatorId="0">
+                    <stops>
+                        <stop departureTime="11:56" orderIndex="0"/>
+                        <stop arrivalTime="12:02" orderIndex="1"/>
+                    </stops>
+                    <shape>
+                        <coordinates orderIndex="0">52.403826:16.954383 52.403460:16.950900</coordinates>
+                    </shape>
+                </line>
+            </lines>
+        </route>
+        <route startDate="07.12.09 11:40" finishDate="07.12.09 12:12">
+            <tickets>
+                <ticket price="360" description="Bilet 30 min. (3,6 zł)"/>
+            </tickets>
+            <lines>
+                <line distance="170" vehicleType="walk" mainRoute="true" orderIndex="0" operatorId="0">
+                    <stops>
+                        <stop departureTime="11:40" orderIndex="0"/>
+                        <stop arrivalTime="11:44" orderIndex="1"/>
+                    </stops>
+                    <shape>
+                        <coordinates orderIndex="0">52.392040:16.888570 52.392881:16.886544</coordinates>
+                    </shape>
+                </line>
+                <line name="7" direction="ZAWADY" vehicleType="tram" mainRoute="true" operatorName="MPK Poznań" orderIndex="1" lineId="7_1" operatorId="1">
+                    <stops>
+                        <stop additionalStop="true" name="Arena" symbol="AREN-02" orderIndex="0"/>
+                        <stop name="Arciszewskiego" symbol="ARCI-02" departureTime="11:44" orderIndex="1"/>
+                        <stop name="Głogowska/Hetmańska" symbol="GLHE-04" departureTime="11:46" orderIndex="2"/>
+                        <stop name="Kolejowa" symbol="KOLE-02" departureTime="11:48" orderIndex="3"/>
+                        <stop name="Traugutta" symbol="TRAU-04" departureTime="11:50" orderIndex="4"/>
+                        <stop name="Rolna" symbol="ROLN-02" departureTime="11:51" orderIndex="5"/>
+                        <stop name="Hetm. /Wiadukt" symbol="HEWI-02" departureTime="11:53" orderIndex="6"/>
+                        <stop name="Rondo Starołęka" symbol="RSTA-04" departureTime="11:55" orderIndex="7"/>
+                        <stop name="Rondo Starołęka" symbol="RSTA-02" departureTime="11:56" orderIndex="8"/>
+                        <stop name="os. Rzeczypospolitej" symbol="ORZE-02" departureTime="11:58" orderIndex="9"/>
+                        <stop name="os. Piastowskie" symbol="OPIA-02" departureTime="11:59" orderIndex="10"/>
+                        <stop name="Wioślarska" symbol="WIOS-02" departureTime="12:00" orderIndex="11"/>
+                        <stop name="Rondo Rataje" symbol="RRAT-04" departureTime="12:02" orderIndex="12"/>
+                        <stop name="Kórnicka" symbol="KORN-02" departureTime="12:04" orderIndex="13"/>
+                        <stop name="Kórnicka" symbol="KORN-05" departureTime="12:04" orderIndex="14"/>
+                        <stop name="Baraniaka" symbol="BAKA-02" departureTime="12:06" arrivalTime="12:06" orderIndex="15"/>
+                        <stop additionalStop="true" name="Rondo Śródka" symbol="ROSR-04" orderIndex="16"/>
+                    </stops>
+                    <alternatives>
+                        <line name="1" direction="ZAWADY" vehicleType="tram" mainRoute="true" operatorName="MPK Poznań" orderIndex="0" lineId="1_1" operatorId="1"/>
+                    </alternatives>
+                    <shape>
+                        <coordinates orderIndex="0">52.397902:16.888497 52.392881:16.886544</coordinates>
+                        <coordinates orderIndex="1">52.392881:16.886544 52.389941:16.894548</coordinates>
+                        <coordinates orderIndex="2">52.389941:16.894548 52.387073:16.902788</coordinates>
+                        <coordinates orderIndex="3">52.387073:16.902788 52.385102:16.914096</coordinates>
+                        <coordinates orderIndex="4">52.385102:16.914096 52.383956:16.918259</coordinates>
+                        <coordinates orderIndex="5">52.383956:16.918259 52.382705:16.929202</coordinates>
+                        <coordinates orderIndex="6">52.382705:16.929202 52.380459:16.941894</coordinates>
+                        <coordinates orderIndex="7">52.380459:16.941894 52.381048:16.943595</coordinates>
+                        <coordinates orderIndex="8">52.381048:16.943595 52.385491:16.945097</coordinates>
+                        <coordinates orderIndex="9">52.385491:16.945097 52.389983:16.947205</coordinates>
+                        <coordinates orderIndex="10">52.389983:16.947205 52.393257:16.949023</coordinates>
+                        <coordinates orderIndex="11">52.393257:16.949023 52.394910:16.949995</coordinates>
+                        <coordinates orderIndex="12">52.394910:16.949995 52.398823:16.952133</coordinates>
+                        <coordinates orderIndex="13">52.398823:16.952133 52.399992:16.952882</coordinates>
+                        <coordinates orderIndex="14">52.399992:16.952882 52.403826:16.954383</coordinates>
+                        <coordinates orderIndex="15">52.403826:16.954383 52.409579:16.956410</coordinates>
+                    </shape>
+                </line>
+                <line distance="240" vehicleType="walk" mainRoute="true" orderIndex="2" operatorId="0">
+                    <stops>
+                        <stop departureTime="12:06" orderIndex="0"/>
+                        <stop arrivalTime="12:12" orderIndex="1"/>
+                    </stops>
+                    <shape>
+                        <coordinates orderIndex="0">52.403826:16.954383 52.403460:16.950900</coordinates>
+                    </shape>
+                </line>
+            </lines>
+        </route>
+        <route startDate="07.12.09 11:50" finishDate="07.12.09 12:22">
+            <tickets>
+                <ticket price="360" description="Bilet 30 min. (3,6 zł)"/>
+            </tickets>
+            <lines>
+                <line distance="170" vehicleType="walk" mainRoute="true" orderIndex="0" operatorId="0">
+                    <stops>
+                        <stop departureTime="11:50" orderIndex="0"/>
+                        <stop arrivalTime="11:54" orderIndex="1"/>
+                    </stops>
+                    <shape>
+                        <coordinates orderIndex="0">52.392040:16.888570 52.392881:16.886544</coordinates>
+                    </shape>
+                </line>
+                <line name="7" direction="ZAWADY" vehicleType="streetCar" mainRoute="true" operatorName="MPK Poznań" orderIndex="1" lineId="7_1" operatorId="1">
+                    <stops>
+                        <stop additionalStop="true" name="Arena" symbol="AREN-02" orderIndex="0"/>
+                        <stop name="Arciszewskiego" symbol="ARCI-02" departureTime="11:54" orderIndex="1"/>
+                        <stop name="Głogowska/Hetmańska" symbol="GLHE-04" departureTime="11:56" orderIndex="2"/>
+                        <stop name="Kolejowa" symbol="KOLE-02" departureTime="11:58" orderIndex="3"/>
+                        <stop name="Traugutta" symbol="TRAU-04" departureTime="12:00" orderIndex="4"/>
+                        <stop name="Rolna" symbol="ROLN-02" departureTime="12:01" orderIndex="5"/>
+                        <stop name="Hetm. /Wiadukt" symbol="HEWI-02" departureTime="12:03" orderIndex="6"/>
+                        <stop name="Rondo Starołęka" symbol="RSTA-04" departureTime="12:05" orderIndex="7"/>
+                        <stop name="Rondo Starołęka" symbol="RSTA-02" departureTime="12:06" orderIndex="8"/>
+                        <stop name="os. Rzeczypospolitej" symbol="ORZE-02" departureTime="12:08" orderIndex="9"/>
+                        <stop name="os. Piastowskie" symbol="OPIA-02" departureTime="12:09" orderIndex="10"/>
+                        <stop name="Wioślarska" symbol="WIOS-02" departureTime="12:10" orderIndex="11"/>
+                        <stop name="Rondo Rataje" symbol="RRAT-04" departureTime="12:12" orderIndex="12"/>
+                        <stop name="Kórnicka" symbol="KORN-02" departureTime="12:14" orderIndex="13"/>
+                        <stop name="Kórnicka" symbol="KORN-05" departureTime="12:14" orderIndex="14"/>
+                        <stop name="Baraniaka" symbol="BAKA-02" departureTime="12:16" arrivalTime="12:16" orderIndex="15"/>
+                        <stop additionalStop="true" name="Rondo Śródka" symbol="ROSR-04" orderIndex="16"/>
+                    </stops>
+                    <alternatives>
+                        <line name="1" direction="ZAWADY" vehicleType="tram" mainRoute="true" operatorName="MPK Poznań" orderIndex="0" lineId="1_1" operatorId="1"/>
+                    </alternatives>
+                    <shape>
+                        <coordinates orderIndex="0">52.397902:16.888497 52.392881:16.886544</coordinates>
+                        <coordinates orderIndex="1">52.392881:16.886544 52.389941:16.894548</coordinates>
+                        <coordinates orderIndex="2">52.389941:16.894548 52.387073:16.902788</coordinates>
+                        <coordinates orderIndex="3">52.387073:16.902788 52.385102:16.914096</coordinates>
+                        <coordinates orderIndex="4">52.385102:16.914096 52.383956:16.918259</coordinates>
+                        <coordinates orderIndex="5">52.383956:16.918259 52.382705:16.929202</coordinates>
+                        <coordinates orderIndex="6">52.382705:16.929202 52.380459:16.941894</coordinates>
+                        <coordinates orderIndex="7">52.380459:16.941894 52.381048:16.943595</coordinates>
+                        <coordinates orderIndex="8">52.381048:16.943595 52.385491:16.945097</coordinates>
+                        <coordinates orderIndex="9">52.385491:16.945097 52.389983:16.947205</coordinates>
+                        <coordinates orderIndex="10">52.389983:16.947205 52.393257:16.949023</coordinates>
+                        <coordinates orderIndex="11">52.393257:16.949023 52.394910:16.949995</coordinates>
+                        <coordinates orderIndex="12">52.394910:16.949995 52.398823:16.952133</coordinates>
+                        <coordinates orderIndex="13">52.398823:16.952133 52.399992:16.952882</coordinates>
+                        <coordinates orderIndex="14">52.399992:16.952882 52.403826:16.954383</coordinates>
+                        <coordinates orderIndex="15">52.403826:16.954383 52.409579:16.956410</coordinates>
+                    </shape>
+                </line>
+                <line distance="240" vehicleType="walk" mainRoute="true" orderIndex="2" operatorId="0">
+                    <stops>
+                        <stop departureTime="12:16" orderIndex="0"/>
+                        <stop arrivalTime="12:22" orderIndex="1"/>
+                    </stops>
+                    <shape>
+                        <coordinates orderIndex="0">52.403826:16.954383 52.403460:16.950900</coordinates>
+                    </shape>
+                </line>
+            </lines>
+        </route>
+    </routes>
+    <addtional_params/>
+</ROUTE_SEARCH_RESULT>

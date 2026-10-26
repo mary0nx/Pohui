@@ -20,6 +20,9 @@ os.environ.update(
         "AI_MODEL": "",
         "RATE_LIMIT_PER_MINUTE": "100000",
         "AUTH_RATE_LIMIT_PER_MINUTE": "100000",
+        "TRANSIT_UPDATES_ENABLED": "false",
+        "JAKDOJADE_API_KEY": "",
+        "JAKDOJADE_API_SECRET": "",
     }
 )
 

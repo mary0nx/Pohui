@@ -56,6 +56,7 @@ from app.models.system import (
     NotificationSettings,
     PushSubscription,
 )
+from app.models.transit import FavoriteRoute, Place, RoutePreference, TransitFeed, TransitSource
 
 __all__ = [
     "Account",
@@ -76,6 +77,7 @@ __all__ = [
     "Family",
     "FamilyInvitation",
     "FamilyMember",
+    "FavoriteRoute",
     "Habit",
     "HabitCheckin",
     "IdempotencyKey",
@@ -87,12 +89,14 @@ __all__ = [
     "NotificationPreference",
     "NotificationSettings",
     "PantryItem",
+    "Place",
     "ProductCatalog",
     "PushSubscription",
     "Recipe",
     "RecipeIngredient",
     "RecurringRule",
     "Reminder",
+    "RoutePreference",
     "SavingsContribution",
     "SavingsGoal",
     "ScheduledPayment",
@@ -101,6 +105,8 @@ __all__ = [
     "Task",
     "TaskComment",
     "Transaction",
+    "TransitFeed",
+    "TransitSource",
     "User",
     "UserSession",
     "WorkShift",
