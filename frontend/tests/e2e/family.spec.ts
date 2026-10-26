@@ -87,7 +87,8 @@ test("another family cannot open shared data by URL", async ({ browser }) => {
   await eve.getByRole("button", { name: "Создать" }).click();
   await expect(eve.getByText(/^Бюджет · /)).toBeVisible();
   const status = await eve.evaluate(async () => {
-    const token = sessionStorage.getItem("familyos.session");
+    // Outside Telegram the session is kept in localStorage (stays signed in like an app).
+    const token = localStorage.getItem("familyos.session");
     const r = await fetch("/api/v1/families/00000000-0000-0000-0000-000000000000/dashboard", { headers: { Authorization: `Bearer ${token}` } });
     return r.status;
   });
