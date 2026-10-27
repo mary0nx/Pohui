@@ -4,6 +4,7 @@
 покупки, домашние задачи, продукты и меню, цели, документы и AI-ассистент. Работает как
 **Telegram Mini App** плюс **Telegram-бот** для команд, уведомлений и AI-запросов.
 
+* **Продолжить работу на новом устройстве / в новом аккаунте Claude — [`docs/HANDOFF.md`](docs/HANDOFF.md)** (правила для Claude — [`CLAUDE.md`](CLAUDE.md))
 * **Пошаговая инструкция запуска для новичка — [`docs/SETUP_GUIDE.md`](docs/SETUP_GUIDE.md)**
 * **Frontend на Cloudflare Pages + отдельный backend — [`docs/CLOUDFLARE_PAGES.md`](docs/CLOUDFLARE_PAGES.md)**
 * **Полностью бесплатный вариант (Oracle Free + DuckDNS + Backblaze B2) — [`docs/FREE_SETUP_GUIDE.md`](docs/FREE_SETUP_GUIDE.md)**
