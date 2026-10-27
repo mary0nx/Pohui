@@ -498,14 +498,15 @@ export function DashboardPage() {
       <DailyCard />
       {/* «Забота на каждый день»: today's weather in one line, only when switched on */}
       <CareCard />
-      {/* «Мой маршрут»: the next tram or bus home → work (or back), by the timetable */}
-      <RouteCard />
 
       {/* Main block: the month budget — limit, spent, remaining from the server */}
       <BudgetCard d={d} monthName={monthName} num={num} canEdit={canEditBudget} onAddExpense={() => setTxOpen(true)} onEditBudget={() => setBudgetOpen(true)} />
 
       {/* Products: what the family still needs to buy */}
       <ShoppingBlock shopping={d.shopping} link={shoppingLink} />
+
+      {/* «Мой маршрут»: the next tram or bus home → work (or back), by the timetable */}
+      <RouteCard />
 
       {/* Quick actions */}
       <nav aria-label="Быстрые действия" className="grid grid-cols-4 gap-2">
