@@ -56,7 +56,12 @@ export function AppShell() {
         <nav
           aria-label="Основная навигация"
           className="fixed inset-x-0 bottom-0 z-30 px-3"
-          style={{ paddingBottom: "calc(var(--safe-bottom) + 8px)" }}
+          // The bar sits close to the bottom edge (just above the iPhone home indicator) and the
+          // strip under it is filled with the page background, so no content shows through.
+          style={{
+            paddingBottom: "max(8px, calc(var(--safe-bottom) - 14px))",
+            background: "linear-gradient(to bottom, transparent 0, transparent 26px, var(--bg) 26px)",
+          }}
         >
           <ul className="mx-auto flex h-[var(--nav-height)] max-w-lg items-stretch justify-around rounded-[26px] bg-surface/95 px-1 shadow-sheet ring-1 ring-border/60 backdrop-blur-md">
             {TABS.map(({ to, key, icon: Icon, ...rest }) => (
