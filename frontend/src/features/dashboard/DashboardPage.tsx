@@ -14,12 +14,13 @@ import {
   Sparkles,
   UserPlus,
 } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 
 import { api, errorMessage } from "@/api/client";
 import { useAiEnabled, useFamily } from "@/app/session";
 import { Art, type ArtName } from "@/components/illustrations/Art";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { PrivateMark } from "@/components/Visibility";
 import { Avatar, Badge, Button, Card, CardHeader, CheckCircle, Collapse, ErrorState, IconBadge, ProgressBar, ProgressRing, Skeleton, useToast } from "@/components/ui";
 import { ProductThumb } from "@/features/catalog/thumb";
@@ -30,6 +31,7 @@ import { TransactionSheet } from "@/features/finance/TransactionSheet";
 import { RouteCard } from "@/features/route/RouteCard";
 import { useTasks } from "@/features/tasks/api";
 import { TaskRow } from "@/features/tasks/TaskRow";
+import { newVersionAvailable } from "@/lib/appVersion";
 import { cn } from "@/lib/cn";
 import { formatDate, formatMoney, formatQty, formatTime, plural, relativeDay, timeAgo } from "@/lib/format";
 import { prefersReducedMotion } from "@/lib/motion";
@@ -440,8 +442,24 @@ export function DashboardPage() {
     if (q.data) introPlayed = true;
   }, [q.data]);
 
+  // Pull down to refresh: a newer deployed version reloads the app, otherwise every query
+  // on the screen (dashboard, weather, route, tasks…) is fetched again.
+  const qc = useQueryClient();
+  const refreshAll = useCallback(async () => {
+    if (await newVersionAvailable()) {
+      window.location.reload();
+      return;
+    }
+    await qc.refetchQueries({ type: "active" });
+  }, [qc]);
+
   if (q.isPending) return <DashboardSkeleton />;
-  if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
+  if (q.isError)
+    return (
+      <PullToRefresh onRefresh={refreshAll}>
+        <ErrorState error={q.error} onRetry={() => q.refetch()} />
+      </PullToRefresh>
+    );
   const d = q.data;
   const today = todayIn(tz);
   const monthName = formatDate(today, tz, { month: "long" });
@@ -457,6 +475,7 @@ export function DashboardPage() {
   ];
 
   return (
+    <PullToRefresh onRefresh={refreshAll}>
     <div className={cn("space-y-3.5", intro && "stagger")}>
       {/* Greeting */}
       <header className="pt-3">
@@ -692,5 +711,6 @@ export function DashboardPage() {
       <TransactionSheet open={txOpen} onOpenChange={setTxOpen} />
       <BudgetSheet open={budgetOpen} onOpenChange={setBudgetOpen} month={`${today.slice(0, 7)}-01`} current={d.budget?.limit ?? null} />
     </div>
+    </PullToRefresh>
   );
 }
