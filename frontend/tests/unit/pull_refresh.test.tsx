@@ -80,3 +80,49 @@ describe("new version check", () => {
     expect(await newVersionAvailable()).toBe(false);
   });
 });
+
+describe("pull to refresh on every screen", () => {
+  it("refetches the data of any screen inside the app", async () => {
+    const { App } = await import("@/app/App");
+    const { router } = await import("@/app/routes");
+    const { setToken } = await import("@/lib/session");
+    const { family, FAMILY_ID, me, meta, mockFetch } =
+      await import("./helpers");
+    const { render: r, screen } = await import("@testing-library/react");
+    await act(() => router.navigate("/route/timetable"));
+    setToken("tok");
+    const m = mockFetch([
+      { path: /\/meta$/, body: meta() },
+      { path: /\/me$/, body: me() },
+      { path: new RegExp(`/families/${FAMILY_ID}$`), body: family },
+      {
+        path: /\/transit\/lines$/,
+        body: {
+          status: "ok",
+          date: "2026-10-28",
+          schedule: null,
+          lines: [
+            {
+              line: "10",
+              mode: "tram",
+              night: false,
+              runs: true,
+              directions: [],
+            },
+          ],
+        },
+      },
+    ]);
+    r(<App />);
+    expect(
+      await screen.findByRole("link", { name: "Трамвай 10" }),
+    ).toBeInTheDocument();
+    const count = () =>
+      m.calls.filter((c) => c.url.pathname.endsWith("/transit/lines")).length;
+    const before = count();
+    await act(async () => swipe([100, 100], [100, 320]));
+    await act(async () => new Promise((res) => setTimeout(res, 700)));
+    expect(count()).toBeGreaterThan(before);
+    await act(() => router.navigate("/"));
+  });
+});

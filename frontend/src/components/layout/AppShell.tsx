@@ -1,9 +1,12 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Home, House, User, Wallet } from "lucide-react";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 
 import { useAiEnabled } from "@/app/session";
 import { useI18n } from "@/i18n";
+import { PullToRefresh } from "@/components/PullToRefresh";
+import { newVersionAvailable } from "@/lib/appVersion";
 import { useAppBadge } from "@/lib/badge";
 import { cn } from "@/lib/cn";
 import { haptic, showBackButton } from "@/lib/telegram";
@@ -46,11 +49,25 @@ export function AppShell() {
   }, [location.pathname]);
   const onAssistant = location.pathname.startsWith("/assistant");
   const showFab = useAiEnabled() && !onAssistant && !location.pathname.startsWith("/profile");
+  // Pull down on any screen: a newer deployed version reloads the app, otherwise every query
+  // on the screen is fetched again.
+  const qc = useQueryClient();
+  const refreshAll = useCallback(async () => {
+    if (await newVersionAvailable()) {
+      window.location.reload();
+      return;
+    }
+    await qc.refetchQueries({ type: "active" });
+  }, [qc]);
+  const page = (
+    <main className={cn("pt-safe animate-page-in px-4", onAssistant ? "pb-0" : showFab ? "pb-nav-fab" : "pb-nav")} key={location.pathname.split("/")[1]}>
+      <Outlet />
+    </main>
+  );
   return (
     <div className="mx-auto min-h-dvh w-full max-w-lg">
-      <main className={cn("pt-safe animate-page-in px-4", onAssistant ? "pb-0" : showFab ? "pb-nav-fab" : "pb-nav")} key={location.pathname.split("/")[1]}>
-        <Outlet />
-      </main>
+      {/* The assistant chat scrolls on its own; every other screen refreshes with a pull. */}
+      {onAssistant ? page : <PullToRefresh onRefresh={refreshAll}>{page}</PullToRefresh>}
       {showFab && <AiFab />}
       {!onAssistant && (
         <nav

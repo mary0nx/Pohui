@@ -1,6 +1,6 @@
-import { RefreshCw } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import { Daisy } from "@/components/Daisy";
 import { cn } from "@/lib/cn";
 import { haptic } from "@/lib/telegram";
 
@@ -102,7 +102,7 @@ export function PullToRefresh({
       <div
         className="pointer-events-none fixed inset-x-0 z-40 flex justify-center"
         style={{
-          top: "calc(var(--safe-top) - 44px)",
+          top: "calc(var(--safe-top) - 52px)",
           transform: `translateY(${pull}px)`,
           opacity: busy ? 1 : Math.min(1, pull / (THRESHOLD * 0.6)),
           transition: dragging
@@ -114,14 +114,15 @@ export function PullToRefresh({
       >
         <span
           className={cn(
-            "flex size-10 items-center justify-center rounded-full bg-surface shadow-card ring-1 ring-border/60",
+            "flex size-12 items-center justify-center rounded-full bg-surface shadow-card ring-1 ring-border/60 transition-colors",
             ready && !busy && "bg-peach-soft",
           )}
         >
-          <RefreshCw
-            className={cn("size-5 text-coral-ink", busy && "animate-spin")}
-            style={busy ? undefined : { transform: `rotate(${pull * 3}deg)` }}
-            aria-hidden
+          <Daisy
+            className="size-10"
+            open={busy ? 1 : pull / THRESHOLD}
+            spinning={busy}
+            rotate={pull * 2.5}
           />
           {busy && <span className="sr-only">Обновляем…</span>}
         </span>

@@ -597,6 +597,22 @@
 .animate-art-in {
   animation: art-in 620ms var(--ease-spring) both;
 }
+/* The chamomile loading indicator (components/Daisy.tsx): a slow turn with a soft breath. */
+@keyframes daisy {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.08);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+.animate-daisy {
+  animation: daisy 1.6s linear infinite;
+  transform-origin: center;
+}
 /* Switching between sections of the bottom navigation. */
 .animate-page-in {
   animation: page-in 240ms var(--ease-out) both;

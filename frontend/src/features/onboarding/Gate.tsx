@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { api, errorMessage } from "@/api/client";
 import familyArt from "@/assets/family-splash.webp";
+import { Daisy } from "@/components/Daisy";
 import { router } from "@/app/routes";
 import { useSession } from "@/app/session";
 import { Button, Card, ErrorState, Input, Select, Spinner } from "@/components/ui";
@@ -40,7 +41,7 @@ export function Splash() {
   return (
     <div className="pt-safe mx-auto flex min-h-dvh max-w-md flex-col items-center px-5 pb-[calc(24px+var(--safe-bottom))]">
       <div className="flex flex-[1.1] flex-col items-center justify-end gap-3 pb-8 text-muted" role="status">
-        <Spinner className="size-7" />
+        <Daisy spinning className="size-11" />
         <span className="text-sm">Загружаем ваше семейное пространство…</span>
       </div>
       <div className="flex flex-1 items-start justify-center">
