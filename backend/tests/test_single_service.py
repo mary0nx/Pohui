@@ -84,7 +84,10 @@ async def test_cors_regex_allows_pages_previews_only(settings_env: pytest.Monkey
 
     preflight = {"Access-Control-Request-Method": "POST"}
     async with _client(create_app()) as c:
-        for origin in ("https://my-family-app.pages.dev", "https://06c41622.my-family-app.pages.dev"):
+        for origin in (
+            "https://my-family-app.pages.dev",
+            "https://06c41622.my-family-app.pages.dev",
+        ):
             r = await c.options("/api/v1/meta", headers={"Origin": origin, **preflight})
             assert r.headers.get("access-control-allow-origin") == origin
         for origin in ("https://evil.pages.dev", "https://my-family-app.pages.dev.evil.example"):
