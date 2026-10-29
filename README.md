@@ -1,41 +1,46 @@
 # Family OS
 
-Частное цифровое пространство семейной пары: бюджет и финансы, календарь и напоминания,
-покупки, домашние задачи, продукты и меню, цели, документы и AI-ассистент. Работает как
-**Telegram Mini App** плюс **Telegram-бот** для команд, уведомлений и AI-запросов.
+[Русская версия](README.ru.md)
 
-* **Продолжить работу на новом устройстве / в новом аккаунте Claude — [`docs/HANDOFF.md`](docs/HANDOFF.md)** (правила для Claude — [`CLAUDE.md`](CLAUDE.md))
-* **Пошаговая инструкция запуска для новичка — [`docs/SETUP_GUIDE.md`](docs/SETUP_GUIDE.md)**
-* **Frontend на Cloudflare Pages + отдельный backend — [`docs/CLOUDFLARE_PAGES.md`](docs/CLOUDFLARE_PAGES.md)**
-* **Полностью бесплатный вариант (Oracle Free + DuckDNS + Backblaze B2) — [`docs/FREE_SETUP_GUIDE.md`](docs/FREE_SETUP_GUIDE.md)**
-* Требования и функциональность — [`PROJECT_SPEC.md`](PROJECT_SPEC.md)
-* Архитектура и потоки данных — [`ARCHITECTURE.md`](ARCHITECTURE.md)
-* Модель угроз и защита — [`SECURITY.md`](SECURITY.md)
-* Статус задач — [`TASKS.md`](TASKS.md), история изменений — [`CHANGELOG.md`](CHANGELOG.md)
+A private digital space for a couple: budget and finances, calendar and reminders, shopping,
+household chores, groceries and meal plans, goals, documents and an AI assistant. It runs as a
+**Telegram Mini App** plus a **Telegram bot** for commands, notifications and AI requests.
+The user interface is in Russian.
 
-## Состав
+* **Step-by-step setup guide for beginners (Russian) — [`docs/SETUP_GUIDE.md`](docs/SETUP_GUIDE.md)**
+* **Frontend on Cloudflare Pages + separate backend — [`docs/CLOUDFLARE_PAGES.md`](docs/CLOUDFLARE_PAGES.md)**
+* **Completely free option (Oracle Always Free + DuckDNS + Backblaze B2) — [`docs/FREE_SETUP_GUIDE.md`](docs/FREE_SETUP_GUIDE.md)**
+* Requirements and features — [`PROJECT_SPEC.md`](PROJECT_SPEC.md)
+* Architecture and data flows — [`ARCHITECTURE.md`](ARCHITECTURE.md)
+* Threat model and protections — [`SECURITY.md`](SECURITY.md)
+* Task status — [`TASKS.md`](TASKS.md), changelog — [`CHANGELOG.md`](CHANGELOG.md)
+* Continuing development on a new device or Claude account — [`docs/HANDOFF.md`](docs/HANDOFF.md) (rules for Claude — [`CLAUDE.md`](CLAUDE.md))
 
-| Часть | Технологии |
-|-------|-----------|
-| `backend/` | Python 3.12, FastAPI, Pydantic 2, SQLAlchemy 2 (async), Alembic, PostgreSQL 16, aiogram 3, OpenAI SDK, Redis (rate limit) |
+Most detailed documents in `docs/` are written in Russian.
+
+## Components
+
+| Part | Technologies |
+|------|-------------|
+| `backend/` | Python 3.12, FastAPI, Pydantic 2, SQLAlchemy 2 (async), Alembic, PostgreSQL 16, aiogram 3, OpenAI SDK, Redis (rate limiting) |
 | `frontend/` | React 19, TypeScript (strict), Vite 7, Tailwind CSS 4, TanStack Query, React Hook Form + Zod, Recharts |
-| `infra/` | Caddy (HTTPS + статика + reverse proxy), скрипты резервного копирования |
-| Процессы | `api` (HTTP API), `worker` (напоминания, регулярные платежи, отправка уведомлений), `bot` (Telegram), `migrate` (однократно при деплое) |
+| `infra/` | Caddy (HTTPS + static files + reverse proxy), backup scripts |
+| Processes | `api` (HTTP API), `worker` (reminders, recurring payments, notification delivery), `bot` (Telegram), `migrate` (runs once per deploy) |
 
-## Требования
+## Requirements
 
-* Для разработки: Python 3.12, [uv](https://docs.astral.sh/uv/) 0.11+, Node.js 22, PostgreSQL 16 (или Docker), опционально Redis.
-* Для сервера: Linux VPS (1 vCPU / 1–2 ГБ RAM достаточно для семьи), Docker 24+ с Compose v2, домен с A-записью на сервер.
+* Development: Python 3.12, [uv](https://docs.astral.sh/uv/) 0.11+, Node.js 22, PostgreSQL 16 (or Docker), optionally Redis.
+* Server: a Linux VPS (1 vCPU / 1–2 GB RAM is enough for a family), Docker 24+ with Compose v2, a domain with an A record pointing to the server.
 
-## Быстрый старт для разработки (без Docker для приложения)
+## Quick start for development (app without Docker)
 
 ```bash
-# 1. Инфраструктура: PostgreSQL + Redis на localhost (или используйте свои)
+# 1. Infrastructure: PostgreSQL + Redis on localhost (or use your own)
 docker compose -f compose.dev.yaml up -d
 
 # 2. Backend
 cd backend
-uv sync                                   # создаёт .venv по uv.lock
+uv sync                                   # creates .venv from uv.lock
 cat > .env <<'EOF'
 APP_ENV=development
 DEV_AUTH_ENABLED=true
@@ -47,198 +52,200 @@ CORS_ORIGINS=http://localhost:5173
 EOF
 .venv/bin/alembic upgrade head
 .venv/bin/uvicorn app.main:app --reload --port 8000     # API
-.venv/bin/python -m app.workers                          # в другом терминале: worker
+.venv/bin/python -m app.workers                          # worker, in another terminal
 
 # 3. Frontend
 cd ../frontend
 npm ci
-npm run dev        # http://localhost:5173, /api проксируется на :8000
+npm run dev        # http://localhost:5173, /api is proxied to :8000
 ```
 
-Вне Telegram при `DEV_AUTH_ENABLED=true` появляется экран **«Режим разработки»** с
-тестовым входом (например, «Анна» и «Павел» — два партнёра). Это явно помеченный
-режим: в production (`APP_ENV=production`) приложение отказывается стартовать с включённым
-dev-входом, а маршрут `/api/v1/auth/dev` отвечает 404.
+Outside Telegram, with `DEV_AUTH_ENABLED=true`, a **"Development mode"** screen offers a test
+sign-in (for example "Анна" and "Павел", two partners). This mode is clearly labelled: in
+production (`APP_ENV=production`) the app refuses to start with dev sign-in enabled, and
+`/api/v1/auth/dev` returns 404.
 
-То же через `make`: `make install`, `make dev-infra`, `make migrate`, `make dev-api`,
+The same with `make`: `make install`, `make dev-infra`, `make migrate`, `make dev-api`,
 `make dev-worker`, `make dev-web`.
 
-## Настройка `.env`
+## Configuring `.env`
 
-Шаблон с комментариями — [`.env.example`](.env.example). Скопируйте его в `.env` в корне
-репозитория (для Docker Compose) и заполните. Главное:
+A commented template is in [`.env.example`](.env.example). Copy it to `.env` in the repository
+root (for Docker Compose) and fill it in. The essentials:
 
-| Переменная | Назначение |
-|-----------|-----------|
-| `APP_ENV` | `production` на сервере |
-| `APP_SECRET_KEY` | ≥ 32 случайных символа; подписывает временные ссылки на файлы |
-| `POSTGRES_PASSWORD` | пароль БД (используйте `secrets.token_urlsafe` — без символов `@:/`) |
-| `FRONTEND_URL`, `BACKEND_URL`, `CORS_ORIGINS` | `https://ваш-домен` |
-| `SITE_ADDRESS`, `ACME_EMAIL` | домен для Caddy и e-mail для Let's Encrypt |
-| `TELEGRAM_BOT_TOKEN` | токен от @BotFather (обязателен в production) |
-| `TELEGRAM_BOT_USERNAME` | для ссылок-приглашений `t.me/<бот>?start=inv_…` (через бота, BotFather `/newapp` не нужен) |
-| `BOT_MODE`, `TELEGRAM_WEBHOOK_URL`, `TELEGRAM_WEBHOOK_SECRET` | `webhook` + `https://домен/tg/webhook` + случайный секрет |
-| `OPENAI_API_KEY`, `AI_MODEL` | включают AI; без них AI выключен, остальное работает |
-| `STORAGE_BACKEND` | `local` (том Docker) или `s3` + `STORAGE_*` |
+| Variable | Purpose |
+|---------|---------|
+| `APP_ENV` | `production` on the server |
+| `APP_SECRET_KEY` | ≥ 32 random characters; signs temporary file links |
+| `POSTGRES_PASSWORD` | database password (use `secrets.token_urlsafe`, without `@:/`) |
+| `FRONTEND_URL`, `BACKEND_URL`, `CORS_ORIGINS` | `https://your-domain` |
+| `SITE_ADDRESS`, `ACME_EMAIL` | domain for Caddy and e-mail for Let's Encrypt |
+| `TELEGRAM_BOT_TOKEN` | token from @BotFather (required in production) |
+| `TELEGRAM_BOT_USERNAME` | for invite links `t.me/<bot>?start=inv_…` (they go through the bot; BotFather `/newapp` is not required) |
+| `BOT_MODE`, `TELEGRAM_WEBHOOK_URL`, `TELEGRAM_WEBHOOK_SECRET` | `webhook` + `https://domain/tg/webhook` + a random secret |
+| `OPENAI_API_KEY`, `AI_MODEL` | enable AI; without them AI is off and everything else works |
+| `STORAGE_BACKEND` | `local` (Docker volume) or `s3` + `STORAGE_*` |
 
-Секреты не попадают в Git (`.env` в `.gitignore`), во фронтенд и в логи. Не отправляйте их в чаты.
+Secrets never go into Git (`.env` is in `.gitignore`), the frontend or the logs. Do not paste them into chats.
 
-## Telegram: бот и Mini App
+## Telegram: bot and Mini App
 
-1. В [@BotFather](https://t.me/BotFather): `/newbot` → имя и username → получите токен
+1. In [@BotFather](https://t.me/BotFather): `/newbot` → name and username → get the token
    (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`).
-2. Необязательно: `/newapp` → выберите бота → укажите URL `https://ваш-домен` и короткое имя
-   (`TELEGRAM_MINI_APP_SHORT_NAME`). Так появится ссылка `https://t.me/<бот>/<имя>`.
-   Приглашения от этого не зависят: они идут через бота (`?start=inv_…`), бот запоминает
-   приглашение, и приложение предлагает присоединиться, как бы его ни открыли.
-3. Бот при запуске сам устанавливает команды (`/app`, `/help`, `/settings`, `/cancel`) и
-   кнопку меню «Family OS», а в режиме `webhook` — вебхук с секретом.
-4. Каждый участник должен один раз открыть чат с ботом и нажать **Старт**: Telegram не
-   позволяет ботам писать первыми. До этого уведомления видны только во входящих приложения.
-5. Приглашение: Профиль → «Пригласить участника» → отправьте ссылку партнёру. Ссылка
-   одноразовая и действует 72 часа; её можно отозвать.
+2. Optional: `/newapp` → choose the bot → set the URL `https://your-domain` and a short name
+   (`TELEGRAM_MINI_APP_SHORT_NAME`). This gives you a `https://t.me/<bot>/<name>` link.
+   Invitations do not depend on it: they go through the bot (`?start=inv_…`), the bot remembers
+   the invitation, and the app offers to join however it was opened.
+3. On start-up the bot sets its commands (`/app`, `/help`, `/settings`, `/cancel`) and the
+   "Family OS" menu button, and in `webhook` mode registers the webhook with its secret.
+4. Every member must open the chat with the bot once and press **Start**: Telegram does not
+   let bots write first. Until then notifications are only visible in the app's inbox.
+5. Inviting: Profile → "Invite a member" → send the link to your partner. The link is
+   single-use, valid for 72 hours and can be revoked.
 
-Проверка подлинности: Mini App отправляет `Telegram.WebApp.initData`, backend проверяет
-HMAC-подпись токеном бота и срок `auth_date`; `initDataUnsafe` сервер не использует.
+Authentication: the Mini App sends `Telegram.WebApp.initData`; the backend verifies its HMAC
+signature with the bot token and the `auth_date` freshness. The server never trusts `initDataUnsafe`.
 
-## AI-ассистент
+## AI assistant
 
-Задайте `OPENAI_API_KEY` и `AI_MODEL` (идентификатор актуальной модели из документации
-OpenAI с поддержкой tool calling). Можно указать `OPENAI_BASE_URL` для совместимого провайдера.
-Лимиты: `AI_DAILY_REQUESTS_PER_USER`, `AI_DAILY_TOKENS_PER_FAMILY`. В настройках семьи
-можно выключить AI или автоматическое выполнение простых команд. Удаление и изменения с
-последствиями всегда требуют подтверждения кнопкой (в Mini App или в боте).
+Set `OPENAI_API_KEY` and `AI_MODEL` (the ID of a current model with tool calling from the
+OpenAI documentation). `OPENAI_BASE_URL` can point to a compatible provider.
+Limits: `AI_DAILY_REQUESTS_PER_USER`, `AI_DAILY_TOKENS_PER_FAMILY`. Family settings can turn
+AI off or disable automatic execution of simple commands. Deletions and changes with
+consequences always require a confirmation button (in the Mini App or in the bot).
 
-## Запуск через Docker Compose
+## Running with Docker Compose
 
 ```bash
-cp .env.example .env && nano .env      # заполните значения
+cp .env.example .env && nano .env      # fill in the values
 docker compose build
 docker compose up -d                   # postgres, redis, migrate → api, worker, (bot), web
 docker compose ps
 docker compose logs -f api worker
 ```
 
-* `migrate` выполняет `alembic upgrade head` один раз перед стартом `api/worker/bot`;
-  повторные запуски защищены advisory-lock, миграции не идут параллельно.
-* Бот запускается при `COMPOSE_PROFILES=bot` в `.env` (нужен токен).
-* Наружу публикуется только Caddy (80/443). PostgreSQL и Redis доступны лишь во внутренней сети.
-* Локально без TLS: `SITE_ADDRESS=:80`, `HTTP_PORT=8080` → `http://localhost:8080`.
+* `migrate` runs `alembic upgrade head` once before `api/worker/bot` start;
+  repeated runs are protected by an advisory lock, so migrations never run in parallel.
+* The bot starts when `COMPOSE_PROFILES=bot` is set in `.env` (a token is required).
+* Only Caddy (80/443) is exposed. PostgreSQL and Redis are reachable only on the internal network.
+* Locally without TLS: `SITE_ADDRESS=:80`, `HTTP_PORT=8080` → `http://localhost:8080`.
 
-## Миграции
+## Migrations
 
 ```bash
 cd backend
-.venv/bin/alembic upgrade head          # применить
-.venv/bin/alembic revision --autogenerate -m "описание"   # новая миграция после изменения моделей
-.venv/bin/alembic check                 # модели и миграции совпадают
+.venv/bin/alembic upgrade head          # apply
+.venv/bin/alembic revision --autogenerate -m "description"   # new migration after changing models
+.venv/bin/alembic check                 # models and migrations match
 ```
 
-В Docker: `docker compose run --rm migrate`.
+In Docker: `docker compose run --rm migrate`.
 
-## Тесты
+## Tests
 
 ```bash
-make test-backend    # pytest: 73 интеграционных теста на реальной БД familyos_test
+make test-backend    # pytest: integration tests against a real familyos_test database
 make test-frontend   # Vitest + React Testing Library
-make e2e             # Playwright: backend + собранный фронтенд + БД familyos_e2e
+make e2e             # Playwright: backend + built frontend + familyos_e2e database
 make lint            # ruff, mypy, tsc
 ```
 
-Backend-тесты по умолчанию используют
-`postgresql+asyncpg://familyos:familyos@localhost:5432/familyos_test` (переменная
-`TEST_DATABASE_URL`). Перед прогоном схема пересоздаётся, миграции проходят вверх, вниз и
-снова вверх. Telegram и LLM в тестах заменены тестовыми двойниками; база данных — настоящая.
-Сценарий из 15 обязательных пунктов ТЗ — `backend/tests/test_scenarios.py`.
+Backend tests use `postgresql+asyncpg://familyos:familyos@localhost:5432/familyos_test` by default
+(`TEST_DATABASE_URL`). Before a run the schema is recreated and migrations go up, down and up
+again. Telegram and the LLM are replaced with test doubles; the database is real.
+The 15 mandatory scenarios from the specification are in `backend/tests/test_scenarios.py`.
+Frontend tests run on Node.js 22 (as in CI); newer Node versions may fail fetch-based tests.
 
-## Бесплатное размещение (Cloudflare Pages + Render + Supabase)
+## Free hosting (Cloudflare Pages + Render + Supabase)
 
-Frontend — на Cloudflare Pages, backend — одним бесплатным сервисом Render (API, фоновые задачи
-и бот в одном процессе, `render.yaml`), база — бесплатный проект Supabase. Пошагово:
-[`docs/RENDER_SUPABASE.md`](docs/RENDER_SUPABASE.md); настройки Pages:
-[`docs/CLOUDFLARE_PAGES.md`](docs/CLOUDFLARE_PAGES.md). Ограничения: без внешнего «будильника»
-сервис засыпает, загруженные файлы без S3 не сохраняются.
+The frontend runs on Cloudflare Pages, the backend as a single free Render service (API,
+background jobs and the bot in one process, `render.yaml`), the database is a free Supabase
+project. Step by step: [`docs/RENDER_SUPABASE.md`](docs/RENDER_SUPABASE.md); Pages settings:
+[`docs/CLOUDFLARE_PAGES.md`](docs/CLOUDFLARE_PAGES.md). Limits: without an external "alarm
+clock" the service falls asleep, and uploaded files are not kept without S3.
+`render.yaml` and `.github/workflows/keepalive.yml` contain the addresses of the original
+deployment: replace them with your own.
 
-## Развёртывание на VPS
+## Deploying to a VPS
 
-1. **Сервер.** Ubuntu 24.04, отдельный пользователь с sudo, вход по SSH-ключу. Установите
-   Docker Engine и Compose plugin по официальной инструкции Docker.
-2. **Firewall.** Откройте только 22, 80, 443: `ufw allow OpenSSH && ufw allow 80,443/tcp && ufw allow 443/udp && ufw enable`.
-3. **DNS.** A-запись `family.example.com` → IP сервера.
-4. **Код и конфигурация.**
+1. **Server.** Ubuntu 24.04, a separate sudo user, SSH key login. Install Docker Engine and
+   the Compose plugin following Docker's official instructions.
+2. **Firewall.** Open only 22, 80, 443: `ufw allow OpenSSH && ufw allow 80,443/tcp && ufw allow 443/udp && ufw enable`.
+3. **DNS.** A record `family.example.com` → server IP.
+4. **Code and configuration.**
    ```bash
    git clone <repo> familyos && cd familyos
    cp .env.example .env && chmod 600 .env && nano .env
    ```
-   Пример домена: `SITE_ADDRESS=family.example.com`, `FRONTEND_URL=BACKEND_URL=CORS_ORIGINS=https://family.example.com`,
+   Example: `SITE_ADDRESS=family.example.com`, `FRONTEND_URL=BACKEND_URL=CORS_ORIGINS=https://family.example.com`,
    `TELEGRAM_WEBHOOK_URL=https://family.example.com/tg/webhook`, `BOT_MODE=webhook`, `COMPOSE_PROFILES=bot`.
-5. **Запуск.** `docker compose build && docker compose up -d`. Caddy сам получит сертификат
-   Let's Encrypt (порт 80 должен быть доступен из интернета).
-6. **Проверка.** `curl https://family.example.com/health/ready` → `{"status":"ok"}`;
-   откройте бота в Telegram → `/start` → «Открыть Family OS».
-7. **Бэкапы.** Настройте cron и внешнее хранилище (см. ниже) и сразу выполните `make restore-check`.
+5. **Start.** `docker compose build && docker compose up -d`. Caddy obtains a Let's Encrypt
+   certificate by itself (port 80 must be reachable from the internet).
+6. **Check.** `curl https://family.example.com/health/ready` → `{"status":"ok"}`;
+   open the bot in Telegram → `/start` → "Open Family OS".
+7. **Backups.** Set up cron and external storage (see below) and run `make restore-check` right away.
 
-## Обновление
+## Updating
 
 ```bash
 cd familyos
-./infra/scripts/backup.sh               # сначала резервная копия
+./infra/scripts/backup.sh               # back up first
 git pull
 docker compose build
-docker compose up -d                    # migrate применит новые миграции до старта api
+docker compose up -d                    # migrate applies new migrations before api starts
 docker compose ps && docker compose logs --tail=50 api worker
 ```
 
-Откат: `git checkout <предыдущий-тег> && docker compose build && docker compose up -d`.
-Если новая версия уже изменила схему БД, восстановите резервную копию (см. ниже).
+Rollback: `git checkout <previous-tag> && docker compose build && docker compose up -d`.
+If the new version already changed the database schema, restore a backup (see below).
 
-## Резервное копирование
+## Backups
 
-`infra/scripts/backup.sh` делает `pg_dump` (custom format) и архив загруженных файлов в
-`BACKUP_DIR`, пишет контрольные суммы, удаляет копии старше `BACKUP_KEEP_DAYS` и, если задан
-`RCLONE_REMOTE`, отправляет копию во внешнее хранилище через [rclone](https://rclone.org/).
-**Обязательно** настройте внешнее хранилище: копия на том же диске не спасёт при его отказе.
+`infra/scripts/backup.sh` makes a `pg_dump` (custom format) and an archive of uploaded files in
+`BACKUP_DIR`, writes checksums, deletes copies older than `BACKUP_KEEP_DAYS` and, if
+`RCLONE_REMOTE` is set, sends a copy to external storage with [rclone](https://rclone.org/).
+**Do** configure external storage: a copy on the same disk will not survive its failure.
 
 ```cron
-# crontab -e  (ежедневно в 03:17)
+# crontab -e  (daily at 03:17)
 17 3 * * * cd /home/deploy/familyos && ./infra/scripts/backup.sh >> backups/backup.log 2>&1
-# еженедельная проверка, что копия восстанавливается
+# weekly check that the backup can be restored
 40 3 * * 0 cd /home/deploy/familyos && ./infra/scripts/restore-check.sh >> backups/restore-check.log 2>&1
 ```
 
-`infra/scripts/restore-check.sh [dump]` восстанавливает дамп во временную БД, выполняет
-проверочные запросы (версия миграции, количество записей) и удаляет временную БД.
+`infra/scripts/restore-check.sh [dump]` restores a dump into a temporary database, runs check
+queries (migration version, row counts) and drops the temporary database.
 
-## Восстановление после сбоя
+## Disaster recovery
 
-1. Новый сервер: шаги 1–4 из «Развёртывания» (тот же `.env` из менеджера паролей).
-2. Скачайте последние копии: `rclone copy "$RCLONE_REMOTE" ./backups --include "familyos-*<дата>*"`.
-3. Поднимите только БД: `docker compose up -d postgres`.
+1. New server: steps 1–4 of "Deploying" (the same `.env` from your password manager).
+2. Download the latest copies: `rclone copy "$RCLONE_REMOTE" ./backups --include "familyos-*<date>*"`.
+3. Start only the database: `docker compose up -d postgres`.
 4. `./infra/scripts/restore.sh backups/familyos-db-<stamp>.dump backups/familyos-files-<stamp>.tar.gz`
-   (скрипт попросит ввести имя БД для подтверждения, затем запустит весь стек).
-5. Проверьте `/health/ready`, вход через Telegram и последние операции.
+   (the script asks for the database name as confirmation, then starts the whole stack).
+5. Check `/health/ready`, Telegram sign-in and the latest operations.
 
-## Известные ограничения
+## Known limitations
 
-* Подключения к банкам нет: операции вводятся вручную или импортируются из CSV.
-* Сводки считаются в основной валюте семьи; курсы валют не используются.
-* OCR чеков и распознавание изображений не реализованы.
-* Синхронизация между партнёрами — периодический опрос (5 с в списке покупок), без WebSocket.
-* Перевод интерфейса на английский и польский частичный (навигация и общие элементы).
-* В календаре можно отменить отдельное повторение, но не изменить его отдельно от серии.
-* PostgreSQL Row-Level Security не включена: изоляция реализована единым слоем авторизации
-  в приложении и покрыта тестами (см. `SECURITY.md`).
-* Доставка уведомлений — «как минимум один раз»: при падении worker после отправки, но до
-  записи статуса, сообщение может прийти повторно.
-* Что проверено в этом репозитории и что требует ваших ключей — см. `TASKS.md`.
+* No bank connections: transactions are entered manually or imported from CSV.
+* Summaries are in the family's main currency; exchange rates are not used.
+* Receipt OCR and image recognition are not implemented.
+* Partner sync is periodic polling (5 s in the shopping list), no WebSocket.
+* The English and Polish UI translations are partial (navigation and common elements).
+* In the calendar a single occurrence can be cancelled, but not edited separately from the series.
+* PostgreSQL Row-Level Security is not enabled: isolation is a single authorization layer in the
+  app, covered by tests (see `SECURITY.md`).
+* Notification delivery is at-least-once: if the worker crashes after sending but before
+  recording the status, a message may arrive twice.
+* What is verified in this repository and what needs your keys — see `TASKS.md`.
 
-## Структура репозитория
+## Repository layout
 
 ```
-backend/    FastAPI-приложение, бот, worker, миграции, тесты
-frontend/   Telegram Mini App (React), unit- и e2e-тесты
-infra/      Caddyfile, скрипты резервного копирования и восстановления
-compose.yaml        production-стек
-compose.dev.yaml    PostgreSQL + Redis для разработки
-Makefile            частые команды
+backend/    FastAPI app, bot, worker, migrations, tests
+frontend/   Telegram Mini App (React), unit and e2e tests
+infra/      Caddyfile, backup and restore scripts
+compose.yaml        production stack
+compose.dev.yaml    PostgreSQL + Redis for development
+Makefile            common commands
 ```

@@ -56,9 +56,9 @@ def test_database_url_from_hosting_providers(given: str, expected: str) -> None:
 
 
 def test_render_url_fills_backend_and_webhook_urls() -> None:
-    s = Settings(render_external_url="https://familyos-api.onrender.com/")
-    assert s.backend_url == "https://familyos-api.onrender.com"
-    assert s.telegram_webhook_url == "https://familyos-api.onrender.com/tg/webhook"
+    s = Settings(render_external_url="https://my-family-api.onrender.com/")
+    assert s.backend_url == "https://my-family-api.onrender.com"
+    assert s.telegram_webhook_url == "https://my-family-api.onrender.com/tg/webhook"
     explicit = Settings(
         render_external_url="https://x.onrender.com",
         backend_url="https://api.family.test",
@@ -78,16 +78,16 @@ def test_derived_webhook_secret_is_stable_and_telegram_compatible() -> None:
 
 
 async def test_cors_regex_allows_pages_previews_only(settings_env: pytest.MonkeyPatch) -> None:
-    settings_env.setenv("CORS_ORIGINS", "https://pohui.pages.dev")
+    settings_env.setenv("CORS_ORIGINS", "https://my-family-app.pages.dev")
     settings_env.setenv("CORS_ORIGIN_REGEX", r"^https://[a-z0-9-]+\.pohui\.pages\.dev$")
     from app.main import create_app
 
     preflight = {"Access-Control-Request-Method": "POST"}
     async with _client(create_app()) as c:
-        for origin in ("https://pohui.pages.dev", "https://06c41622.pohui.pages.dev"):
+        for origin in ("https://my-family-app.pages.dev", "https://06c41622.my-family-app.pages.dev"):
             r = await c.options("/api/v1/meta", headers={"Origin": origin, **preflight})
             assert r.headers.get("access-control-allow-origin") == origin
-        for origin in ("https://evil.pages.dev", "https://pohui.pages.dev.evil.example"):
+        for origin in ("https://evil.pages.dev", "https://my-family-app.pages.dev.evil.example"):
             r = await c.options("/api/v1/meta", headers={"Origin": origin, **preflight})
             assert "access-control-allow-origin" not in r.headers
 

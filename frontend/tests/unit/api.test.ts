@@ -78,8 +78,8 @@ describe("normalizeApiBase", () => {
 
   it("requires an address on static hosts and never accepts Cloudflare Pages as the API", () => {
     expect(() => normalizeApiBase("", { required: true })).toThrow(/VITE_API_URL/);
-    expect(() => normalizeApiBase("https://pohui.pages.dev")).toThrow(/Cloudflare Pages/);
-    expect(() => normalizeApiBase("https://06c41622.pohui.pages.dev", { required: true })).toThrow(/Cloudflare Pages/);
-    expect(normalizeApiBase("https://familyos-api.onrender.com", { required: true })).toBe("https://familyos-api.onrender.com");
+    expect(() => normalizeApiBase("https://my-family-app.pages.dev")).toThrow(/Cloudflare Pages/);
+    expect(() => normalizeApiBase("https://06c41622.my-family-app.pages.dev", { required: true })).toThrow(/Cloudflare Pages/);
+    expect(normalizeApiBase("https://my-family-api.onrender.com", { required: true })).toBe("https://my-family-api.onrender.com");
   });
 });

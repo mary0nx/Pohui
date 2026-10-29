@@ -19,11 +19,11 @@
 
 | Что | Где | Примечание |
 |---|---|---|
-| Приложение (сайт, PWA) | https://pohui.pages.dev | Cloudflare Pages, собирается из `frontend/` при каждом push |
-| Сервер (API + фоновые задачи + бот) | https://familyos-api-pf2z.onrender.com | Render free, один сервис (`render.yaml`), деплой при изменении `backend/**` |
+| Приложение (сайт, PWA) | https://my-family-app.pages.dev | Cloudflare Pages, собирается из `frontend/` при каждом push |
+| Сервер (API + фоновые задачи + бот) | https://my-family-api.onrender.com | Render free, один сервис (`render.yaml`), деплой при изменении `backend/**` |
 | База данных | Supabase (PostgreSQL, free) | строка подключения — только в Render → Environment |
 | Файлы документов | Supabase Storage (S3) | ключи — только в Render |
-| Telegram-бот | @pohui_family_bot | вебхук на сервер, секрет выводится из `APP_SECRET_KEY` |
+| Telegram-бот | @my_family_bot | вебхук на сервер, секрет выводится из `APP_SECRET_KEY` |
 | Не даёт серверу уснуть | GitHub Actions `keepalive.yml` | запрос к серверу каждые 10 минут |
 | Проверки | GitHub Actions `ci.yml` | бэкенд, фронтенд, e2e — на каждый push |
 
@@ -64,7 +64,7 @@ frontend/  React 19, Vite, Tailwind, TanStack Query — src/features/<разде
 docs/      инструкции; CLAUDE.md — правила для Claude
 ```
 
-Локальный запуск — `README.md` («Быстрый старт для разработки»). Все проверки перед
+Локальный запуск — `README.ru.md` («Быстрый старт для разработки»). Все проверки перед
 отправкой перечислены в `CLAUDE.md` (их же запускает CI).
 
 ## 5. Последняя полная проверка (27.10.2026)

@@ -13,10 +13,10 @@
 
 | Часть | Где | Как проверено |
 |---|---|---|
-| Frontend | Cloudflare Pages, проект `pohui`, https://pohui.pages.dev, ветка выше, сборка `frontend/` | сайт отдаёт актуальную сборку; в бандле адрес API `https://familyos-api-pf2z.onrender.com` |
-| Backend | Render, бесплатный web-сервис `familyos-api` (Docker, Frankfurt), один процесс: API + встроенный worker (`EMBEDDED_WORKER`) + вебхук бота (`EMBEDDED_BOT`) | `/health` → ok, `/api/v1/meta` → `env=production`, `dev_auth=false`, `ai_available=false`, `bot_username=pohui_family_bot`, `storage=local` |
+| Frontend | Cloudflare Pages, проект `pohui`, https://my-family-app.pages.dev, ветка выше, сборка `frontend/` | сайт отдаёт актуальную сборку; в бандле адрес API `https://my-family-api.onrender.com` |
+| Backend | Render, бесплатный web-сервис `familyos-api` (Docker, Frankfurt), один процесс: API + встроенный worker (`EMBEDDED_WORKER`) + вебхук бота (`EMBEDDED_BOT`) | `/health` → ok, `/api/v1/meta` → `env=production`, `dev_auth=false`, `ai_available=false`, `bot_username=my_family_bot`, `storage=local` |
 | PostgreSQL | Supabase free (eu-west-1, Session pooler) | `/health/ready` → ok: база доступна и версия миграций равна head кода (`d91f4b6a2c58`) |
-| Бот | @pohui_family_bot, вебхук `/tg/webhook` внутри API | вебхук без секрета → 401; бот доставил ключ Apple Pay в чат (видно по ответу приложения на скриншоте пользователя) |
+| Бот | @my_family_bot, вебхук `/tg/webhook` внутри API | вебхук без секрета → 401; бот доставил ключ Apple Pay в чат (видно по ответу приложения на скриншоте пользователя) |
 | AI | код есть, ключа нет — интерфейс и бот скрывают AI | `ai_available=false` |
 | CI | GitHub Actions: backend (ruff, mypy, pytest, alembic check, pip-audit), frontend (tsc, vitest, build, npm audit), e2e (Playwright + реальный backend) | последние прогоны зелёные |
 
@@ -39,7 +39,7 @@
 | `POST /tg/webhook` без секрета | 401 |
 | `POST /api/v1/hooks/apple-pay` без ключа | 401 |
 | CORS preflight с `Origin: https://evil.example` | 400, без `Access-Control-Allow-Origin` |
-| CORS preflight с `Origin: https://pohui.pages.dev` | 200, origin разрешён |
+| CORS preflight с `Origin: https://my-family-app.pages.dev` | 200, origin разрешён |
 | Заголовки API | `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer` (HSTS нет) |
 | Заголовки Pages | `Content-Security-Policy: frame-ancestors 'self' https://web.telegram.org https://*.telegram.org` |
 
@@ -120,7 +120,7 @@ recharts, lucide. Разделы:
 ## 3. Состояние функциональности
 
 ### Работает и проверено
-- Сайт на Pages, адрес API в сборке, CORS только для `pohui.pages.dev`.
+- Сайт на Pages, адрес API в сборке, CORS только для `my-family-app.pages.dev`.
 - Backend на Render отвечает; PostgreSQL доступна; миграции на head.
 - Вход через Telegram в настоящем клиенте iOS (скриншоты пользователя: семья, данные, профиль).
 - Серверная проверка подписи initData, закрытый dev-вход, 401 без сессии, секрет вебхука.

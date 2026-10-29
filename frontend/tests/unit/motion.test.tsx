@@ -116,6 +116,6 @@ describe("avatar", () => {
     expect(img).toHaveAttribute("referrerpolicy", "no-referrer");
     fireEvent.error(img);
     expect(container.querySelector("img")).toBeNull();
-    expect(container.textContent).toBe("YP");
+    expect(container.textContent).toBe("AM");
   });
 });

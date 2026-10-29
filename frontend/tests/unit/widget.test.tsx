@@ -54,25 +54,25 @@ describe("«Листочек дня» widget for Scriptable", () => {
       const p = pageFor(content, SEED, date);
       expect(pages[date]).toEqual([{ spring: "p", summer: "s", autumn: "a", winter: "w" }[p.season], THEME_LABELS[p.theme], p.text]);
     }
-    const script = buildWidgetScript({ content, seed: SEED, from: "2026-10-26", timeZone: "Europe/Warsaw", appUrl: "https://pohui.pages.dev/" });
+    const script = buildWidgetScript({ content, seed: SEED, from: "2026-10-26", timeZone: "Europe/Warsaw", appUrl: "https://my-family-app.pages.dev/" });
     expect(script).not.toContain(SEED); // the family id stays in the app
     expect(script.length).toBeLessThan(120_000);
   });
 
   it("shows today's page in a home-screen widget and opens the app on tap", async () => {
-    const script = buildWidgetScript({ content, seed: SEED, from: "2026-10-26", timeZone: "Europe/Warsaw", appUrl: "https://pohui.pages.dev/" });
+    const script = buildWidgetScript({ content, seed: SEED, from: "2026-10-26", timeZone: "Europe/Warsaw", appUrl: "https://my-family-app.pages.dev/" });
     const { texts, made } = await runInFakeScriptable(script, "medium", "2026-11-03T09:00:00Z");
     const p = pageFor(content, SEED, "2026-11-03");
     expect(texts).toContain("3");
     expect(texts).toContain("ноября");
     expect(texts).toContain(p.text);
-    expect(made.url).toBe("https://pohui.pages.dev/");
+    expect(made.url).toBe("https://my-family-app.pages.dev/");
     expect(made.set).toBe(true);
     expect(made.refreshAfterDate).toBeInstanceOf(Date);
   });
 
   it("lock screen shows only the phrase; outside a widget it shows a preview", async () => {
-    const script = buildWidgetScript({ content, seed: SEED, from: "2026-10-26", timeZone: "Europe/Warsaw", appUrl: "https://pohui.pages.dev/" });
+    const script = buildWidgetScript({ content, seed: SEED, from: "2026-10-26", timeZone: "Europe/Warsaw", appUrl: "https://my-family-app.pages.dev/" });
     const lock = await runInFakeScriptable(script, "accessoryRectangular", "2026-10-26T20:00:00Z");
     expect(lock.texts).toEqual([pageFor(content, SEED, "2026-10-26").text]);
     const preview = await runInFakeScriptable(script, undefined, "2026-10-27T08:00:00Z");
@@ -80,7 +80,7 @@ describe("«Листочек дня» widget for Scriptable", () => {
   });
 
   it("asks for a new script once its pages run out", async () => {
-    const script = buildWidgetScript({ content, seed: SEED, from: "2026-10-26", timeZone: "Europe/Warsaw", appUrl: "https://pohui.pages.dev/", days: 3 });
+    const script = buildWidgetScript({ content, seed: SEED, from: "2026-10-26", timeZone: "Europe/Warsaw", appUrl: "https://my-family-app.pages.dev/", days: 3 });
     const { texts } = await runInFakeScriptable(script, "small", "2026-10-30T10:00:00Z");
     expect(texts[0]).toContain("закончились (2026-10-28)");
     expect(texts[1]).toContain("скопируйте новый скрипт");

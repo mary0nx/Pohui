@@ -4,7 +4,7 @@
 
 | Часть | Где | Стоимость |
 |---|---|---|
-| Mini App (интерфейс) | Cloudflare Pages, `https://pohui.pages.dev` | 0 |
+| Mini App (интерфейс) | Cloudflare Pages, `https://my-family-app.pages.dev` | 0 |
 | API + фоновые задачи + Telegram-бот (один процесс) | Render, бесплатный Web Service | 0 |
 | База данных PostgreSQL | Supabase, бесплатный проект | 0 |
 | «Будильник», чтобы Render не засыпал | cron-job.org | 0 |
@@ -32,7 +32,7 @@
 - Аккаунт GitHub, в котором лежит репозиторий `Pohui` (у вас уже есть).
 - Telegram-бот: **токен**, **username** (без `@`) и **short name** Mini App.
   Если бота ещё нет — `docs/SETUP_GUIDE.md`, «Шаг 5»; в пункте URL укажите
-  `https://pohui.pages.dev`.
+  `https://my-family-app.pages.dev`.
 
 ---
 
@@ -129,7 +129,7 @@ Family OS при каждом запуске отзывает у Data API дос
 3. **Deployments** → у верхней (последней) строки **⋯** → **Retry deployment**
    (или любой новый коммит в ветку — Pages пересоберёт сайт сам).
    Переменная попадает в сайт только при сборке, поэтому пересобрать обязательно.
-4. Откройте `https://pohui.pages.dev` в обычном браузере. Правильный результат:
+4. Откройте `https://my-family-app.pages.dev` в обычном браузере. Правильный результат:
    «**Откройте приложение в Telegram**» (вход только через Telegram — так и задумано).
    - «Сервер Family OS не подключён» — переменная не задана или сайт не пересобран.
    - «Сервер Family OS недоступен» — backend спит (подождите минуту и нажмите «Повторить»)
@@ -138,8 +138,8 @@ Family OS при каждом запуске отзывает у Data API дос
 ## Шаг 5. Telegram
 
 1. В BotFather: `/myapps` (или `/mybots` → ваш бот → **Bot Settings** → **Configure Mini App**)
-   → проверьте, что URL Mini App — `https://pohui.pages.dev`.
-   Используйте именно этот адрес, а не адрес вида `https://06c41622.pohui.pages.dev`:
+   → проверьте, что URL Mini App — `https://my-family-app.pages.dev`.
+   Используйте именно этот адрес, а не адрес вида `https://06c41622.my-family-app.pages.dev`:
    такой адрес относится к одной сборке и меняется.
 2. Кнопку меню «Family OS» и команды бот настраивает сам при запуске сервера.
 3. Напишите боту `/start` → нажмите кнопку **Открыть** → должно предложить создать семью.
@@ -219,6 +219,6 @@ deploy**. Без них всё остальное работает, ассист
   процесса API (те же задачи, что у отдельного worker в `compose.yaml`).
 - `EMBEDDED_BOT=true`: Telegram присылает сообщения на `https://<адрес_backend>/tg/webhook`.
   Каждый запрос проверяется по секретному заголовку; секрет вычисляется из `APP_SECRET_KEY`.
-- `CORS_ORIGINS=https://pohui.pages.dev` и `CORS_ORIGIN_REGEX` для адресов сборок
-  `https://<hash>.pohui.pages.dev`. Вход только по токену после проверки подписи Telegram,
+- `CORS_ORIGINS=https://my-family-app.pages.dev` и `CORS_ORIGIN_REGEX` для адресов сборок
+  `https://<hash>.my-family-app.pages.dev`. Вход только по токену после проверки подписи Telegram,
   cookies не используются.

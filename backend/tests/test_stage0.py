@@ -239,13 +239,13 @@ def test_keep_awake_is_on_by_default_only_on_render_with_the_embedded_worker(
     assert get_settings().keep_awake_url is None  # local / VPS: nothing sleeps
 
     settings_env.setenv("RENDER", "true")
-    settings_env.setenv("RENDER_EXTERNAL_URL", "https://familyos-api.onrender.com")
+    settings_env.setenv("RENDER_EXTERNAL_URL", "https://my-family-api.onrender.com")
     get_settings.cache_clear()
     assert get_settings().keep_awake_url is None  # no embedded worker: nothing to keep awake
 
     settings_env.setenv("EMBEDDED_WORKER", "true")
     get_settings.cache_clear()
-    assert get_settings().keep_awake_url == "https://familyos-api.onrender.com/health"
+    assert get_settings().keep_awake_url == "https://my-family-api.onrender.com/health"
 
     settings_env.setenv("KEEP_AWAKE_MINUTES", "0")
     get_settings.cache_clear()

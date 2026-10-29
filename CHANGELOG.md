@@ -2,6 +2,14 @@
 
 Формат: [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/), версии — SemVer.
 
+## [Unreleased]
+
+### Изменено
+- Репозиторий открыт публично: основной `README.md` на английском, русская версия — `README.ru.md`.
+- В документации и тестах адреса рабочего сервиса и имя бота заменены примерами
+  (`my-family-app.pages.dev`, `my-family-api.onrender.com`, `my_family_bot`); настоящие адреса
+  остались только в `render.yaml` и `keepalive.yml`, где они нужны для работы.
+
 ## [0.15.2] — 2026-10-28
 
 ### Изменено

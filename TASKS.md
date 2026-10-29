@@ -86,8 +86,8 @@
 - [x] Задачи по дням недели с утренним напоминанием
 
 ## Требует ваших ключей / окружения (код готов, живьём не проверено)
-- [x] Backend в интернете: Render + Supabase (`familyos-api-pf2z.onrender.com`), сайт
-      `pohui.pages.dev` с `VITE_API_URL`, вход через Telegram проверен
+- [x] Backend в интернете: Render + Supabase (`my-family-api.onrender.com`), сайт
+      `my-family-app.pages.dev` с `VITE_API_URL`, вход через Telegram проверен
 - [ ] Реальный бот Telegram: `/start`, доставка уведомлений, вебхук — нужен `TELEGRAM_BOT_TOKEN`
 - [ ] Открытие внутри клиентов Telegram (iOS/Android/Desktop/Web) — нужен домен с HTTPS
 - [ ] Реальные ответы OpenAI — нужны `OPENAI_API_KEY` и `AI_MODEL` (логика проверена на сценарном провайдере)

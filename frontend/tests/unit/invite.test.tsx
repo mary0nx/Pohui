@@ -12,10 +12,10 @@ const pending = { id: "inv-1", family_name: "Family", inviter_name: "Alex", expi
 
 describe("joining a partner's family", () => {
   it("finds the code in a pasted link or text", () => {
-    expect(inviteCode("https://t.me/pohui_family_bot/app?startapp=inv_AbC-123_xyz456")).toBe("inv_AbC-123_xyz456");
-    expect(inviteCode("Присоединяйся: https://t.me/pohui_family_bot?start=inv_AbC-123_xyz456 ")).toBe("inv_AbC-123_xyz456");
+    expect(inviteCode("https://t.me/my_family_bot/app?startapp=inv_AbC-123_xyz456")).toBe("inv_AbC-123_xyz456");
+    expect(inviteCode("Присоединяйся: https://t.me/my_family_bot?start=inv_AbC-123_xyz456 ")).toBe("inv_AbC-123_xyz456");
     expect(inviteCode("inv_short")).toBeNull();
-    expect(inviteCode("https://t.me/pohui_family_bot")).toBeNull();
+    expect(inviteCode("https://t.me/my_family_bot")).toBeNull();
   });
 
   it("offers the invitation remembered by the bot even when the app opens without it", async () => {
@@ -82,7 +82,7 @@ describe("joining a partner's family", () => {
     await user.click(screen.getByRole("button", { name: "Присоединиться по приглашению" }));
     expect(screen.getByText(/нет кода приглашения/)).toBeInTheDocument();
     await user.clear(screen.getByLabelText("Ссылка или код приглашения"));
-    await user.type(screen.getByLabelText("Ссылка или код приглашения"), "https://t.me/pohui_family_bot/app?startapp=inv_AbC-123_xyz456");
+    await user.type(screen.getByLabelText("Ссылка или код приглашения"), "https://t.me/my_family_bot/app?startapp=inv_AbC-123_xyz456");
     await user.click(screen.getByRole("button", { name: "Присоединиться по приглашению" }));
     expect(await screen.findByText("«Family»")).toBeInTheDocument();
     expect(m.calls.find((c) => c.url.pathname.endsWith("/invitations/preview"))!.body).toEqual({ token: "inv_AbC-123_xyz456" });

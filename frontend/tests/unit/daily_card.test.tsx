@@ -15,7 +15,7 @@ const SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100"><circ
 
 function routes(extra: Parameters<typeof mockFetch>[0] = [], art: "ok" | "missing" = "ok") {
   return [
-    { path: /\/meta$/, body: { ...meta(), bot_username: "pohui_family_bot" } },
+    { path: /\/meta$/, body: { ...meta(), bot_username: "my_family_bot" } },
     { path: /\/me$/, body: me() },
     { path: new RegExp(`/families/${FAMILY_ID}$`), body: family },
     { path: /\/tasks$/, body: [] },

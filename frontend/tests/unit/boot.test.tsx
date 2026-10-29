@@ -41,7 +41,7 @@ describe("static-host build (Cloudflare Pages) without VITE_API_URL", () => {
 
   it("refuses a Cloudflare Pages address as VITE_API_URL", async () => {
     vi.stubGlobal("__API_URL_REQUIRED__", true);
-    vi.stubEnv("VITE_API_URL", "https://pohui.pages.dev");
+    vi.stubEnv("VITE_API_URL", "https://my-family-app.pages.dev");
     const m = mockFetch([]);
     render(<App />);
     expect(await screen.findByText("Сервер Family OS не подключён")).toBeInTheDocument();

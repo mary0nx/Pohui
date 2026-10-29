@@ -7,7 +7,7 @@ Cloudflare Pages хостит **только статический frontend** (
 
 ## Почему без backend появлялась ошибка `V.dev_auth`
 
-1. Frontend по умолчанию обращается к API на **своём же** домене: `https://pohui.pages.dev/api/v1/meta`.
+1. Frontend по умолчанию обращается к API на **своём же** домене: `https://my-family-app.pages.dev/api/v1/meta`.
 2. Backend там нет, а Pages для любых неизвестных путей отдаёт `index.html` со статусом **200**
    (режим одностраничного приложения).
 3. Раньше клиент API не проверял тип ответа: HTML не разбирался как JSON, и вместо ошибки
@@ -54,16 +54,16 @@ Cloudflare Dashboard → **Workers & Pages** → проект **pohui** → **Se
   в его `.env`. Pages их не видит и не должен видеть.
 
 ### Адрес Mini App
-Используйте **постоянный адрес проекта** `https://pohui.pages.dev` (или свой домен в
-**Custom domains**), а не адрес конкретного деплоя вида `https://7627086c.pohui.pages.dev` —
+Используйте **постоянный адрес проекта** `https://my-family-app.pages.dev` (или свой домен в
+**Custom domains**), а не адрес конкретного деплоя вида `https://7627086c.my-family-app.pages.dev` —
 он меняется при каждой сборке.
 
 ## Настройки backend для такой схемы
 
 В `.env` на сервере backend:
 ```
-FRONTEND_URL=https://pohui.pages.dev
-CORS_ORIGINS=https://pohui.pages.dev
+FRONTEND_URL=https://my-family-app.pages.dev
+CORS_ORIGINS=https://my-family-app.pages.dev
 CORS_ORIGIN_REGEX=^https://[a-z0-9-]+\.pohui\.pages\.dev$   # адреса отдельных сборок (по желанию)
 BACKEND_URL=https://<адрес_backend>
 TELEGRAM_WEBHOOK_URL=https://<адрес_backend>/tg/webhook
@@ -71,7 +71,7 @@ SITE_ADDRESS=<адрес_backend_без_https>
 ```
 - `CORS_ORIGINS` разрешает браузеру обращаться к API с домена Pages (несколько адресов —
   через запятую, например вместе со своим доменом).
-- В BotFather (`/newapp` или настройки Mini App) URL — `https://pohui.pages.dev`.
+- В BotFather (`/newapp` или настройки Mini App) URL — `https://my-family-app.pages.dev`.
 - Caddy из `compose.yaml` по-прежнему нужен: он даёт HTTPS для API и вебхука бота.
 
 ## Где запустить backend
@@ -99,6 +99,6 @@ SITE_ADDRESS=<адрес_backend_без_https>
 2. `https://<адрес_backend>/api/v1/meta` → JSON с полями `env`, `dev_auth`, `ai_available`,
    `bot_username`, `storage`, `max_upload_mb`; `dev_auth` должен быть `false`.
 3. Задать `VITE_API_URL` в Pages и пересобрать.
-4. Открыть `https://pohui.pages.dev` в браузере: должно появиться «Откройте приложение в
+4. Открыть `https://my-family-app.pages.dev` в браузере: должно появиться «Откройте приложение в
    Telegram» (это правильно — вход только через Telegram).
 5. Открыть Mini App из бота в Telegram: должно предложить создать семью.
