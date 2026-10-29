@@ -73,7 +73,7 @@ class Settings(BaseSettings):
         default_factory=lambda: ["http://localhost:5173"]
     )
     # Optional regex for extra allowed origins, e.g. Cloudflare Pages deployment previews:
-    # ^https://[a-z0-9-]+\.pohui\.pages\.dev$  (auth is a bearer token, no cookies).
+    # ^https://[a-z0-9-]+\.my-family-app\.pages\.dev$  (auth is a bearer token, no cookies).
     cors_origin_regex: str = ""
     default_timezone: str = "Europe/Warsaw"
     default_currency: str = "PLN"

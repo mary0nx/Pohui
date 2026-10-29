@@ -119,7 +119,7 @@ Family OS при каждом запуске отзывает у Data API дос
 
 ## Шаг 4. Подключить frontend в Cloudflare Pages
 
-1. https://dash.cloudflare.com → **Workers & Pages** → проект **pohui** → **Settings** →
+1. https://dash.cloudflare.com → **Workers & Pages** → проект **my-family-app** → **Settings** →
    **Variables and Secrets** → **Add**.
 2. **Type**: Text. **Variable name**: `VITE_API_URL`.
    **Value**: адрес backend из шага 2, без `/` в конце, например

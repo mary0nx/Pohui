@@ -79,7 +79,7 @@ def test_derived_webhook_secret_is_stable_and_telegram_compatible() -> None:
 
 async def test_cors_regex_allows_pages_previews_only(settings_env: pytest.MonkeyPatch) -> None:
     settings_env.setenv("CORS_ORIGINS", "https://my-family-app.pages.dev")
-    settings_env.setenv("CORS_ORIGIN_REGEX", r"^https://[a-z0-9-]+\.pohui\.pages\.dev$")
+    settings_env.setenv("CORS_ORIGIN_REGEX", r"^https://[a-z0-9-]+\.my-family-app\.pages\.dev$")
     from app.main import create_app
 
     preflight = {"Access-Control-Request-Method": "POST"}

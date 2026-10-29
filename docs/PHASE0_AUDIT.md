@@ -13,7 +13,7 @@
 
 | Часть | Где | Как проверено |
 |---|---|---|
-| Frontend | Cloudflare Pages, проект `pohui`, https://my-family-app.pages.dev, ветка выше, сборка `frontend/` | сайт отдаёт актуальную сборку; в бандле адрес API `https://my-family-api.onrender.com` |
+| Frontend | Cloudflare Pages, проект `my-family-app`, https://my-family-app.pages.dev, ветка выше, сборка `frontend/` | сайт отдаёт актуальную сборку; в бандле адрес API `https://my-family-api.onrender.com` |
 | Backend | Render, бесплатный web-сервис `familyos-api` (Docker, Frankfurt), один процесс: API + встроенный worker (`EMBEDDED_WORKER`) + вебхук бота (`EMBEDDED_BOT`) | `/health` → ok, `/api/v1/meta` → `env=production`, `dev_auth=false`, `ai_available=false`, `bot_username=my_family_bot`, `storage=local` |
 | PostgreSQL | Supabase free (eu-west-1, Session pooler) | `/health/ready` → ok: база доступна и версия миграций равна head кода (`d91f4b6a2c58`) |
 | Бот | @my_family_bot, вебхук `/tg/webhook` внутри API | вебхук без секрета → 401; бот доставил ключ Apple Pay в чат (видно по ответу приложения на скриншоте пользователя) |

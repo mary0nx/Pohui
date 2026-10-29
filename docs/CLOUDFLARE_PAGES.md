@@ -24,7 +24,7 @@ Cloudflare Pages хостит **только статический frontend** (
 
 ## Настройки проекта в Cloudflare Pages
 
-Cloudflare Dashboard → **Workers & Pages** → проект **pohui** → **Settings**.
+Cloudflare Dashboard → **Workers & Pages** → проект **my-family-app** → **Settings**.
 
 ### Build (Сборка) — оставить как есть
 | Поле | Значение |
@@ -64,7 +64,7 @@ Cloudflare Dashboard → **Workers & Pages** → проект **pohui** → **Se
 ```
 FRONTEND_URL=https://my-family-app.pages.dev
 CORS_ORIGINS=https://my-family-app.pages.dev
-CORS_ORIGIN_REGEX=^https://[a-z0-9-]+\.pohui\.pages\.dev$   # адреса отдельных сборок (по желанию)
+CORS_ORIGIN_REGEX=^https://[a-z0-9-]+\.my-family-app\.pages\.dev$   # адреса отдельных сборок (по желанию)
 BACKEND_URL=https://<адрес_backend>
 TELEGRAM_WEBHOOK_URL=https://<адрес_backend>/tg/webhook
 SITE_ADDRESS=<адрес_backend_без_https>
