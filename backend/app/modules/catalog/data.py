@@ -84,6 +84,15 @@ CATALOG: tuple[CatalogEntry, ...] = (
     _E("cabbage", "Капуста", "Kapusta", "vegetables", "шт", "1f96c", ("капуста белокочанная",)),
     _E("broccoli", "Брокколи", "Brokuł", "vegetables", "шт", "1f966", ("brokuły",)),
     _E("cauliflower", "Цветная капуста", "Kalafior", "vegetables", "шт", "1f966", ()),
+    _E(
+        "asparagus",
+        "Спаржа",
+        "Szparagi",
+        "vegetables",
+        "пучок",
+        "1f96c",
+        ("szparagi", "спаржа зелёная"),
+    ),
     _E("zucchini", "Кабачок", "Cukinia", "vegetables", "шт", "1f952", ("кабачки", "цукини")),
     _E("eggplant", "Баклажан", "Bakłażan", "vegetables", "шт", "1f346", ("баклажаны",)),
     _E(
