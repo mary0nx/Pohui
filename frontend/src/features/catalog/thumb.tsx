@@ -21,11 +21,17 @@ const CATEGORY_LOOK: Record<string, { image: string; tint: string }> = {
   "Гигиена и уход": { image: "1f9f4", tint: "bg-mint" },
 };
 
-/** "local:<code>" → bundled SVG; an https URL (allow-listed by the server) as is. */
+/** "local:<code>" → bundled image; an https URL (allow-listed by the server) as is.
+ * A Twemoji code point (hex) is a flat `.svg` glyph; a named ref ("asparagus") is a full
+ * `.png` illustration that fills the tile. */
 export function imageSrc(ref: string | null | undefined): string | null {
   if (!ref) return null;
-  const local = /^local:([0-9a-f-]+)$/.exec(ref);
-  if (local) return `/products/${local[1]}.svg`;
+  const local = /^local:([0-9a-z][0-9a-z-]*)$/.exec(ref);
+  if (local) {
+    const code = local[1] ?? "";
+    const ext = /^[0-9a-f]+(?:-[0-9a-f]+)*$/.test(code) ? "svg" : "png";
+    return `/products/${code}.${ext}`;
+  }
   return ref.startsWith("https://") ? ref : null;
 }
 
@@ -36,14 +42,25 @@ export function ProductThumb({ image, category, size = 44, className }: { image?
   const candidates = [imageSrc(image), look ? `/products/${look.image}.svg` : null].filter((x): x is string => Boolean(x));
   const [failed, setFailed] = useState(0);
   const src = candidates[failed];
+  // A named PNG illustration carries its own soft backdrop and fills the whole tile; a
+  // Twemoji glyph sits small and centred on the category tint.
+  const fullBleed = !!src && src.endsWith(".png");
   return (
     <span
-      className={cn("inline-flex shrink-0 items-center justify-center rounded-2xl", look?.tint ?? "bg-surface-2", className)}
+      className={cn("inline-flex shrink-0 items-center justify-center overflow-hidden rounded-2xl", fullBleed ? "bg-surface-2" : (look?.tint ?? "bg-surface-2"), className)}
       style={{ width: size, height: size }}
       aria-hidden
     >
       {src ? (
-        <img src={src} alt="" loading="lazy" decoding="async" draggable={false} onError={() => setFailed((n) => n + 1)} style={{ width: size * 0.62, height: size * 0.62 }} />
+        <img
+          src={src}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          onError={() => setFailed((n) => n + 1)}
+          style={fullBleed ? { width: size, height: size, objectFit: "cover" } : { width: size * 0.62, height: size * 0.62 }}
+        />
       ) : (
         <ShoppingBasket className="text-muted" style={{ width: size * 0.5, height: size * 0.5 }} />
       )}

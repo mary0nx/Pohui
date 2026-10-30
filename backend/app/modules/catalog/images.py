@@ -21,7 +21,9 @@ from app.config import get_settings
 from app.core.errors import ValidationFailed
 from app.modules.catalog.service import KNOWN_IMAGES
 
-_LOCAL = re.compile(r"^local:([0-9a-f]{2,6}(?:-[0-9a-f]{2,6}){0,4})$")
+# A Twemoji code point ("1f954", "1f1f5-1f1f1") or a named bundled illustration ("asparagus",
+# "green-beans"). Either way it must be one of KNOWN_IMAGES, so the shape stays permissive.
+_LOCAL = re.compile(r"^local:([0-9a-z][0-9a-z-]{1,40})$")
 
 
 def validate_image_ref(ref: str | None) -> str | None:
