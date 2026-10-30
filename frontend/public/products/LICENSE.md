@@ -1,9 +1,11 @@
 # Изображения товаров
 
-SVG-файлы в этой папке — графика **Twemoji** (пакет `@twemoji/svg` 15.0.0).
+Иллюстрации в этой папке — собственная графика Family OS, по одной на каждый товар каталога
+(файл назван по id товара из `backend/app/modules/catalog/data.py`).
 
-Copyright 2019 Twitter, Inc and other contributors; Copyright 2024 jdecked and contributors.
-Графика распространяется по лицензии **CC-BY 4.0**: https://creativecommons.org/licenses/by/4.0/
-Проект: https://github.com/jdecked/twemoji
+* `*.svg` — векторные рисунки, их генерирует `frontend/scripts/product-art.mjs`
+  (`node scripts/product-art.mjs`); правьте рисунок в `frontend/scripts/product-art/`, а не SVG-файл.
+* `asparagus.png`, `green-beans.png` — иллюстрации, присланные владельцем проекта.
+* `category-*.svg` — запасные картинки категорий для товаров, которых нет в каталоге.
 
-Файлы не изменялись. Используются как миниатюры товаров в списке покупок Family OS.
+Распространяются вместе с кодом по лицензии MIT (см. `LICENSE` в корне репозитория).

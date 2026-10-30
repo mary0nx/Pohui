@@ -133,7 +133,7 @@ describe("products on the home screen", () => {
             needed_total: 2,
             items: ["Молоко", "Киноа"],
             entries: [
-              { id: "i1", name: "Молоко", quantity: "2.000", unit: "л", image: "local:1f95b", category: "Молочные продукты и яйца", status: "needed" },
+              { id: "i1", name: "Молоко", quantity: "2.000", unit: "л", image: "local:milk.svg", category: "Молочные продукты и яйца", status: "needed" },
               { id: "i2", name: "Киноа", quantity: null, unit: null, image: null, category: null, status: "needed" },
             ],
           },
@@ -143,7 +143,7 @@ describe("products on the home screen", () => {
     ]);
     render(<App />);
     const list = await screen.findByRole("list", { name: "Что купить" });
-    expect(list.querySelector('img[src="/products/1f95b.svg"]')).not.toBeNull();
+    expect(list.querySelector('img[src="/products/milk.svg"]')).not.toBeNull();
     expect(within(list).getByText("2 л")).toBeInTheDocument();
     await userEvent.click(within(list).getByRole("checkbox", { name: "Купить Молоко" }));
     await waitFor(() => expect(m.calls.some((c) => c.method === "PATCH")).toBe(true));
@@ -198,7 +198,7 @@ describe("catalogue in the shopping list", () => {
       {
         path: /\/catalog$/,
         handler: (_b: unknown, url: URL) => ({
-          items: url.searchParams.get("q") === "мол" ? [{ id: "milk", name: "Молоко", name_pl: "Mleko", category: "dairy", category_label: "Молочные продукты и яйца", unit: "л", image: "local:1f95b" }] : [],
+          items: url.searchParams.get("q") === "мол" ? [{ id: "milk", name: "Молоко", name_pl: "Mleko", category: "dairy", category_label: "Молочные продукты и яйца", unit: "л", image: "local:milk.svg" }] : [],
           external: [],
           external_enabled: false,
         }),
@@ -219,14 +219,26 @@ describe("catalogue in the shopping list", () => {
 
 describe("product thumbnail", () => {
   it("falls back to the category picture, then to an icon", () => {
-    const { container } = render(<ProductThumb image="local:1f95b" category="Напитки" />);
+    const { container } = render(<ProductThumb image="local:milk.svg" category="Напитки" />);
     const img = () => container.querySelector("img");
-    expect(img()!.getAttribute("src")).toBe("/products/1f95b.svg");
+    expect(img()!.getAttribute("src")).toBe("/products/milk.svg");
     fireEvent.error(img()!);
-    expect(img()!.getAttribute("src")).toBe("/products/1f9c3.svg"); // category picture
+    expect(img()!.getAttribute("src")).toBe("/products/category-drinks.svg"); // category picture
     fireEvent.error(img()!);
     expect(img()).toBeNull();
     expect(container.querySelector("svg")).not.toBeNull(); // basket icon
+  });
+
+  it("fills the tile with a bundled illustration and supports hand-made PNGs", () => {
+    const { container } = render(<ProductThumb image="local:asparagus.png" size={40} />);
+    const img = container.querySelector("img")!;
+    expect(img.getAttribute("src")).toBe("/products/asparagus.png");
+    expect(img.style.width).toBe("40px");
+  });
+
+  it("shows the category picture for retired Twemoji codes on older items", () => {
+    const { container } = render(<ProductThumb image="local:1f95b" category="Молочные продукты и яйца" />);
+    expect(container.querySelector("img")!.getAttribute("src")).toBe("/products/category-dairy.svg");
   });
 
   it("never renders arbitrary image references", () => {

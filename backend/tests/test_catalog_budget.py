@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+import uuid
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
+from xml.etree import ElementTree
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import update
 
 from app.core.errors import ValidationFailed
 from app.db.session import get_sessionmaker
+from app.models import ShoppingItem
 from app.modules.catalog import service as catalog
 from app.modules.catalog.data import CATALOG
 from app.modules.catalog.images import CachedImageSearch, ImageCandidate, validate_image_ref
@@ -51,12 +55,80 @@ async def test_catalogue_size_uniqueness_and_idempotent_seed() -> None:
     assert await catalog_rows() == len(CATALOG)
 
 
-def test_every_product_has_a_bundled_licensed_thumbnail() -> None:
+# Products that deliberately share one picture. Empty: every product has its own illustration.
+SHARED_PICTURES_ALLOWED: dict[str, set[str]] = {}
+
+
+def test_every_product_has_its_own_illustration() -> None:
+    """The catalogue is the registry: each product id points at its own file, named after the id
+    (a stable binding, not a lookup by display name), and no picture is reused."""
     assert (FRONTEND_PRODUCTS / "LICENSE.md").exists()
+    by_image: dict[str, list[str]] = {}
+    for e in CATALOG:
+        assert e.image in (f"{e.id}.svg", f"{e.id}.png"), (e.id, e.image)
+        by_image.setdefault(e.image, []).append(e.id)
+    shared = {img: set(ids) for img, ids in by_image.items() if len(ids) > 1}
+    assert shared == SHARED_PICTURES_ALLOWED
+    category_images = {img for _, img in catalog.CATEGORIES.values()}
+    assert len(category_images) == len(catalog.CATEGORIES)
+    assert not category_images & by_image.keys()  # a fallback never passes for a product
+
+
+def test_bundled_illustrations_exist_are_safe_and_small() -> None:
     for image in catalog.KNOWN_IMAGES:
-        svg = FRONTEND_PRODUCTS / f"{image}.svg"
-        assert svg.exists(), image
-        assert b"<script" not in svg.read_bytes()
+        path = FRONTEND_PRODUCTS / image
+        assert path.exists(), image
+        data = path.read_bytes()
+        if image.endswith(".svg"):
+            root = ElementTree.fromstring(data)  # noqa: S314 — our own bundled files
+            assert root.tag == "{http://www.w3.org/2000/svg}svg", image
+            assert b"<script" not in data and b'href="http' not in data, image
+            assert len(data) < 12_000, image
+        else:
+            assert data.startswith(b"\x89PNG\r\n\x1a\n"), image
+            assert len(data) < 150_000, image
+
+
+def test_no_stale_pictures_left_in_the_bundle() -> None:
+    """Retired pictures (the old shared Twemoji glyphs) are gone: every file is in use."""
+    files = {p.name for p in FRONTEND_PRODUCTS.iterdir() if p.suffix in (".svg", ".png")}
+    assert files == set(catalog.KNOWN_IMAGES)
+
+
+async def test_older_items_pick_up_the_new_pictures(couple: tuple[Actor, Actor]) -> None:
+    alice, _ = couple
+    lid = await main_list(alice)
+    r = await alice.post(
+        alice.f(f"/shopping/lists/{lid}/items/bulk"), {"text": "Молоко, Бананы, Спаржа, киноа"}
+    )
+    assert r.status_code == 201, r.text
+    milk, bananas, asparagus, quinoa = (uuid.UUID(i["id"]) for i in r.json())
+    # Put the items into the state that items added before this change are in.
+    stale = {
+        milk: ("milk", "local:1f95b"),  # linked, retired Twemoji code
+        bananas: (None, None),  # never linked
+        asparagus: (None, None),  # added before the product joined the catalogue
+        quinoa: (None, "local:1f35a"),  # unknown product with a retired picture
+    }
+    async with get_sessionmaker()() as db:
+        for item_id, (cid, img) in stale.items():
+            await db.execute(
+                update(ShoppingItem)
+                .where(ShoppingItem.id == item_id)
+                .values(catalog_id=cid, image=img, category=None)
+            )
+        await db.commit()
+        await catalog.sync_catalog(db)
+        await catalog.sync_catalog(db)  # idempotent
+        await db.commit()
+    got = {
+        uuid.UUID(i["id"]): (i["catalog_id"], i["image"], i["category"])
+        for i in await items(alice, lid)
+    }
+    assert got[milk][:2] == ("milk", "local:milk.svg")
+    assert got[bananas] == ("bananas", "local:bananas.svg", "Фрукты и ягоды")
+    assert got[asparagus] == ("asparagus", "local:asparagus.png", "Овощи и зелень")
+    assert got[quinoa] == (None, None, None)
 
 
 @pytest.mark.parametrize(
@@ -94,7 +166,7 @@ async def test_catalog_api(alice: Actor) -> None:
     body = r.json()
     assert body["external_enabled"] is False  # no external image source is configured
     first = body["items"][0]
-    assert first["id"] == "bananas" and first["image"] == "local:1f34c"
+    assert first["id"] == "bananas" and first["image"] == "local:bananas.svg"
     assert first["category_label"] == "Фрукты и ягоды"
     cats = (await alice.get(alice.f("/catalog/categories"))).json()
     assert len(cats) == 13 and sum(c["count"] for c in cats) == len(CATALOG)
@@ -109,8 +181,10 @@ async def test_catalog_needs_a_family_member(client: AsyncClient, eve: Actor) ->
 
 
 def test_image_references_are_allow_listed(monkeypatch: pytest.MonkeyPatch) -> None:
-    assert validate_image_ref("local:1f95b") == "local:1f95b"
+    assert validate_image_ref("local:milk.svg") == "local:milk.svg"
+    assert validate_image_ref("local:asparagus.png") == "local:asparagus.png"
     for bad in ("local:../../etc/passwd", "local:ffffff", "javascript:alert(1)",
+                "local:1f95b", "local:milk.js", "local:unknown.svg",
                 "http://images.example/a.png", "https://evil.example/a.png"):  # fmt: skip
         with pytest.raises(ValidationFailed):
             validate_image_ref(bad)
@@ -191,7 +265,7 @@ async def test_catalogue_items_in_the_family_list(couple: tuple[Actor, Actor], e
     )
     assert r.status_code == 201, r.text
     [milk] = r.json()
-    assert (milk["catalog_id"], milk["image"]) == ("milk", "local:1f95b")
+    assert (milk["catalog_id"], milk["image"]) == ("milk", "local:milk.svg")
     assert milk["category"] == "Молочные продукты и яйца" and milk["unit"] == "л"
 
     # Typed text is matched on the server; a new product keeps working without a picture.
@@ -200,7 +274,7 @@ async def test_catalogue_items_in_the_family_list(couple: tuple[Actor, Actor], e
     )
     assert r.status_code == 201, r.text
     eggs, quinoa = r.json()
-    assert eggs["catalog_id"] == "eggs" and eggs["image"] == "local:1f95a"
+    assert eggs["catalog_id"] == "eggs" and eggs["image"] == "local:eggs.svg"
     assert eggs["unit"] == "шт"  # the typed unit wins
     assert quinoa["catalog_id"] is None and quinoa["image"] is None
 
@@ -231,7 +305,7 @@ async def test_catalogue_items_in_the_family_list(couple: tuple[Actor, Actor], e
     r = await alice.patch(
         alice.f(f"/shopping/lists/{lid}/items/{quinoa['id']}"), {"name": "Бананы"}
     )
-    assert (r.json()["catalog_id"], r.json()["image"]) == ("bananas", "local:1f34c")
+    assert (r.json()["catalog_id"], r.json()["image"]) == ("bananas", "local:bananas.svg")
 
     # Delete.
     assert (
@@ -249,7 +323,7 @@ async def test_catalogue_items_in_the_family_list(couple: tuple[Actor, Actor], e
     # The home screen shows the needed items with thumbnails.
     dash = (await alice.get(alice.f("/dashboard"))).json()["shopping"]
     assert dash["needed_total"] == 1
-    assert [(e["name"], e["image"]) for e in dash["entries"]] == [("Бананы", "local:1f34c")]
+    assert [(e["name"], e["image"]) for e in dash["entries"]] == [("Бананы", "local:bananas.svg")]
 
 
 # --- Budget: limit / spent / remaining --------------------------------------------------------

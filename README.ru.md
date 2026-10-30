@@ -248,7 +248,6 @@ Makefile            частые команды
 ## Лицензия
 
 Код и документация распространяются по [лицензии MIT](LICENSE).
-Стороннее содержимое остаётся под своими лицензиями: картинки товаров Twemoji (CC-BY 4.0,
-`frontend/public/products/`), логотипы брендов из Simple Icons (CC0) и Wikimedia Commons
+Стороннее содержимое остаётся под своими лицензиями: логотипы брендов из Simple Icons (CC0) и Wikimedia Commons
 (общественное достояние; логотипы — товарные знаки владельцев, `frontend/public/assets/brands/`)
 и расписание Вроцлава GTFS (CC0). Подробности — [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

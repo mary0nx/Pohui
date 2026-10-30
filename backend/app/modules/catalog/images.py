@@ -1,7 +1,7 @@
 """Thumbnails for shopping items.
 
-Bundled images ("local:<code>") always work in production: the SVGs ship with the frontend
-(`/products/<code>.svg`). An external image search can be plugged in through
+Bundled images ("local:<file>") always work in production: the illustrations ship with the
+frontend (`/products/<file>`). An external image search can be plugged in through
 `ExternalImageSource`, but none is configured — there is no default provider and no made-up
 API. Whatever source is used, an item may only store a bundled image or an https URL on an
 allow-listed host (IMAGE_ALLOWED_HOSTS), and external lookups go through a cache and a
@@ -21,9 +21,8 @@ from app.config import get_settings
 from app.core.errors import ValidationFailed
 from app.modules.catalog.service import KNOWN_IMAGES
 
-# A Twemoji code point ("1f954", "1f1f5-1f1f1") or a named bundled illustration ("asparagus",
-# "green-beans"). Either way it must be one of KNOWN_IMAGES, so the shape stays permissive.
-_LOCAL = re.compile(r"^local:([0-9a-z][0-9a-z-]{1,40})$")
+# A bundled illustration file ("carrots.svg", "asparagus.png"); it must also be in KNOWN_IMAGES.
+_LOCAL = re.compile(r"^local:([0-9a-z][0-9a-z-]{0,40}\.(?:svg|png))$")
 
 
 def validate_image_ref(ref: str | None) -> str | None:

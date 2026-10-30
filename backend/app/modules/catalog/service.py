@@ -7,11 +7,11 @@ import time
 import unicodedata
 from dataclasses import dataclass, field
 
-from sqlalchemy import select
+from sqlalchemy import literal, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import ProductCatalog
+from app.models import ProductCatalog, ShoppingItem
 from app.modules.catalog.data import CATALOG, CATEGORIES
 
 # Polish letters folded so "ogorki" finds "ogórki"; ё → е for Russian.
@@ -98,7 +98,39 @@ async def sync_catalog(db: AsyncSession) -> int:
             .on_conflict_do_update(index_elements=[ProductCatalog.id], set_=values)
         )
     invalidate_cache()
+    await refresh_item_pictures(db)
     return len(CATALOG)
+
+
+async def refresh_item_pictures(db: AsyncSession) -> None:
+    """Bring shopping items in line with the catalogue's pictures. An item keeps the picture it
+    got when it was added, so after the artwork changes (or a product joins the catalogue) older
+    items would show stale or missing pictures. Linked items get their product's current
+    picture; unlinked items without a picture are linked when their name clearly is a catalogue
+    product; bundled pictures that no longer exist are dropped. External https pictures chosen
+    for an item are never touched. Idempotent: a second run changes nothing."""
+    bundled = or_(ShoppingItem.image.is_(None), ShoppingItem.image.like("local:%"))
+    current = literal("local:") + ProductCatalog.image
+    await db.execute(
+        update(ShoppingItem)
+        .where(ShoppingItem.catalog_id == ProductCatalog.id, bundled)
+        .where(or_(ShoppingItem.image.is_(None), ShoppingItem.image != current))
+        .values(image=current)
+        .execution_options(synchronize_session=False)
+    )
+    known = {local_image_ref(img) for img in KNOWN_IMAGES}
+    stray = (
+        await db.execute(select(ShoppingItem).where(ShoppingItem.catalog_id.is_(None), bundled))
+    ).scalars()
+    for item in stray:
+        if item.image in known:
+            continue
+        product = await match(db, item.name)
+        if product is not None:
+            item.catalog_id, item.image = product.id, local_image_ref(product.image)
+            item.category = item.category or product.category_label
+        elif item.image is not None:
+            item.image = None  # a picture that is no longer bundled: fall back to the category
 
 
 # The catalogue is small (~200 rows) and read-mostly: keep it in memory per process.

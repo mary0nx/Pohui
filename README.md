@@ -253,6 +253,5 @@ Makefile            common commands
 ## License
 
 The code and documentation are released under the [MIT License](LICENSE).
-Third-party content keeps its own license: Twemoji product images (CC-BY 4.0, `frontend/public/products/`),
-brand logos from Simple Icons (CC0) and Wikimedia Commons (public domain; the logos are trademarks of
+Third-party content keeps its own license: brand logos from Simple Icons (CC0) and Wikimedia Commons (public domain; the logos are trademarks of
 their owners, `frontend/public/assets/brands/`), and Wrocław GTFS timetable data (CC0). Details: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

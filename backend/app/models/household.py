@@ -83,7 +83,7 @@ class ShoppingItem(UUIDPk, Timestamps, Base):
     # Day the item should be bought (week planner); the family gets a reminder that morning.
     planned_for: Mapped[date | None] = mapped_column(sa.Date)
     # Catalogue product the item was added from (or matched to), and its thumbnail:
-    # "local:<code>" for a bundled image, or an https URL from an allow-listed image source.
+    # "local:<file>" for a bundled illustration, or an https URL from an allow-listed source.
     catalog_id: Mapped[str | None] = mapped_column(
         sa.ForeignKey("product_catalog.id", ondelete="SET NULL")
     )
