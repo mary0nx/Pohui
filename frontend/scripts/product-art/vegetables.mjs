@@ -143,11 +143,16 @@ export default {
     let s = shadow(64, 30);
     const rnd = seeded("dill");
     const branch = (x, y, deg, len) => {
-      let t = S(`M0 0Q${-4} ${-len / 2} 0 ${-len}`, "#5f9e4a", 1.8);
+      // Feathery needles: all of one shade in a single path.
+      let dark = "", light = "";
       for (let i = 0; i < 9; i++) {
         const yy = -len * (0.25 + i * 0.085), sp = 7 + rnd() * 6;
-        for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) t += S(`M0 ${yy.toFixed(1)}l${(sx * sp * (0.5 + k * 0.25)).toFixed(1)} ${(-4 - k * 3).toFixed(1)}`, k ? "#86c46a" : "#6fb35a", 1);
+        for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) {
+          const seg = `M0 ${yy.toFixed(1)}l${(sx * sp * (0.5 + k * 0.25)).toFixed(1)} ${(-4 - k * 3).toFixed(1)}`;
+          if (k) light += seg; else dark += seg;
+        }
       }
+      const t = S(`M0 0Q${-4} ${-len / 2} 0 ${-len}`, "#5f9e4a", 1.8) + S(dark, "#6fb35a", 1) + S(light, "#86c46a", 1);
       return G(t, `transform="translate(${x} ${y}) rotate(${deg})"`);
     };
     s += branch(64, 104, -4, 76) + branch(56, 104, -24, 64) + branch(72, 104, 20, 66);

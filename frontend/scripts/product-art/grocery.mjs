@@ -72,14 +72,16 @@ export default {
   lentils: (c) => bowl(c, { color: ["#c9e7d4", "#7fb898"], rim: "#eef8f2", content: heap(64, 70, 66, "#f08a4a", ["#f7a05a", "#e8783a", "#ffb878"], "lentil", 90, 2, 15) }),
   beans: (c) => {
     const rnd = seeded("beans");
+    const fill = c.rg("#e2585a", "#8e1f2e");
     let s = shadow(64, 42);
-    for (let i = 0; i < 16; i++) { const x = 34 + rnd() * 60, y = 62 + rnd() * 34; s += rot(P(`M${x - 8} ${y}Q${x - 9} ${y - 7} ${x - 2} ${y - 6}Q${x + 2} ${y - 4} ${x + 6} ${y - 6}Q${x + 11} ${y - 6} ${x + 9} ${y + 1}Q${x + 6} ${y + 7} ${x} ${y + 6}Q${x - 7} ${y + 6} ${x - 8} ${y}Z`, c.rg("#e2585a", "#8e1f2e")) + hl(x - 3, y - 3, 3, 1.5, -10, 0.45), rnd() * 180, x, y); }
+    for (let i = 0; i < 16; i++) { const x = Math.round(34 + rnd() * 60), y = Math.round(62 + rnd() * 34); s += rot(P(`M${x - 8} ${y}Q${x - 9} ${y - 7} ${x - 2} ${y - 6}Q${x + 2} ${y - 4} ${x + 6} ${y - 6}Q${x + 11} ${y - 6} ${x + 9} ${y + 1}Q${x + 6} ${y + 7} ${x} ${y + 6}Q${x - 7} ${y + 6} ${x - 8} ${y}Z`, fill) + hl(x - 3, y - 3, 3, 1.5, -10, 0.45), Math.round(rnd() * 180), x, y); }
     return s;
   },
   chickpeas: (c) => {
     const rnd = seeded("chick");
+    const fill = c.rg("#fbe2b0", "#d9a85e");
     let s = shadow(64, 42);
-    for (let i = 0; i < 18; i++) { const x = 34 + rnd() * 60, y = 60 + rnd() * 38, r = 6.5 + rnd() * 1.5; s += C(x, y, r, c.rg("#fbe2b0", "#d9a85e")) + P(`M${x - 1} ${y - r}q3 3 1 6`, "none", `stroke="#c9944a" stroke-width="1.2"`) + C(x - 2, y - 2, 1.5, "#fff", `opacity=".5"`); }
+    for (let i = 0; i < 18; i++) { const x = Math.round(34 + rnd() * 60), y = Math.round(60 + rnd() * 38), r = 6.5 + Math.round(rnd() * 3) / 2; s += C(x, y, r, fill) + P(`M${x - 1} ${y - r}q3 3 1 6`, "none", `stroke="#c9944a" stroke-width="1.2"`) + C(x - 2, y - 2, 1.5, "#fff", `opacity=".5"`); }
     return s;
   },
 };

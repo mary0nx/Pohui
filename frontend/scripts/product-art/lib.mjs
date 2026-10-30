@@ -183,16 +183,18 @@ export function bowl(ctx, o) {
 
 /** A heaped mound of grains/food inside a bowl opening: dots of `colors` over a base ellipse. */
 export function heap(x, y, w, base, colors, id, count = 46, grain = 1.6, rise = 13) {
+  // Each grain is a short round-capped stroke; all grains of one colour share one path.
   const rnd = seeded(id + "heap");
-  let s = P(`M${f(x - w / 2)} ${f(y)}Q${f(x)} ${f(y - rise * 2)} ${f(x + w / 2)} ${f(y)}Z`, base);
+  const paths = colors.map(() => "");
   for (let i = 0; i < count; i++) {
     const t = rnd() * 2 - 1;
     const px = x + (t * w) / 2.2;
     const maxUp = rise * (1 - t * t) * 0.95;
     const py = y - rnd() * maxUp - 1;
-    s += E(px, py, grain, grain * 0.7, colors[i % colors.length], `transform="rotate(${f(rnd() * 180)} ${f(px)} ${f(py)})"`);
+    const a = rnd() * Math.PI, len = grain * 0.6;
+    paths[i % colors.length] += `M${f(px - Math.cos(a) * len)} ${f(py - Math.sin(a) * len)}l${f(Math.cos(a) * len * 2)} ${f(Math.sin(a) * len * 2)}`;
   }
-  return s;
+  return P(`M${f(x - w / 2)} ${f(y)}Q${f(x)} ${f(y - rise * 2)} ${f(x + w / 2)} ${f(y)}Z`, base) + paths.map((d, i) => S(d, colors[i], grain * 1.4)).join("");
 }
 
 /** A tin can with a label. */
