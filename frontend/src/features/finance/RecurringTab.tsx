@@ -36,6 +36,7 @@ export function RecurringTab() {
   const toast = useToast();
   const [form, setForm] = useState<(RuleForm & { id?: string }) | null>(null);
   const [pay, setPay] = useState<ScheduledPayment | null>(null);
+  const [payAccount, setPayAccount] = useState("");
   const [del, setDel] = useState<RecurringRule | null>(null);
 
   const saveRule = useFinanceMutation((v: RuleForm & { id?: string }) => {
@@ -44,9 +45,21 @@ export function RecurringTab() {
       ? api(f(`/finance/recurring/${v.id}`), { method: "PATCH", body: { name: body.name, amount: body.amount, account_id: body.account_id ?? undefined, category_id: body.category_id ?? undefined, frequency: body.frequency, start_date: body.start_date, remind_days_before: body.remind_days_before, auto_create: body.auto_create } })
       : api(f("/finance/recurring"), { body });
   });
-  const payMut = useFinanceMutation((sp: ScheduledPayment) => api(f(`/finance/scheduled-payments/${sp.id}/pay`), { body: {} }));
+  const payMut = useFinanceMutation((v: { sp: ScheduledPayment; accountId: string }) =>
+    api(f(`/finance/scheduled-payments/${v.sp.id}/pay`), { body: v.accountId ? { account_id: v.accountId } : {} }),
+  );
   const skipMut = useFinanceMutation((sp: ScheduledPayment) => api(f(`/finance/scheduled-payments/${sp.id}/skip`), { method: "POST" }));
   const delMut = useFinanceMutation((r: RecurringRule) => api(f(`/finance/recurring/${r.id}`), { method: "DELETE" }));
+
+  // A rule saved without an account cannot be paid until the user picks one here.
+  const payRule = pay ? rules.data?.find((r) => r.id === pay.rule_id) : undefined;
+  const needsAccount = pay !== null && !payRule?.account_id;
+  const payAccounts = (accounts.data ?? []).filter((a) => !payRule || a.visibility === payRule.visibility);
+  const openPay = (s: ScheduledPayment) => {
+    const rule = rules.data?.find((r) => r.id === s.rule_id);
+    setPayAccount(rule?.account_id ? "" : ((accounts.data ?? []).find((a) => !rule || a.visibility === rule.visibility)?.id ?? ""));
+    setPay(s);
+  };
 
   const upcoming = (scheduled.data ?? []).filter((s) => s.due_date <= addDaysIso(today, 31));
 
@@ -72,7 +85,7 @@ export function RecurringTab() {
                   </p>
                 </div>
                 <span className="tabular font-medium">{formatMoney(s.amount, s.currency)}</span>
-                <Button size="sm" variant="soft" onClick={() => setPay(s)}>
+                <Button size="sm" variant="soft" onClick={() => openPay(s)}>
                   Оплачено
                 </Button>
               </li>
@@ -201,12 +214,13 @@ export function RecurringTab() {
         open={pay !== null}
         onOpenChange={(v) => !v && setPay(null)}
         title="Отметить платёж оплаченным?"
-        description={pay ? `${pay.rule_name}: ${formatMoney(pay.amount, pay.currency)}. Будет создана операция расхода.` : ""}
+        description={pay ? `${pay.rule_name}: ${formatMoney(pay.amount, pay.currency)}. Будет создана операция ${pay.kind === "income" ? "дохода" : "расхода"}.` : ""}
         confirmLabel="Оплачено"
         loading={payMut.isPending}
+        confirmDisabled={needsAccount && !payAccount}
         onConfirm={async () => {
           try {
-            await payMut.mutateAsync(pay!);
+            await payMut.mutateAsync({ sp: pay!, accountId: needsAccount ? payAccount : "" });
             toast.show("Платёж записан");
             setPay(null);
           } catch (e) {
@@ -214,14 +228,32 @@ export function RecurringTab() {
           }
         }}
       >
+        {needsAccount &&
+          (payAccounts.length > 0 ? (
+            <div className="mb-3">
+              <Select label="Счёт" value={payAccount} onChange={(e) => setPayAccount(e.target.value)}>
+                {payAccounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          ) : (
+            <p className="mb-3 text-sm text-danger">Сначала добавьте счёт на вкладке «Счета».</p>
+          ))}
         <Button
           variant="ghost"
           size="sm"
           block
           onClick={async () => {
-            await skipMut.mutateAsync(pay!);
-            toast.show("Платёж пропущен");
-            setPay(null);
+            try {
+              await skipMut.mutateAsync(pay!);
+              toast.show("Платёж пропущен");
+              setPay(null);
+            } catch (e) {
+              toast.show(errorMessage(e), "error");
+            }
           }}
         >
           Пропустить этот платёж
